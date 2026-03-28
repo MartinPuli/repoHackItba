@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >= 0.8.10;
+pragma solidity ^0.8.24;
 
+/// @title Owner -- Control de acceso basico con owner unico
+/// @notice Contrato abstracto que provee modifier OnlyOwner y getter.
 abstract contract Owner {
 
     address private owner;
 
     error InvalidOwner(address owner);
+    error NotOwner();
 
     constructor(address initialOwner) {
         if (initialOwner == address(0)) {
@@ -15,7 +18,7 @@ abstract contract Owner {
     }
 
     modifier OnlyOwner() {
-        require(msg.sender == owner, "You are not the owner");
+        if (msg.sender != owner) revert NotOwner();
         _;
     }
 

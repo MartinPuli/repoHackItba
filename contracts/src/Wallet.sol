@@ -1,51 +1,74 @@
 // SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
 
-// AGREGAR EL ONLYOWNER A ESTE S.C. PARA HACERLO MAS SEGURO (EL ADDRESS VA A ESTAR EN EL BACKEND Y LO COMPARAMOS CON EL QUE
-// QUEDO GUARDADO EN LA BLOCKCHAIN QUE VA A SER Owner(address(this)) )
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-pragma solidity >= 0.8.10;
-
-contract Wallet {
+/// @title Wallet -- Billetera de gasto diario
+/// @notice Permite enviar, recibir y consultar balance de BNB nativos.
+///         Solo el owner puede enviar fondos; cualquiera puede depositar.
+contract Wallet is ReentrancyGuard {
 
     error InvalidAmount();
     error InvalidAddress();
     error SelfTransferNotAllowed();
     error TransferFailed();
+    error NotOwner();
 
-    event Tx(address indexed _from, address indexed _to, uint256 _amount);
+    event Sent(address indexed from, address indexed to, uint256 amount);
+    event Received(address indexed from, uint256 amount);
 
-    function SendTo(address to) public payable returns(bool) {
-        if (msg.value == 0) revert InvalidAmount(); // Deberia verificar si: el msg.value == 0 or msg.value > balance???
-        if (address(this) == to) revert SelfTransferNotAllowed();
+    /// @dev Dueno de la wallet, unico autorizado a enviar fondos
+    address private immutable owner;
+
+    /// @param _owner Direccion del dueno. Se setea en deploy y no cambia.
+    constructor(address _owner) {
+        if (_owner == address(0)) revert InvalidAddress();
+        owner = _owner;
+    }
+
+    modifier onlyOwner() {
+        if (msg.sender != owner) revert NotOwner();
+        _;
+    }
+
+    /// @notice Envia BNB nativo desde el balance del contrato hacia `to`
+    /// @param to Direccion destino
+    /// @param amount Cantidad en wei a enviar
+    function sendTo(address to, uint256 amount) external onlyOwner nonReentrant {
+        if (amount == 0) revert InvalidAmount();
         if (to == address(0)) revert InvalidAddress();
+        if (to == address(this)) revert SelfTransferNotAllowed();
+        if (amount > address(this).balance) revert InvalidAmount();
 
-        emit Tx(address(this), to, msg.value);
+        // Checks-Effects-Interactions: emit after checks, call last
+        emit Sent(address(this), to, amount);
 
-        (bool success, ) = payable(to).call{value: msg.value}("");
+        (bool success, ) = payable(to).call{value: amount}("");
         if (!success) revert TransferFailed();
-
-        return true;
     }
 
-    // receive() external payable {} QUIZA DEBAMOS USAR ESTA FUNCION
-
-    function Receive() public payable returns(bool) {
-        if (msg.value == 0) revert InvalidAmount(); // Deberia verificar si: el msg.value == 0 or msg.value > balance???
-        if (msg.sender == address(this)) revert SelfTransferNotAllowed();
-
-        emit Tx(msg.sender, address(this), msg.value);
-
-        (bool success, ) = payable(address(this)).call{value: msg.value}("");
-        if (!success) revert TransferFailed();
-
-        return true;
-    }
-
-    function GetBalance() public view returns (uint) {
+    /// @notice Consulta el balance nativo del contrato
+    function getBalance() external view returns (uint256) {
         return address(this).balance;
     }
 
-    function getAddress() public view returns (address) {
+    /// @notice Devuelve la direccion del owner
+    function getOwner() external view returns (address) {
+        return owner;
+    }
+
+    /// @notice Devuelve la direccion del contrato (conveniencia para Factory)
+    function getAddress() external view returns (address) {
         return address(this);
+    }
+
+    /// @dev Permite recibir BNB nativo via transferencia directa o call sin data
+    receive() external payable {
+        emit Received(msg.sender, msg.value);
+    }
+
+    /// @dev Permite recibir BNB nativo via call con data arbitraria
+    fallback() external payable {
+        emit Received(msg.sender, msg.value);
     }
 }

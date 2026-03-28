@@ -1,13 +1,17 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >= 0.8.10;
+pragma solidity ^0.8.24;
 
-import {Wallet} from "HackITBA2026/Wallet.sol";
-import {StrongBox} from "HackITBA2026/StrongBox.sol";
+import {Wallet} from "./Wallet.sol";
+import {StrongBox} from "./StrongBox.sol";
 
+/// @title Factory -- Registro central de wallets y strongboxes
+/// @notice Mapea email a wallet address, y wallet a strongbox.
+///         Despliega las instancias de ambos contratos.
 contract Factory {
 
     error UserAlreadyHaveWallet();
     error UserAlreadyHaveStrongBox();
+    error WalletNotRegistered();
 
     event NewWalletCreated(string indexed email, address indexed wallet);
     event NewStrongBoxCreated(address indexed wallet, address indexed strongBox);
@@ -15,30 +19,43 @@ contract Factory {
     mapping (string => address) emailToWallet;
     mapping (address => address) walletToStrongBox;
 
-    function createNewWallet(string memory email) public { // Quiza debe retornar bool
+    /// @notice Crea una nueva wallet para el email dado
+    /// @dev msg.sender se convierte en el owner de la wallet
+    /// @param email Identificador unico del usuario
+    /// @return walletAddress Direccion del contrato Wallet desplegado
+    function createNewWallet(string memory email) public returns (address walletAddress) {
         if (getWallet(email) != address(0)) {
             revert UserAlreadyHaveWallet();
         }
 
-        Wallet wallet = new Wallet();
-        address walletAddress = wallet.getAddress();
-
-        emit NewWalletCreated(email, walletAddress);
+        // El caller (msg.sender) sera el owner de la nueva wallet
+        Wallet wallet = new Wallet(msg.sender);
+        walletAddress = wallet.getAddress();
 
         setWallet(email, walletAddress);
+        emit NewWalletCreated(email, walletAddress);
     }
 
-    function createNewStrongBox(address walletAddress) public { // Quiza debe retornar bool
+    /// @notice Crea una StrongBox vinculada a una wallet existente
+    /// @dev El owner de la StrongBox sera walletAddress (la wallet controla la caja fuerte)
+    /// @param walletAddress Direccion de la wallet a la que se vincula (debe estar registrada en esta Factory)
+    /// @return strongBoxAddress Direccion del contrato StrongBox desplegado
+    function createNewStrongBox(address walletAddress) public returns (address strongBoxAddress) {
         if (getStrongBox(walletAddress) != address(0)) {
             revert UserAlreadyHaveStrongBox();
         }
 
-        StrongBox strongBox = new StrongBox(walletAddress);
-        address strongBoxAddress = strongBox.getAddress();
+        // Verificar que la wallet es un contrato desplegado (no un EOA arbitrario).
+        // No podemos iterar el mapping, pero al menos verificamos que tiene codigo.
+        if (walletAddress == address(0) || walletAddress.code.length == 0) {
+            revert WalletNotRegistered();
+        }
 
-        emit NewStrongBoxCreated(walletAddress, strongBoxAddress);
+        StrongBox strongBox = new StrongBox(walletAddress);
+        strongBoxAddress = strongBox.getAddress();
 
         setStrongBox(walletAddress, strongBoxAddress);
+        emit NewStrongBoxCreated(walletAddress, strongBoxAddress);
     }
 
     function getWallet(string memory email) public view returns(address) {
