@@ -1,207 +1,168 @@
 # Integracion Agente AI ↔ Smart Contracts
 
-## Arquitectura General
+## Arquitectura de Contratos (actualizada)
 
 ```
-OWNER (Metamask)
+Factory (email → wallet address)
+  │
+  ├── createNewWallet(email)     → deploy Wallet, mapea email→address
+  └── createNewStrongBox(wallet) → deploy StrongBox, mapea wallet→strongbox
+
+Owner (abstract)
+  └── OnlyOwner modifier, getOwner()
+
+HeirGuardians (abstract, hereda de Owner)
+  └── setHeirGuardian1/2(), OnlyHeirGuardians modifier
+
+Wallet
+  ├── SendTo(address to) payable → envia BNB
+  ├── Receive() payable          → recibe BNB
+  └── GetBalance()               → consulta balance
+
+StrongBox (hereda de Owner + HeirGuardians)
+  ├── deposit() payable OnlyOwner       → deposita en caja fuerte
+  ├── withdraw() OnlyOwner              → retira (requiere confirm herederos)
+  ├── inherit() OnlyHeirGuardians       → herencia (solo despues de timeLimit)
+  ├── getBalance() OnlyOwner            → consulta balance
+  └── updateTime() OnlyOwner            → resetea Dead Man's Switch
+```
+
+## Flujo por Canal
+
+```
+Usuario (App/Telegram/WhatsApp)
     │
     ▼
-┌──────────┐     ┌──────────────┐
-│  FACTORY │────►│    WALLET    │ (liquidez diaria)
-│          │     │  owner=EOA   │
-│ CREAR()  │     │  ENVIAR()    │
-│          │     │  DEPOSITAR() │
-└──────────┘     └──────┬───────┘
-                        │ owner
-                        ▼
-                 ┌──────────────┐
-                 │ CAJA FUERTE  │ (ahorros + DeFi)
-                 │ owner=Wallet │
-                 │ DEPOSITAR()  │
-                 │ RETIRAR()    │
-                 │ RESET TIME() │
-                 └──────┬───────┘
-                        │ Dead Man's Switch
-                        ▼
-                 ┌──────────────┐
-                 │  HEREDEROS   │
-                 │  H1 (50%)    │
-                 │  H2 (50%)    │
-                 └──────────────┘
+[Agent Orchestrator] ──► detecta intent ──► extrae params
+    │
+    ▼
+[MCP Server Tools]
+    │
+    ├── wallet_create     → Factory.createNewWallet(email)
+    ├── wallet_deposit    → Wallet.Receive() (msg.value)
+    ├── wallet_transfer   → Wallet.SendTo(to) payable
+    ├── wallet_balance    → Wallet.GetBalance()
+    │
+    ├── strongbox_create  → Factory.createNewStrongBox(walletAddr)
+    ├── strongbox_deposit → StrongBox.deposit() payable
+    ├── strongbox_info    → StrongBox.getBalance() + getHeirGuardian1/2()
+    │
+    ├── yield_invest      → StrongBox.deposit() + DeFi strategy
+    ├── loan_take         → Lending pool (off-chain + colateral on-chain)
+    │
+    └── compliance_*      → UIF/CNV checks (off-chain)
 ```
 
 ## Interacciones del Agente por Contrato
 
-### 1. Factory — Onboarding Automatizado
+### 1. Factory — Onboarding por Email
 
-El agente AI orquesta el flujo de creacion de cuentas:
+El nuevo Factory mapea emails a wallets directamente:
 
 ```solidity
-// El agente llama a CREAR() para registrar nuevos usuarios
-function crear(address _owner) external returns (address wallet, address cajaFuerte);
+// Crear wallet para usuario
+function createNewWallet(string memory email) public;
+// → Emite NewWalletCreated(email, walletAddress)
 
-// Modificador de proteccion: evita duplicados
-modifier checkUserHasAccount(address _owner) {
-    require(accounts[_owner] == address(0), "User already has account");
-    _;
-}
+// Crear StrongBox vinculada a wallet
+function createNewStrongBox(address walletAddress) public;
+// → Emite NewStrongBoxCreated(walletAddress, strongBoxAddress)
 
-// El agente puede consultar contratos existentes
-function getWallet(address _owner) external view returns (address);
-function getCajaFuerte(address _owner) external view returns (address);
+// Consultas
+function getWallet(string memory email) public view returns(address);
+function getStrongBox(address wallet) public view returns(address);
 ```
 
 **Flujo del agente**:
-1. Usuario inicia onboarding en frontend
-2. Agente verifica que no exista cuenta previa via `getWallet()`
-3. Agente prepara UserOperation para `crear()`
-4. Segun nivel de autonomia: pide firma al usuario o ejecuta con Session Key
-5. Agente registra la wallet y caja fuerte creadas para operaciones futuras
+1. Usuario da su email (via chat, Telegram, WhatsApp)
+2. Agente llama `Factory.getWallet(email)` — si existe, vincula la sesion
+3. Si no existe, llama `Factory.createNewWallet(email)` — deploy on-chain
+4. Opcionalmente, `Factory.createNewStrongBox(walletAddr)` para caja fuerte
 
-### 2. Wallet — Liquidez Diaria y Off-Ramp
+### 2. Wallet — Pagos y Transferencias
 
 ```solidity
-// Envio de fondos (pagos QR, transferencias)
-function enviar(address _to, uint256 _amount) external onlyOwner;
+// Enviar BNB a otra direccion
+function SendTo(address to) public payable returns(bool);
+// → Valida: msg.value > 0, to != address(0), to != address(this)
+// → Emite Tx(from, to, amount)
 
-// Deposito a CajaFuerte
-function depositar(uint256 _amount) external onlyOwner;
+// Recibir BNB
+function Receive() public payable returns(bool);
+// → Valida: msg.value > 0, msg.sender != address(this)
+// → Emite Tx(sender, this, amount)
 
-// Modifier critico: msg.sender == owner (EOA del usuario)
-modifier onlyOwner() {
-    require(msg.sender == owner, "Not owner");
-    _;
+// Consultar balance
+function GetBalance() public view returns(uint);
+```
+
+**Interaccion del agente**:
+
+| Canal | Accion | Contrato |
+|-------|--------|----------|
+| "depositar 100 BNB" | Wallet.Receive() | msg.value = 100 BNB |
+| "mandar 50 a 0x..." | Wallet.SendTo(0x...) | msg.value = 50 BNB |
+| "cuanto tengo" | Wallet.GetBalance() | view call |
+
+### 3. StrongBox — Ahorros y Herencia
+
+```solidity
+// Depositar en caja fuerte (solo owner)
+function deposit() public payable OnlyOwner returns(bool);
+// → Actualiza lastTimeUsed (resetea Dead Man's Switch)
+
+// Retirar (solo owner, requiere confirm de herederos)
+function withdraw() public payable OnlyOwner returns(bool);
+// → TODO: cola de peticiones con aprobacion de herederos
+
+// Herencia (solo herederos, solo despues de 1 año de inactividad)
+function inherit() OnlyHeirGuardians OnlyAfterTime returns(bool);
+// → Reparte 50% del balance al heredero que llama
+
+// Configurar herederos (solo owner)
+function setHeirGuardian1(address newHeirGuardian) public OnlyOwner;
+function setHeirGuardian2(address newHeirGuardian) public OnlyOwner;
+
+// Dead Man's Switch
+uint private timeLimit = 365 days; // 1 año
+function updateTime() public OnlyOwner; // resetea el timer
+```
+
+**Flujo de herencia**:
+1. Owner deposita en StrongBox — `lastTimeUsed` se actualiza
+2. Owner configura herederos — `setHeirGuardian1/2(addr)`
+3. Si pasa 1 año sin `updateTime()`:
+   - Herederos pueden llamar `inherit()`
+   - Cada uno recibe 50% del balance
+4. El agente llama `updateTime()` automaticamente al detectar actividad
+
+### 4. Owner + HeirGuardians — Contratos Abstractos
+
+```solidity
+// Owner.sol — control de acceso
+abstract contract Owner {
+    modifier OnlyOwner();
+    function getOwner() public view returns(address);
+}
+
+// HeirGuardians.sol — gestion de herederos
+abstract contract HeirGuardians is Owner {
+    modifier OnlyHeirGuardians();
+    function setHeirGuardian1(address) public OnlyOwner;
+    function setHeirGuardian2(address) public OnlyOwner;
+    function getHeirGuardian1() public view returns(address);
+    function getHeirGuardian2() public view returns(address);
 }
 ```
 
-**Interaccion del agente segun nivel de autonomia**:
+## Pendientes de Implementacion en Contratos
 
-| Nivel | Accion del Agente | Firma |
-|-------|-------------------|-------|
-| Asistente | Sugiere montos y destinatarios optimos | Humano firma via Metamask |
-| Co-Piloto | Prepara tx + notifica, compliance UIF automatico | Humano aprueba con 1 click |
-| Autonomo | Ejecuta via Session Keys pre-aprobadas | Sin intervencion humana |
+Los siguientes puntos estan marcados como TODO en los contratos:
 
-**Flujo Off-Ramp (pago QR en ARS)**:
-1. Agente aplica R-MCTS para determinar mejor momento de conversion
-2. Agente prepara `enviar()` hacia contrato de off-ramp
-3. Conversion crypto → ARS con spread del modelo de negocio
-4. QR generado para el usuario
-
-### 3. CajaFuerte — Yield Strategy y Herencia
-
-```solidity
-// Depositar ahorros (solo la Wallet puede llamar)
-function depositar(uint256 _amount) external onlyOwner;
-
-// Retirar fondos (solo la Wallet puede llamar)
-function retirar(uint256 _amount) external onlyOwner;
-
-// Reset del Dead Man's Switch
-function resetTime() external onlyOwner;
-
-// Retiro por herederos (cuando expira el switch)
-function retirarFondos() external onlyHeredero;
-
-// Modifier de herencia
-modifier onlyHeredero() {
-    require(
-        msg.sender == heredero1 || msg.sender == heredero2,
-        "Not heredero"
-    );
-    require(block.timestamp > lastActivity + deadManTimeout, "Owner still active");
-    _;
-}
-```
-
-**Estrategia de Yield orquestada por el agente**:
-
-```
-Flujo Venus-Rootstock:
-1. Agente deposita colateral en Venus Protocol (BSC)
-   └── Ej: depositar USDT como colateral
-2. Agente toma prestamo contra el colateral
-   └── Ej: borrowear BTCB a tasa baja
-3. Agente bridgea a Rootstock
-   └── BTCB → rBTC via bridge
-4. Agente invierte en yield farming en Rootstock
-   └── rBTC en pools de rendimiento
-5. Performance fee sobre el spread de tasas
-   └── (yield Rootstock) - (interes Venus) - gas = beneficio neto
-```
-
-**Parametros que el agente optimiza via AutoResearch**:
-- Ratio colateral/prestamo (LTV) optimo
-- Momento de entrada/salida de posiciones
-- Seleccion de pools en Rootstock por APY ajustado a riesgo
-- Frecuencia de rebalanceo
-
-### 4. Dead Man's Switch — Gestion Automatizada
-
-El agente tiene la tarea programada de mantener activo el Dead Man's Switch:
-
-```
-Deteccion de actividad:
-  - Login en la plataforma
-  - Transaccion firmada
-  - Interaccion biometrica (si disponible)
-  - Cualquier llamada a contratos desde la wallet del usuario
-
-Accion del agente:
-  Si actividad_detectada → llamar resetTime() via Wallet
-  Si NO actividad por X dias → notificar al usuario urgentemente
-  Si timeout expira → el contrato permite a herederos llamar retirarFondos()
-```
-
-**Flujo de herencia cuando expira el switch**:
-1. `block.timestamp > lastActivity + deadManTimeout` se cumple
-2. Modifier `onlyHeredero` permite a H1 o H2 ejecutar
-3. `retirarFondos()` reparte 50% a cada heredero designado
-4. Agente notifica a herederos que los fondos estan disponibles
-
-## Session Keys para Modo Autonomo
-
-Para que el agente opere sin requerir firma del usuario en cada tx:
-
-```
-Session Key = clave temporal con permisos limitados
-
-Parametros de la Session Key:
-  - Duracion: configurable (ej: 24h, 7 dias)
-  - Monto maximo por tx: limitado
-  - Monto maximo acumulado: limitado
-  - Funciones permitidas: whitelist (ej: solo depositar, retirar < X)
-  - Contratos permitidos: solo Wallet y CajaFuerte propios
-```
-
-El usuario aprueba la Session Key una vez (firmando con Metamask), y el agente opera dentro de esos limites sin pedir mas firmas.
-
-## Diagrama de Flujo Completo
-
-```
-Usuario abre app
-    │
-    ▼
-[Frontend] ──► [Agente AI] ──► Analisis de mercado (R-MCTS)
-                    │
-                    ├── Nivel Asistente: muestra sugerencias en UI
-                    │
-                    ├── Nivel Co-Piloto: prepara tx + pide aprobacion
-                    │
-                    └── Nivel Autonomo: ejecuta via Session Keys
-                              │
-                              ▼
-                    [Smart Contracts (BSC)]
-                    ├── Factory.crear()
-                    ├── Wallet.enviar()
-                    ├── Wallet.depositar()
-                    ├── CajaFuerte.depositar()
-                    ├── CajaFuerte.retirar()
-                    ├── CajaFuerte.resetTime()
-                    │
-                    ▼
-                    [DeFi Cross-Chain]
-                    ├── Venus Protocol (BSC) → colateral + prestamo
-                    ├── Bridge BSC ↔ Rootstock
-                    └── Yield Farming (Rootstock) → rendimiento en rBTC
-```
+1. **Factory.createNewWallet**: Falta el deploy real del contrato Wallet (variables `walletAddress` y `strongBoxAddress` no declaradas)
+2. **Wallet**: Falta agregar `OnlyOwner` modifier (comentario en linea 3 del equipo)
+3. **Wallet**: Agregar `receive() external payable` para recibir BNB directo
+4. **StrongBox.withdraw**: Falta implementar la cola de peticiones con aprobacion de herederos
+5. **StrongBox.inherit**: Falta agregar `public` y `payable` al modifier
+6. **StrongBox.deposit**: Bug — `payable(address(this)).call{value: msg.value}` envia a si mismo, deberia solo aceptar el msg.value
+7. **Import paths**: Usan `HackITBA2026/` — verificar que matchee con Hardhat remappings

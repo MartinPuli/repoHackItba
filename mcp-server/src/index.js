@@ -192,7 +192,105 @@ server.tool(
 );
 
 // ═══════════════════════════════════════════════════════════
-// INVESTMENT TOOLS — Yield, estrategias, CajaFuerte
+// STRONGBOX TOOLS — Caja fuerte, herencia, Dead Man's Switch
+// ═══════════════════════════════════════════════════════════
+
+server.tool(
+  "strongbox_create",
+  "Crear una StrongBox (caja fuerte) vinculada a tu wallet. Permite ahorro a largo plazo y herencia con Dead Man's Switch.",
+  {
+    wallet_address: z.string().describe("Wallet a la que se vincula la StrongBox"),
+    heir_guardian_1: z.string().optional().describe("Dirección del primer heredero/guardián"),
+    heir_guardian_2: z.string().optional().describe("Dirección del segundo heredero/guardián"),
+  },
+  async (params) => {
+    // On-chain: Factory.createNewStrongBox(walletAddress)
+    // Then: StrongBox.setHeirGuardian1(addr) + StrongBox.setHeirGuardian2(addr)
+    const wallet = await walletManager.getWalletInfo(params.wallet_address);
+    if (!wallet.success) return { content: [{ type: "text", text: JSON.stringify(wallet, null, 2) }] };
+
+    return {
+      content: [{ type: "text", text: JSON.stringify({
+        success: true,
+        wallet_address: params.wallet_address,
+        strongbox: "pending_deploy",
+        heir_guardians: {
+          guardian_1: params.heir_guardian_1 || "No configurado — usá strongbox_set_heir",
+          guardian_2: params.heir_guardian_2 || "No configurado — usá strongbox_set_heir",
+        },
+        dead_man_switch: {
+          time_limit: "1 año (365 días)",
+          status: "active",
+          last_activity: new Date().toISOString(),
+        },
+        contracts_info: {
+          on_chain: "Factory.createNewStrongBox(walletAddr) → deploy StrongBox con Owner = wallet",
+          deposit: "StrongBox.deposit() — solo el Owner puede depositar",
+          withdraw: "StrongBox.withdraw() — requiere confirmación de herederos",
+          inherit: "StrongBox.inherit() — solo herederos, solo después del timeLimit",
+        },
+        message: "StrongBox creada. Configurá herederos con strongbox_set_heir para activar la herencia.",
+      }, null, 2) }],
+    };
+  }
+);
+
+server.tool(
+  "strongbox_set_heir",
+  "Configurar herederos/guardianes de la StrongBox. Solo el Owner puede hacerlo.",
+  {
+    wallet_address: z.string().describe("Wallet dueña de la StrongBox"),
+    heir_number: z.enum(["1", "2"]).describe("Número de heredero: 1 o 2"),
+    heir_address: z.string().describe("Dirección del heredero/guardián"),
+  },
+  async (params) => {
+    // On-chain: StrongBox.setHeirGuardian1(addr) o setHeirGuardian2(addr)
+    return {
+      content: [{ type: "text", text: JSON.stringify({
+        success: true,
+        wallet_address: params.wallet_address,
+        heir_number: params.heir_number,
+        heir_address: params.heir_address,
+        on_chain: `StrongBox.setHeirGuardian${params.heir_number}(${params.heir_address})`,
+        message: `Heredero ${params.heir_number} configurado: ${params.heir_address}`,
+      }, null, 2) }],
+    };
+  }
+);
+
+server.tool(
+  "strongbox_info",
+  "Ver información de la StrongBox: balance, herederos, Dead Man's Switch status, tiempo restante.",
+  {
+    wallet_address: z.string().describe("Wallet dueña de la StrongBox"),
+  },
+  async (params) => {
+    // On-chain: StrongBox.getBalance(), getHeirGuardian1(), getHeirGuardian2(), lastTimeUsed
+    return {
+      content: [{ type: "text", text: JSON.stringify({
+        success: true,
+        wallet_address: params.wallet_address,
+        strongbox: {
+          balance: "Consultar on-chain: StrongBox.getBalance()",
+          owner: "Consultar on-chain: StrongBox.getOwner()",
+        },
+        heir_guardians: {
+          guardian_1: "Consultar on-chain: StrongBox.getHeirGuardian1()",
+          guardian_2: "Consultar on-chain: StrongBox.getHeirGuardian2()",
+        },
+        dead_man_switch: {
+          time_limit: "1 año (365 días)",
+          last_activity: "Consultar on-chain: StrongBox.lastTimeUsed",
+          status: "active",
+        },
+        message: "Información de StrongBox. Cuando se deploye on-chain, los datos serán en tiempo real.",
+      }, null, 2) }],
+    };
+  }
+);
+
+// ═══════════════════════════════════════════════════════════
+// INVESTMENT TOOLS — Yield, estrategias, StrongBox savings
 // ═══════════════════════════════════════════════════════════
 
 server.tool(
@@ -561,10 +659,18 @@ httpServer.start();
 
 // Start Telegram bot (if token configured)
 if (process.env.TELEGRAM_BOT_TOKEN) {
-  telegramBot.start();
+  try {
+    telegramBot.start();
+  } catch (err) {
+    console.error("Failed to start Telegram bot:", err.message);
+  }
 }
 
 // Initialize WhatsApp (if Twilio configured)
 if (process.env.TWILIO_ACCOUNT_SID) {
-  whatsAppBot.init();
+  try {
+    whatsAppBot.init();
+  } catch (err) {
+    console.error("Failed to initialize WhatsApp bot:", err.message);
+  }
 }

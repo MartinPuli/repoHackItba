@@ -1,51 +1,113 @@
 # Smart Wallet Agent-First — Contexto del Proyecto
 
-## Qué es
-Billetera fintech "Agent-First" para el mercado argentino. Un gestor patrimonial autónomo que combina Account Abstraction (ERC-4337), DeFi cross-chain (BSC + Rootstock), y un Agente AI con 3 niveles de autonomía. Hackathon ITBA.
+## Que es
+Billetera fintech "Agent-First" para el mercado argentino. Un gestor patrimonial autonomo que combina Smart Contracts en BSC, DeFi cross-chain (BSC + Rootstock), un Agente AI multicanal (App + Telegram + WhatsApp), y sistema de herencia con Dead Man's Switch. Hackathon ITBA 2026.
 
-## Stack Técnico
-- **Smart Contracts**: Solidity, Hardhat, Ethers.js, OpenZeppelin
+## Stack Tecnico
+- **Smart Contracts**: Solidity ^0.8.10, Hardhat, Ethers.js
 - **Chain principal**: BSC Testnet (BNB Smart Chain)
 - **Cross-chain**: Rootstock (RSK) para rendimientos en rBTC
 - **Frontend**: Next.js 14+ App Router, Wagmi v2, Viem, TailwindCSS
-- **Account Abstraction**: ERC-4337 (Factory, Wallet, CajaFuerte, Paymaster)
-- **Agente AI**: Análisis de mercado, compliance UIF/CNV, ejecución delegada
-- **Equipo**: 4-6 personas
+- **MCP Server**: Node.js, @modelcontextprotocol/sdk, Zod, ethers.js
+- **Canales**: App (REST API), Telegram Bot, WhatsApp (Twilio)
+- **Contratos**: Factory, Wallet, StrongBox, Owner (abstract), HeirGuardians (abstract)
+- **Agente AI**: NLP intent detection, multi-agent consensus (compliance + risk + investment)
+- **Base de datos**: Supabase (opcional, fallback in-memory)
 
 ## Arquitectura de Contratos
 ```
-OWNER (Metamask) → WALLET (liquidez diaria) → CAJA FUERTE (ahorros + DeFi)
-                                                  ↑
-                                            HEREDEROS / GUARDIANES
+Factory (email → wallet address)
+  |
+  |-- createNewWallet(email)     → deploy Wallet, mapea email→address
+  '-- createNewStrongBox(wallet) → deploy StrongBox, mapea wallet→strongbox
+
+Owner (abstract)
+  '-- OnlyOwner modifier, getOwner()
+
+HeirGuardians (abstract, hereda de Owner)
+  '-- setHeirGuardian1/2(), OnlyHeirGuardians modifier
+
+Wallet
+  |-- SendTo(address to) payable → envia BNB
+  |-- Receive() payable          → recibe BNB
+  '-- GetBalance()               → consulta balance
+
+StrongBox (hereda de Owner + HeirGuardians)
+  |-- deposit() payable OnlyOwner       → deposita en caja fuerte
+  |-- withdraw() OnlyOwner              → retira (requiere confirm herederos)
+  |-- inherit() OnlyHeirGuardians       → herencia (solo despues de timeLimit)
+  |-- getBalance() OnlyOwner            → consulta balance
+  '-- updateTime() OnlyOwner            → resetea Dead Man's Switch (1 año)
 ```
-- **Factory**: Despliega Wallet + CajaFuerte con CREATE2
-- **Wallet**: Billetera de gasto diario, Owner = cuenta externa del usuario
-- **CajaFuerte**: Bóveda de ahorros, Owner = contrato Wallet. Dead Man's Switch para herencia.
+
+- **Factory**: Mapea `email → wallet address`. `createNewWallet(email)` y `createNewStrongBox(walletAddr)`
+- **Wallet**: Billetera de gasto diario. `SendTo(to)`, `Receive()`, `GetBalance()`
+- **StrongBox**: Caja fuerte con herencia. Dead Man's Switch (1 año). `deposit()`, `withdraw()`, `inherit()`
+- **Owner**: Contrato abstracto con modifier `OnlyOwner` y `getOwner()`
+- **HeirGuardians**: Contrato abstracto con `setHeirGuardian1/2()`, modifier `OnlyHeirGuardians`
+
+## Arquitectura del Sistema Agentico
+```
+Canales de Entrada:
+  App (frontend)  ──┐
+  Telegram Bot    ──┼──► Channel Manager ──► Agent Orchestrator ──► MCP Tools (27)
+  WhatsApp Bot    ──┘         |                    |
+                              |              Multi-Agent Consensus
+                         HTTP API :3001       (compliance + risk + investment)
+                              |
+                         Sessions + Conversational Flows
+```
+
+### MCP Server — 27 Tools
+```
+Wallet:      wallet_create, wallet_balance, wallet_info
+Pagos:       wallet_deposit, wallet_withdraw, wallet_transfer, wallet_pay, wallet_request_payment
+StrongBox:   strongbox_create, strongbox_set_heir, strongbox_info
+Inversion:   yield_strategies, yield_invest, yield_withdraw, yield_portfolio
+Prestamos:   loan_options, loan_take, loan_repay, loan_status
+Compliance:  compliance_status, compliance_verify
+Canales:     channel_list, channel_configure, channel_link_wallet
+Discovery:   platform_info, transaction_history
+Agente:      agent_chat (lenguaje natural → routing automatico)
+```
 
 ## Modelo de Negocio
-1. **Yield Spread**: Colateral en Venus (BSC) → Préstamo → Invertir en Rootstock → Performance fee
+1. **Yield Spread**: Colateral en Venus (BSC) → Prestamo → Invertir en Rootstock → Performance fee
 2. **Paymaster**: Subsidia gas, cobra en stablecoins/ARS con markup
-3. **Off-Ramp**: Spread de conversión crypto→ARS para pagos QR
+3. **Lending**: Prestamos con colateral crypto (LTV 60-80%, tasas 3.5-5.2% APY)
+4. **Off-Ramp**: Spread de conversion crypto→ARS para pagos QR
 
-## Niveles de Autonomía del Agente
-- **Nula (Asistente)**: Solo análisis, el humano firma todo
-- **Media (Co-Piloto)**: Notificaciones proactivas, compliance UIF/CNV automático
-- **Alta (Autónomo)**: Rebalanceo automático, Agentic Commerce (Stripe ACP, PayPal AP2)
+## Niveles de Autonomia del Agente
+- **Nula (Asistente)**: Solo analisis, el humano firma todo
+- **Media (Co-Piloto)**: Notificaciones proactivas, compliance UIF/CNV automatico
+- **Alta (Autonomo)**: Rebalanceo automatico, Agentic Commerce (Stripe ACP, PayPal AP2)
 
 ## Estructura del Proyecto
 ```
-/contracts        → Smart contracts Solidity
-/deploy           → Scripts de deploy Hardhat
-/test             → Tests de contratos
-/frontend         → Next.js App Router
-/agent            → Lógica del Agente AI
-/docs             → Documentación adicional
+/contracts              → Smart contracts Solidity
+  /src                  → Factory.sol, Wallet.sol, StrongBox.sol, Owner.sol, HeirGuardians.sol
+  /deploy               → Scripts de deploy Hardhat
+  /test                 → Tests de contratos
+/frontend               → Next.js App Router
+  /app                  → page.tsx, layout.tsx, providers.tsx
+  /components/dashboard → BalanceCards, AutonomySlider, KillSwitch, ActivityFeed,
+                          DeadManStatus, YieldBreakdown, AgentChat
+  /components/layout    → Sidebar, TopBar
+  /lib/contracts        → ABIs y addresses
+  /lib/wagmi            → Config Wagmi + BSC Testnet
+/mcp-server             → MCP Server + HTTP API + Canales
+  /src/tools            → wallet-manager, payment-engine, investment-engine,
+                          lending-engine, compliance-engine, agent-orchestrator
+  /src/channels         → channel-manager, telegram-bot, whatsapp-bot, http-server
+  /src/db               → database.js (Supabase + in-memory fallback)
+/agent                  → Logica del Agente AI (core, modes, integrations, utils)
+/docs                   → Documentacion (14 archivos)
 ```
 
 ## Convenciones
-- Solidity: NatSpec para documentación, eventos para cada acción importante
-- Tests: Mínimo 1 test por función pública de cada contrato
-- Frontend: TypeScript estricto, componentes en /app con RSC por default
+- Solidity: Eventos para cada accion importante, custom errors
+- Frontend: TypeScript estricto, componentes en /components con RSC por default
+- MCP Server: ES modules, Zod schemas, JSDoc comments
 - Commits: conventional commits (feat:, fix:, docs:, test:)
 - Deploy: BSC Testnet para hackathon, Rootstock Testnet para cross-chain
 
@@ -64,11 +126,13 @@ Repositorios clave para integrar (ver `docs/REPOS-REFERENCIA.md`):
 
 ## Integracion Agente ↔ Contratos
 Flujo de interaccion del agente con cada contrato (ver `docs/INTEGRACION-CONTRATOS.md`):
-- **Factory**: Agente orquesta `crear()` con verificacion `checkUserHasAccount()`
-- **Wallet**: Agente usa `enviar()` con Session Keys segun nivel de autonomia
-- **CajaFuerte**: Agente ejecuta yield strategy Venus→Rootstock via `depositar()`/`retirar()`
-- **Dead Man's Switch**: Agente llama `resetTime()` al detectar actividad del usuario
-- **Session Keys**: Claves temporales con limites de monto/duracion para modo Autonomo
+
+- **Factory**: Agente orquesta `createNewWallet(email)` y `createNewStrongBox(walletAddr)`
+- **Wallet**: Agente usa `SendTo(to)` para pagos, `Receive()` para depositos, `GetBalance()` para consultas
+- **StrongBox**: Agente ejecuta `deposit()` para ahorros, `withdraw()` requiere confirm herederos
+- **HeirGuardians**: `setHeirGuardian1/2(addr)` para configurar herederos via Owner
+- **Dead Man's Switch**: Agente llama `updateTime()` al detectar actividad del usuario (timeout 1 año)
+- **Herencia**: `inherit()` solo ejecutable por herederos despues del timeLimit
 
 ## UX Agentico — Perilla de Autonomia
 Diseno de interfaz para transicionar de manipulacion directa a supervision por permisos (ver `docs/UX-AUTONOMIA.md`):
@@ -86,8 +150,8 @@ Integracion del agente con sistemas de pagos fiat (ver `docs/AGENTIC-COMMERCE.md
 Patrones de Solidity contra vulnerabilidades en recuperacion social (ver `docs/SEGURIDAD-HERENCIA.md`):
 - Bloqueo de mutacion de herederos durante recuperacion activa
 - Nonces + chainId en firmas contra replay attacks
-- Timelock 48h en retiros de herencia con cancelacion por owner
-- ReentrancyGuard + Checks-Effects-Interactions en transferencias
+- Timelock en retiros de herencia con cancelacion por owner
+- Checks-Effects-Interactions en transferencias
 
 ## Unit Economics — Modelo de Rentabilidad
 Margenes y metricas del modelo de negocio (ver `docs/UNIT-ECONOMICS.md`):
@@ -118,8 +182,8 @@ Componentes React + Tailwind de 21st.dev para UI profesional rapida (ver `docs/U
 - **Custom (construir)**: AutonomySlider, KillSwitch, DeadManStatus, YieldBreakdown
 
 ## Prioridades Hackathon (<48hs)
-
-1. Contratos core (Factory, Wallet, CajaFuerte) deployados en BSC Testnet
-2. Frontend funcional con wallet connection y toggle de autonomia
+1. Contratos core (Factory, Wallet, StrongBox) deployados en BSC Testnet
+2. Frontend funcional con wallet connection, chat del agente, y toggle de autonomia
 3. Demo del flujo completo: crear wallet → depositar → yield strategy → herencia
-4. Agente AI minimo viable (modo Asistente funcionando)
+4. MCP Server + Telegram Bot funcionando en vivo
+5. Agente AI minimo viable (modo Asistente con NLP funcionando)

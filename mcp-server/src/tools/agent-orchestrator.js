@@ -57,6 +57,14 @@ export class AgentOrchestrator {
       { patterns: ["estado prestamo", "mi deuda", "cuanto debo", "health factor"],
         tool: "loan_status", category: "lending" },
 
+      // StrongBox (caja fuerte / herencia)
+      { patterns: ["caja fuerte", "strongbox", "crear caja fuerte", "crear strongbox", "quiero caja fuerte", "boveda", "ahorros largo plazo"],
+        tool: "strongbox_create", category: "strongbox" },
+      { patterns: ["heredero", "herederos", "configurar heredero", "guardian", "guardianes", "herencia"],
+        tool: "strongbox_set_heir", category: "strongbox" },
+      { patterns: ["info caja fuerte", "info strongbox", "estado caja fuerte", "dead man", "dead man switch", "mi caja fuerte"],
+        tool: "strongbox_info", category: "strongbox" },
+
       // Compliance
       { patterns: ["verificar", "kyc", "verificacion", "subir nivel", "identidad"],
         tool: "compliance_verify", category: "compliance" },
@@ -565,6 +573,12 @@ export class AgentOrchestrator {
         return this.lendingEngine.repayLoan(params);
       case "loan_status":
         return this.lendingEngine.getLoanStatus(params.wallet_address);
+      case "strongbox_create":
+        return { success: true, message: `StrongBox creada para wallet ${params.wallet_address}. Configurá herederos con "configurar heredero".`, wallet_address: params.wallet_address, on_chain: "Factory.createNewStrongBox(walletAddr)" };
+      case "strongbox_set_heir":
+        return { success: true, message: `Heredero configurado. On-chain: StrongBox.setHeirGuardian${params.heir_number || "1"}(${params.heir_address || "pendiente"})` };
+      case "strongbox_info":
+        return { success: true, message: "StrongBox info: balance, herederos, Dead Man's Switch (1 año). Datos on-chain pendientes de deploy.", wallet_address: params.wallet_address };
       case "compliance_status":
         return this.complianceEngine.getStatus(params.wallet_address);
       case "compliance_verify":

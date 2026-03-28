@@ -1,5 +1,7 @@
-// Wallet Manager — Creates and manages wallets (ERC-4337 compatible)
+// Wallet Manager -- Creates and manages wallets
+// Maps to on-chain contracts: Factory (email->wallet), Wallet (SendTo/Receive), StrongBox (deposit/inherit)
 import { ethers } from "ethers";
+import { MOCK_PRICES, SUPPORTED_TOKENS, SUPPORTED_CHAINS } from "../constants.js";
 
 export class WalletManager {
   constructor(db) {
@@ -8,6 +10,7 @@ export class WalletManager {
 
   async createWallet(params) {
     // Check if wallet already exists for this email
+    // On-chain: Factory.getWallet(email) != address(0)
     const existing = await this.db.getWalletByEmail(params.owner_email);
     if (existing) {
       return {
@@ -18,8 +21,8 @@ export class WalletManager {
       };
     }
 
-    // Generate a deterministic wallet address
-    // In production: this calls the Factory contract with CREATE2
+    // Generate wallet address
+    // On-chain: Factory.createNewWallet(email) deploys a new Wallet contract
     // For hackathon: we generate a local keypair and store it
     const wallet = ethers.Wallet.createRandom();
 
@@ -48,8 +51,13 @@ export class WalletManager {
         monthly: record.monthly_limit,
         currency: "USD",
       },
-      supported_tokens: ["BNB", "USDT", "USDC", "BUSD", "rBTC"],
-      supported_chains: ["BSC Testnet", "Rootstock Testnet"],
+      supported_tokens: SUPPORTED_TOKENS,
+      supported_chains: SUPPORTED_CHAINS,
+      contracts: {
+        factory: "Factory.createNewWallet(email) — registra email→wallet on-chain",
+        wallet: "Wallet — SendTo(), Receive(), GetBalance()",
+        strongbox: "StrongBox — deposit(), withdraw(), inherit() (opcional, bajo demanda)",
+      },
       message: params.owner_type === "agent"
         ? `Wallet creada para agente ${params.agent_platform || "unknown"}. Podés depositar, pagar, invertir y cobrar.`
         : `Wallet creada exitosamente. Depositá fondos para empezar a operar.`,
@@ -58,6 +66,7 @@ export class WalletManager {
         "Ver estrategias: yield_strategies",
         "Hacer un pago: wallet_pay",
         "Cobrar: wallet_request_payment",
+        "Crear StrongBox (caja fuerte): para herencia y ahorros a largo plazo",
       ],
     };
   }
@@ -68,12 +77,12 @@ export class WalletManager {
       return { success: false, error: "wallet_not_found", message: "Wallet no encontrada" };
     }
 
-    // In production: query on-chain balances via ethers
-    // For hackathon: return stored balances
+    // On-chain: Wallet.GetBalance() returns BNB balance
+    // For hackathon: return stored balances (multi-token)
     const balances = wallet.balances || {};
 
-    // Calculate total USD value (mock prices for testnet)
-    const prices = { BNB: 600, USDT: 1, USDC: 1, BUSD: 1, rBTC: 85000 };
+    // Calculate total USD value using shared mock prices
+    const prices = MOCK_PRICES;
     let total_usd = 0;
     const tokenBalances = Object.entries(balances).map(([token, amount]) => {
       const usd_value = parseFloat(amount) * (prices[token] || 0);
