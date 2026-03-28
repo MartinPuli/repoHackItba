@@ -1,75 +1,72 @@
-# Smart Wallet Agent-First 🤖💰
+# StrongBox — Smart Recovery Vault
 
-> Billetera fintech "Agent-First" para el mercado argentino. Gestor patrimonial autónomo con Account Abstraction (ERC-4337), DeFi cross-chain, y Agente AI con 3 niveles de autonomía.
+> Caja fuerte cripto con seguridad humana y recuperacion inteligente. No custodial, programable y auditable.
 
-## 🏗️ Arquitectura
+## Problema
+
+En cripto, el mayor riesgo no es la volatilidad, sino la **perdida de acceso**. Hoy una persona puede perder su seed phrase, ser hackeada, o quedar inactiva — y los fondos quedan bloqueados para siempre.
+
+## Solucion
+
+StrongBox permite crear una caja fuerte digital asociada a tu wallet con dos capas humanas de seguridad:
+
+- **Guardianes**: Validan retiros. Protegen contra hackeos y retiros no autorizados.
+- **Recovery Contacts**: Recuperan fondos cuando el owner pierde acceso o queda inactivo.
+
+## Arquitectura
 
 ```
-┌─────────────┐     ┌─────────────────┐     ┌──────────────────────┐
-│   OWNER     │────▶│    WALLET       │────▶│    CAJA FUERTE       │
-│  (Metamask) │     │ (liquidez diaria)│     │  (ahorros + DeFi)    │
-└─────────────┘     └─────────────────┘     └──────────┬───────────┘
-                                                        │
-                    ┌─────────────────┐     ┌──────────▼───────────┐
-                    │   PAYMASTER     │     │  Guardianes/herederos│
-                    │  (gas sponsor)  │     │  Dead Man's Switch   │
-                    └─────────────────┘     └──────────────────────┘
+┌─────────────┐     ┌──────────────────────┐
+│   OWNER     │────▶│     STRONGBOX         │
+│  (MetaMask) │     │  (vault on-chain)     │
+└─────────────┘     └──────────┬────────────┘
+                               │
+                ┌──────────────┼──────────────┐
+                │              │              │
+         ┌──────▼─────┐ ┌─────▼──────┐ ┌─────▼──────┐
+         │ Guardian 1  │ │ Guardian 2  │ │ Recovery 1 │
+         │ (aprueba    │ │ (aprueba    │ │ (recupera  │
+         │  retiros)   │ │  retiros)   │ │  fondos)   │
+         └────────────┘ └────────────┘ └────────────┘
 ```
 
-## 💡 Modelo de Negocio
-
-| Pilar | Descripción | Revenue |
-|-------|-------------|---------|
-| **Yield Spread** | Colateral Venus (BSC) → Préstamo → Invertir Rootstock → rBTC | Performance fee |
-| **Paymaster** | Subsidia gas, cobra en stablecoins/ARS | Markup de gas |
-| **Off-Ramp** | Crypto → ARS para pagos QR | Spread cambiario |
-
-## 🎛️ Niveles de Autonomía del Agente
-
-| Nivel | Nombre | Permisos |
-|-------|--------|----------|
-| 🟢 Nulo | Asistente | Solo análisis. Humano firma todo. |
-| 🟡 Medio | Co-Piloto | Notificaciones + compliance UIF/CNV |
-| 🔴 Alto | Autónomo | Rebalanceo + Agentic Commerce |
-
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Contracts**: Solidity, Hardhat, Ethers.js, OpenZeppelin
-- **Chain**: BSC Testnet + Rootstock Testnet
-- **Frontend**: Next.js 14 (App Router), Wagmi v2, Viem, TailwindCSS
-- **Agente**: TypeScript, APIs de mercado, compliance engine
+- **Chain**: BSC Testnet
+- **Frontend**: Next.js 14, Wagmi v2, Viem, TailwindCSS
+- **Backend**: Express, Supabase (auth + DB)
+- **Auth**: MetaMask + Supabase Web3 login
 
-## 📁 Estructura
+## Estructura
 
 ```
 ├── contracts/          # Smart contracts Solidity
-│   ├── src/            # Contratos principales
-│   ├── test/           # Tests unitarios e integración
-│   ├── deploy/         # Scripts de deploy
-│   └── interfaces/     # Interfaces y ABIs
+│   ├── src/            # Factory, StrongBox, Owner, Guardian
+│   ├── test/           # Tests
+│   └── deploy/         # Scripts de deploy
 ├── frontend/           # Next.js App Router
-│   ├── app/            # Rutas y páginas
-│   ├── components/     # Componentes React
-│   ├── hooks/          # Custom hooks (Wagmi, contratos)
-│   └── lib/            # Utilidades y config
-├── agent/              # Agente AI
-│   ├── core/           # Motor principal
-│   ├── modes/          # Asistente, Co-Piloto, Autónomo
-│   └── integrations/   # Venus, Rootstock, IOL, compliance
-└── docs/               # Documentación
+│   ├── app/            # Rutas y paginas
+│   ├── components/     # Componentes por rol
+│   └── lib/            # Config Wagmi, ABIs
+├── api/                # Backend Express + Supabase
+│   ├── src/            # Rutas, middleware
+│   └── supabase/       # Migraciones SQL
+└── docs/               # Documentacion
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # 1. Instalar dependencias
 cd contracts && npm install
 cd ../frontend && npm install
+cd ../api && npm install
 
 # 2. Configurar variables de entorno
 cp contracts/.env.example contracts/.env
 cp frontend/.env.example frontend/.env.local
-# Editar con tus keys (BSC Testnet RPC, private key, etc.)
+cp api/.env.example api/.env
 
 # 3. Compilar contratos
 cd contracts && npx hardhat compile
@@ -82,18 +79,31 @@ npx hardhat run deploy/deploy.ts --network bscTestnet
 
 # 6. Correr frontend
 cd ../frontend && npm run dev
+
+# 7. Correr backend
+cd ../api && npm run dev
 ```
 
-## 📋 Requisitos Regulatorios
+## Flujos principales
 
-- **UIF**: Resolución 49/2024 — Límites de transacciones, reporte de operaciones sospechosas
-- **CNV**: Resolución 1058/2025 — Regulación de activos digitales
-- El agente en modo Co-Piloto monitorea compliance automáticamente
+### Retiro seguro
+1. Owner solicita retiro
+2. Guardian 1 aprueba
+3. Guardian 2 aprueba
+4. Owner ejecuta
 
-## 👥 Equipo
+### Recuperacion por inactividad
+1. Owner no interactua por el tiempo limite
+2. Recovery contacts pueden reclamar fondos
 
-Hackathon ITBA 2026 — 4-6 personas
+### Recuperacion por perdida de acceso
+1. Owner pierde wallet
+2. Recovery contacts intervienen
 
-## 📄 Licencia
+## Equipo
+
+Hackathon ITBA 2026
+
+## Licencia
 
 MIT

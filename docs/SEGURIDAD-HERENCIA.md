@@ -1,12 +1,12 @@
-# Seguridad Avanzada — Herencia y Social Recovery
+# Seguridad Avanzada — Guardianes y Social Recovery
 
-## Vulnerabilidades Conocidas en Social Recovery (ERC-4337)
+## Vulnerabilidades Conocidas en Social Recovery
 
-Auditores han identificado riesgos graves en modulos de recuperacion social para wallets ERC-4337 que aplican directamente a nuestro Dead Man's Switch y sistema de herederos.
+Auditores han identificado riesgos graves en modulos de recuperacion social que aplican directamente a nuestro sistema de guardianes y recovery contacts.
 
 ### 1. Mutacion de Guardianes Durante Recuperacion
 
-**Vulnerabilidad**: Si la lista de herederos/guardianes puede modificarse mientras un proceso de recuperacion esta en curso, un atacante podria:
+**Vulnerabilidad**: Si la lista de guardianes/recovery contacts puede modificarse mientras un proceso de recuperacion esta en curso, un atacante podria:
 - Agregar un guardian malicioso durante el periodo de espera
 - Cambiar la composicion del quorum a su favor
 - Ejecutar la recuperacion con guardianes que el usuario nunca aprobo
@@ -18,48 +18,46 @@ Auditores han identificado riesgos graves en modulos de recuperacion social para
 enum RecoveryState { INACTIVE, PENDING, EXECUTED }
 RecoveryState public recoveryState;
 
-// Bloquear cambios de herederos durante recuperacion activa
+// Bloquear cambios de guardianes durante recuperacion activa
 modifier noActiveRecovery() {
     require(recoveryState == RecoveryState.INACTIVE, "Recovery in progress");
     _;
 }
 
-function setHeredero(address _heredero, uint8 _slot) external onlyOwner noActiveRecovery {
-    require(_heredero != address(0), "Invalid address");
+function setGuardian(address _guardian, uint8 _slot) external onlyOwner noActiveRecovery {
+    require(_guardian != address(0), "Invalid address");
     require(_slot == 1 || _slot == 2, "Invalid slot");
-    if (_slot == 1) heredero1 = _heredero;
-    else heredero2 = _heredero;
-    emit HerederoUpdated(_slot, _heredero);
+    if (_slot == 1) guardian1 = _guardian;
+    else guardian2 = _guardian;
+    emit GuardianUpdated(_slot, _guardian);
 }
 ```
 
-### 2. Replay Attacks en Aprobaciones de Quorum
+### 2. Replay Attacks en Aprobaciones
 
-**Vulnerabilidad**: Sin proteccion contra replay, una firma de aprobacion de un heredero podria reutilizarse para:
+**Vulnerabilidad**: Sin proteccion contra replay, una firma de aprobacion de un guardian podria reutilizarse para:
 - Ejecutar multiples retiros con una sola aprobacion
-- Reactivar un proceso de herencia que fue cancelado
+- Reactivar un proceso de recovery que fue cancelado
 - Usar firmas de una chain en otra (cross-chain replay)
 
 **Patron de proteccion**:
 
 ```solidity
-// Nonce por heredero para prevenir replay
-mapping(address => uint256) public herederoNonce;
+// Nonce por guardian para prevenir replay
+mapping(address => uint256) public guardianNonce;
 
-// ID unico por solicitud de herencia
-uint256 public inheritanceRequestId;
+// ID unico por solicitud de retiro
+uint256 public withdrawalRequestId;
 
 // Incluir chainId + nonce + requestId en la firma
-function retirarFondos(
+function approveWithdrawal(
     uint256 _requestId,
     uint256 _nonce,
     bytes calldata _signature
-) external onlyHeredero {
-    require(_requestId == inheritanceRequestId, "Invalid request");
-    require(_nonce == herederoNonce[msg.sender], "Invalid nonce");
-    require(block.timestamp > lastActivity + deadManTimeout, "Owner still active");
+) external onlyGuardian {
+    require(_requestId == withdrawalRequestId, "Invalid request");
+    require(_nonce == guardianNonce[msg.sender], "Invalid nonce");
 
-    // Verificar firma incluye chainId para prevenir cross-chain replay
     bytes32 hash = keccak256(abi.encodePacked(
         block.chainid,
         address(this),
@@ -69,14 +67,14 @@ function retirarFondos(
     ));
     require(_verifySignature(hash, _signature, msg.sender), "Invalid signature");
 
-    herederoNonce[msg.sender]++;
-    // ... ejecutar retiro
+    guardianNonce[msg.sender]++;
+    // ... registrar aprobacion
 }
 ```
 
-### 3. Guardian Malicioso / Heredero Comprometido
+### 3. Guardian Malicioso / Recovery Contact Comprometido
 
-**Vulnerabilidad**: Si un heredero es comprometido (clave robada), podria intentar drenar la CajaFuerte en cuanto expire el Dead Man's Switch.
+**Vulnerabilidad**: Si un guardian o recovery contact es comprometido (clave robada), podria intentar drenar la vault.
 
 **Patron de proteccion — Timelock + Notificacion**:
 
@@ -84,70 +82,68 @@ function retirarFondos(
 uint256 public constant WITHDRAWAL_DELAY = 48 hours;
 uint256 public withdrawalUnlocksAt;
 
-// Paso 1: Heredero inicia retiro (no ejecuta inmediatamente)
-function iniciarRetiro() external onlyHeredero {
-    require(block.timestamp > lastActivity + deadManTimeout, "Owner still active");
-    require(withdrawalUnlocksAt == 0, "Withdrawal already pending");
+// Paso 1: Recovery contact inicia recovery (no ejecuta inmediatamente)
+function initiateRecovery() external onlyRecoveryContact {
+    require(block.timestamp > lastActivity + timeLimit, "Owner still active");
+    require(withdrawalUnlocksAt == 0, "Recovery already pending");
 
     withdrawalUnlocksAt = block.timestamp + WITHDRAWAL_DELAY;
-    emit WithdrawalInitiated(msg.sender, withdrawalUnlocksAt);
-    // El agente detecta este evento y notifica al owner urgentemente
+    emit RecoveryInitiated(msg.sender, withdrawalUnlocksAt);
 }
 
-// Paso 2: Ejecutar retiro despues del delay
-function ejecutarRetiro() external onlyHeredero {
-    require(withdrawalUnlocksAt != 0, "No pending withdrawal");
+// Paso 2: Ejecutar recovery despues del delay
+function executeRecovery() external onlyRecoveryContact {
+    require(withdrawalUnlocksAt != 0, "No pending recovery");
     require(block.timestamp >= withdrawalUnlocksAt, "Delay not met");
 
     withdrawalUnlocksAt = 0;
-    // ... repartir fondos 50/50
+    // ... repartir fondos a recovery contacts
 }
 
 // El owner puede cancelar durante el delay si vuelve
-function cancelarRetiro() external onlyOwner {
+function cancelRecovery() external onlyOwner {
     withdrawalUnlocksAt = 0;
-    lastActivity = block.timestamp; // reset Dead Man's Switch
-    emit WithdrawalCancelled(msg.sender);
+    lastActivity = block.timestamp; // reset timer
+    emit RecoveryCancelled(msg.sender);
 }
 ```
 
-### 4. Reentrancy en Retiro de Herencia
+### 4. Reentrancy en Retiro/Recovery
 
 **Patron de proteccion**:
 
 ```solidity
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract CajaFuerte is ReentrancyGuard {
-    function ejecutarRetiro() external onlyHeredero nonReentrant {
+contract StrongBox is ReentrancyGuard {
+    function executeWithdrawal(uint256 requestId) external onlyOwner nonReentrant {
         // Checks-Effects-Interactions pattern
-        uint256 balance = address(this).balance;
-        uint256 share = balance / 2;
+        WithdrawalRequest storage req = requests[requestId];
+        uint256 amount = req.amount;
+        address to = req.to;
 
         // Effects primero
-        withdrawalUnlocksAt = 0;
-        inheritanceRequestId++;
+        req.executed = true;
+        withdrawalRequestId++;
 
         // Interactions al final
-        (bool sent1, ) = heredero1.call{value: share}("");
-        require(sent1, "Transfer to H1 failed");
-        (bool sent2, ) = heredero2.call{value: balance - share}("");
-        require(sent2, "Transfer to H2 failed");
+        (bool sent, ) = to.call{value: amount}("");
+        require(sent, "Transfer failed");
 
-        emit InheritanceExecuted(heredero1, heredero2, balance);
+        emit WithdrawalExecuted(requestId, amount, to);
     }
 }
 ```
 
-## Checklist de Seguridad para CajaFuerte
+## Checklist de Seguridad para StrongBox
 
-- [ ] `noActiveRecovery` modifier en todas las funciones que modifican herederos
-- [ ] Nonce por heredero para prevenir replay attacks
+- [ ] `noActiveRecovery` modifier en funciones que modifican guardianes/recovery contacts
+- [ ] Nonce por guardian para prevenir replay attacks
 - [ ] `block.chainid` en hashes de firma para prevenir cross-chain replay
-- [ ] Timelock de 48h en retiros de herencia con notificacion al owner
-- [ ] `cancelarRetiro()` disponible para el owner durante el periodo de delay
+- [ ] Timelock de 48h en recovery con notificacion al owner
+- [ ] `cancelRecovery()` disponible para el owner durante el periodo de delay
 - [ ] `nonReentrant` en todas las funciones que transfieren fondos
-- [ ] Checks-Effects-Interactions pattern en retiros
-- [ ] Eventos emitidos en cada accion critica para monitoreo del agente
-- [ ] Tests de fuzzing para Dead Man's Switch edge cases
+- [ ] Checks-Effects-Interactions pattern en retiros y recovery
+- [ ] Eventos emitidos en cada accion critica para monitoreo
+- [ ] Tests de fuzzing para timer de inactividad edge cases
 - [ ] Auditoria con Slither antes de deploy a mainnet
