@@ -3,41 +3,78 @@
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { cn, formatUSD } from "@/lib/utils";
-import { ArrowDownLeft, ArrowUpRight, CheckCircle2, Clock } from "lucide-react";
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  CheckCircle2,
+  Clock,
+  Loader2,
+  XCircle,
+} from "lucide-react";
+import {
+  DEMO_USER_ID,
+  useWalletData,
+  useTransactions,
+  useAlerts,
+} from "@/hooks/useSupabase";
+import type { Transaction } from "@/hooks/useSupabase";
 
-const rows = [
-  {
-    id: "tx-1",
-    title: "Depósito a Caja fuerte",
-    sub: "Wallet → CajaFuerte · BSC",
-    amount: -250,
-    when: "Hace 2 h",
-    status: "done" as const,
-  },
-  {
-    id: "tx-2",
-    title: "Aprobación compliance",
-    sub: "UIF / CNV · Co-piloto",
-    amount: 0,
-    when: "Hace 5 h",
-    status: "done" as const,
-  },
-  {
-    id: "tx-3",
-    title: "Sugerencia de rebalanceo",
-    sub: "Pendiente de tu OK",
-    amount: 0,
-    when: "Hace 8 h",
-    status: "pending" as const,
-  },
-];
+function txIcon(tx: Transaction) {
+  if (tx.status === "pending") return <Clock className="h-4 w-4" strokeWidth={2} />;
+  if (tx.status === "failed" || tx.status === "reverted")
+    return <XCircle className="h-4 w-4" strokeWidth={2} />;
+  if (["deposit", "yield_withdraw"].includes(tx.tx_type))
+    return <ArrowDownLeft className="h-4 w-4" strokeWidth={2} />;
+  if (["withdraw", "send", "yield_deposit", "bridge", "off_ramp"].includes(tx.tx_type))
+    return <ArrowUpRight className="h-4 w-4" strokeWidth={2} />;
+  return <CheckCircle2 className="h-4 w-4" strokeWidth={2} />;
+}
+
+function txIconColor(tx: Transaction) {
+  if (tx.status === "failed" || tx.status === "reverted") return "bg-red-500/10 text-red-400";
+  if (tx.status === "pending") return "bg-surface-muted text-ink-muted";
+  if (["deposit", "yield_withdraw"].includes(tx.tx_type)) return "bg-growth/10 text-growth";
+  return "bg-vault/10 text-vault";
+}
+
+const TX_TYPE_LABELS: Record<string, string> = {
+  deposit: "Depósito",
+  withdraw: "Retiro",
+  send: "Envío",
+  swap: "Swap",
+  yield_deposit: "Inversión yield",
+  yield_withdraw: "Retiro yield",
+  bridge: "Bridge cross-chain",
+  off_ramp: "Off-ramp ARS",
+};
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 1) return "Ahora";
+  if (mins < 60) return `Hace ${mins} min`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `Hace ${hours} h`;
+  const days = Math.floor(hours / 24);
+  return `Hace ${days} día${days > 1 ? "s" : ""}`;
+}
 
 export default function TransactionsPage() {
+  const { data: wallets, loading: walletsLoading } = useWalletData(DEMO_USER_ID);
+  const { data: alertsData } = useAlerts(DEMO_USER_ID);
+  const unreadAlerts = alertsData?.unreadCount ?? 0;
+
+  // Use the first wallet's ID for transaction lookup
+  const walletId = wallets?.[0]?.id ?? undefined;
+  const { data: transactions, loading: txLoading } = useTransactions(walletId, 30);
+
+  const loading = walletsLoading || txLoading;
+
   return (
-    <AppShell topTitle="Movimientos y auditoría" unreadAlerts={0}>
+    <AppShell topTitle="Movimientos y auditoría" unreadAlerts={unreadAlerts}>
       <PageHeader
         title="Transacciones"
-        description="Historial claro de lo que moviste y de lo que el agente preparó o ejecutó según tu nivel de autonomía."
+        description="Historial real desde Supabase — cada movimiento tuyo y del agente según tu nivel de autonomía."
       />
 
       <div className="glass-card overflow-hidden">
@@ -46,59 +83,70 @@ export default function TransactionsPage() {
             Recientes
           </p>
         </div>
-        <ul className="divide-y divide-line">
-          {rows.map((r) => (
-            <li
-              key={r.id}
-              className="flex flex-col gap-3 px-5 py-4 transition-colors hover:bg-surface-hover/40 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div className="flex min-w-0 items-start gap-3">
-                <div
-                  className={cn(
-                    "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ring-line",
-                    r.amount < 0
-                      ? "bg-vault/10 text-vault"
-                      : r.amount > 0
-                        ? "bg-growth/10 text-growth"
-                        : "bg-surface-muted text-ink-muted"
-                  )}
+
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-ink-muted" />
+          </div>
+        ) : !transactions || transactions.length === 0 ? (
+          <div className="px-5 py-10 text-center text-sm text-ink-muted">
+            Sin transacciones todavía. Depositá fondos para arrancar.
+          </div>
+        ) : (
+          <ul className="divide-y divide-line">
+            {transactions.map((tx) => {
+              const isIncoming = ["deposit", "yield_withdraw"].includes(tx.tx_type);
+              const displayAmount = tx.amount_usd ?? tx.amount ?? 0;
+
+              return (
+                <li
+                  key={tx.id}
+                  className="flex flex-col gap-3 px-5 py-4 transition-colors hover:bg-surface-hover/40 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  {r.amount < 0 ? (
-                    <ArrowUpRight className="h-4 w-4" strokeWidth={2} />
-                  ) : r.amount > 0 ? (
-                    <ArrowDownLeft className="h-4 w-4" strokeWidth={2} />
-                  ) : r.status === "pending" ? (
-                    <Clock className="h-4 w-4" strokeWidth={2} />
-                  ) : (
-                    <CheckCircle2 className="h-4 w-4" strokeWidth={2} />
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-ink">{r.title}</p>
-                  <p className="text-xs text-ink-muted">{r.sub}</p>
-                  <p className="mt-1 text-[11px] text-ink-faint sm:hidden">
-                    {r.when}
-                  </p>
-                </div>
-              </div>
-              <div className="flex shrink-0 items-center gap-6 pl-12 sm:pl-0">
-                <span className="hidden text-xs text-ink-faint sm:inline">
-                  {r.when}
-                </span>
-                <span
-                  className={cn(
-                    "text-sm font-semibold tabular-nums",
-                    r.amount < 0 && "text-ink",
-                    r.amount > 0 && "text-growth",
-                    r.amount === 0 && "text-ink-muted"
-                  )}
-                >
-                  {r.amount === 0 ? "—" : formatUSD(Math.abs(r.amount))}
-                </span>
-              </div>
-            </li>
-          ))}
-        </ul>
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div
+                      className={cn(
+                        "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ring-line",
+                        txIconColor(tx)
+                      )}
+                    >
+                      {txIcon(tx)}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-ink">
+                        {TX_TYPE_LABELS[tx.tx_type] ?? tx.tx_type}
+                      </p>
+                      <p className="text-xs text-ink-muted truncate">
+                        {tx.token_symbol ?? "BNB"} · Chain {tx.chain_id}
+                        {tx.initiated_by === "agent" && " · Agente"}
+                        {tx.tx_hash && ` · ${tx.tx_hash.slice(0, 10)}…`}
+                      </p>
+                      <p className="mt-1 text-[11px] text-ink-faint sm:hidden">
+                        {timeAgo(tx.created_at)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-6 pl-12 sm:pl-0">
+                    <span className="hidden text-xs text-ink-faint sm:inline">
+                      {timeAgo(tx.created_at)}
+                    </span>
+                    <span
+                      className={cn(
+                        "text-sm font-semibold tabular-nums",
+                        isIncoming ? "text-growth" : "text-ink",
+                        displayAmount === 0 && "text-ink-muted"
+                      )}
+                    >
+                      {displayAmount === 0
+                        ? "—"
+                        : `${isIncoming ? "+" : "-"}${formatUSD(displayAmount)}`}
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
     </AppShell>
   );

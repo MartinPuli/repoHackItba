@@ -4,7 +4,12 @@ import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatBlock } from "@/components/ui/StatBlock";
 import { formatPercent, formatUSD } from "@/lib/utils";
-import { ArrowRight, Layers } from "lucide-react";
+import { ArrowRight, Layers, Loader2 } from "lucide-react";
+import {
+  DEMO_USER_ID,
+  useYieldPositions,
+  useAlerts,
+} from "@/hooks/useSupabase";
 
 const steps = [
   {
@@ -28,30 +33,83 @@ const steps = [
 ] as const;
 
 export default function YieldPage() {
+  const { data: positions, loading } = useYieldPositions(DEMO_USER_ID);
+  const { data: alertsData } = useAlerts(DEMO_USER_ID);
+  const unreadAlerts = alertsData?.unreadCount ?? 0;
+
+  // Compute real stats from Supabase yield_positions
+  const totalDeposited = positions?.reduce((sum, p) => sum + (p.amount_usd ?? 0), 0) ?? 0;
+  const weightedApy =
+    positions && positions.length > 0
+      ? positions.reduce((sum, p) => sum + p.apy_current * (p.amount_usd ?? 0), 0) / totalDeposited
+      : 0;
+  const hasActivePositions = positions && positions.length > 0;
+
   return (
-    <AppShell topTitle="Estrategia de rendimiento" unreadAlerts={0}>
+    <AppShell topTitle="Estrategia de rendimiento" unreadAlerts={unreadAlerts}>
       <PageHeader
         title="Yield"
-        description="Flujo BSC → Rootstock explicado sin ruido. Los números de demo ayudan a contar la historia en el pitch."
+        description="Flujo BSC → Rootstock explicado sin ruido. Datos en tiempo real desde Supabase."
       />
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <StatBlock
-          label="APY neto estimado"
-          value={formatPercent(4.1)}
-          hint="Después de costos y fees"
-        />
-        <StatBlock
-          label="Depositado en estrategia"
-          value={formatUSD(4830)}
-          hint="Caja fuerte"
-        />
-        <StatBlock
-          label="Estado"
-          value="Activa"
-          hint="Simulación hackathon"
-        />
-      </div>
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-ink-muted" />
+        </div>
+      ) : (
+        <>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <StatBlock
+              label="APY neto estimado"
+              value={formatPercent(weightedApy)}
+              hint="Promedio ponderado por monto"
+            />
+            <StatBlock
+              label="Depositado en estrategia"
+              value={formatUSD(totalDeposited)}
+              hint="Total en posiciones activas"
+            />
+            <StatBlock
+              label="Estado"
+              value={hasActivePositions ? "Activa" : "Sin posiciones"}
+              hint={
+                hasActivePositions
+                  ? `${positions!.length} posición${positions!.length > 1 ? "es" : ""} activa${positions!.length > 1 ? "s" : ""}`
+                  : "Invertí para arrancar"
+              }
+            />
+          </div>
+
+          {/* Active positions from Supabase */}
+          {hasActivePositions && (
+            <div className="mt-8 space-y-4">
+              <h2 className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-faint">
+                Posiciones activas
+              </h2>
+              <div className="grid gap-3">
+                {positions!.map((pos) => (
+                  <div key={pos.id} className="glass-card flex items-center justify-between p-4">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-ink">{pos.protocol}</p>
+                      <p className="text-xs text-ink-muted">
+                        {pos.amount} {pos.token_symbol} · {pos.position_type ?? "lending"} · Chain {pos.chain_id}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0 pl-4">
+                      <p className="text-sm font-semibold tabular-nums text-growth">
+                        {formatPercent(pos.apy_current)} APY
+                      </p>
+                      <p className="text-xs text-ink-muted tabular-nums">
+                        {formatUSD(pos.amount_usd ?? 0)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
       <div className="mt-8 space-y-4">
         <h2 className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-faint">

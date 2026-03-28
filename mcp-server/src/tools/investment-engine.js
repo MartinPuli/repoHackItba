@@ -1,5 +1,6 @@
 // Investment Engine — Yield strategies, Venus→Rootstock, portfolio management
 // The agent uses this to manage user investments autonomously
+import { MOCK_PRICES } from "../constants.js";
 
 export class InvestmentEngine {
   constructor(db) {
@@ -148,8 +149,7 @@ export class InvestmentEngine {
     await this.db.updateWalletBalances(params.wallet_address, balances);
 
     // Calculate projected earnings
-    const prices = { BNB: 600, USDT: 1, USDC: 1, BUSD: 1, rBTC: 85000 };
-    const amount_usd = amount * (prices[params.token] || 1);
+    const amount_usd = amount * (MOCK_PRICES[params.token] || 1);
     const daily_yield = (amount_usd * (strategy.apy / 100)) / 365;
     const monthly_yield = daily_yield * 30;
 
@@ -356,7 +356,6 @@ export class InvestmentEngine {
   // ── Helpers ─────────────────────────────────────────
 
   _getPrice(token) {
-    const prices = { BNB: 600, USDT: 1, USDC: 1, BUSD: 1, rBTC: 85000 };
-    return prices[token] || 1;
+    return MOCK_PRICES[token] || 1;
   }
 }

@@ -1,5 +1,6 @@
 // Lending Engine — Préstamos con colateral crypto (Venus-style)
 // Un viejo puede decir "quiero un préstamo" y el agente lo maneja
+import { MOCK_PRICES } from "../constants.js";
 
 export class LendingEngine {
   constructor(db) {
@@ -43,7 +44,7 @@ export class LendingEngine {
       liquidation_penalty: 0.05, // 5% penalty on liquidation
     };
 
-    this.prices = { BNB: 600, USDT: 1, USDC: 1, BUSD: 1, rBTC: 85000 };
+    this.prices = MOCK_PRICES;
   }
 
   // ── Loan Info ───────────────────────────────────────

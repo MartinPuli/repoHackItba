@@ -3,6 +3,7 @@
 // Guard: if no wallet, blocks and guides to onboarding
 // Sub-agents: WalletAgent (payments/wallet), InvestAgent (yield/lending), InfoAgent (general/compliance)
 // Works from: App, Telegram, WhatsApp, MCP (other agents)
+import { MOCK_PRICES } from "../constants.js";
 
 const GEMINI_KEY = process.env.GEMINI_API_KEY;
 
@@ -497,8 +498,7 @@ export class AgentOrchestrator {
   }
 
   _estimateUSD(amount, token) {
-    const prices = { BNB: 600, USDT: 1, USDC: 1, BUSD: 1, rBTC: 85000 };
-    return parseFloat(amount || "0") * (prices[token] || 1);
+    return parseFloat(amount || "0") * (MOCK_PRICES[token] || 1);
   }
 
   _capitalize(str) {

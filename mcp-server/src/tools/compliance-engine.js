@@ -1,5 +1,6 @@
 // Compliance Engine — UIF/CNV rules, KYC/KYA verification, daily limits
 // Inspired by Argentine financial regulations for crypto operations
+import { MOCK_PRICES } from "../constants.js";
 
 export class ComplianceEngine {
   constructor(db) {
@@ -221,8 +222,7 @@ export class ComplianceEngine {
   // ── Helpers ─────────────────────────────────────────
 
   _toUSD(amount, token) {
-    const prices = { BNB: 600, USDT: 1, USDC: 1, BUSD: 1, rBTC: 85000 };
-    return parseFloat(amount) * (prices[token] || 1);
+    return parseFloat(amount) * (MOCK_PRICES[token] || 1);
   }
 
   _getUpgradeOptions(currentLevel) {

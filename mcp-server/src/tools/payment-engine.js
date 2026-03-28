@@ -1,10 +1,10 @@
 // Payment Engine — Deposits, withdrawals, transfers, payments, invoicing
+import { MOCK_PRICES } from "../constants.js";
 
 export class PaymentEngine {
   constructor(db) {
     this.db = db;
-    // Mock prices for testnet
-    this.prices = { BNB: 600, USDT: 1, USDC: 1, BUSD: 1, rBTC: 85000 };
+    this.prices = MOCK_PRICES;
   }
 
   async deposit(params) {
