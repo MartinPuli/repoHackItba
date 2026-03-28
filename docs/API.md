@@ -175,6 +175,46 @@ Devuelve el perfil en **`public.users`** (`id`, `email`, `wallet_address`, etc.)
 
 ---
 
+### `GET /api/wallet/balance`
+
+Devuelve balances **simulados** (BNB + USDT) para la smart wallet del usuario autenticado. La dirección se resuelve en este orden: última fila en **`wallets.contract_address`** para el `user_id`; si no existe, **`users.wallet_address`** (placeholder de registro). Los valores on-chain reales se integrarán vía RPC/ethers sustituyendo la capa mock.
+
+**Cabeceras:** `Authorization: Bearer <access_token>` (obligatorio).
+
+**Respuesta 200 (ejemplo)**
+
+```json
+{
+  "resolution": "users_fallback",
+  "balances": {
+    "chainId": 97,
+    "contractAddress": "0x...",
+    "native": { "symbol": "BNB", "wei": "...", "formatted": "0.012345" },
+    "usdt": { "symbol": "USDT", "raw": "...", "decimals": 6, "formatted": "1.23" },
+    "source": "mock"
+  },
+  "dbSnapshot": null
+}
+```
+
+Si hay fila `wallets`, `resolution` será `"wallets"` y `dbSnapshot` incluirá `balance_bnb`, `balance_usdt`, `is_deployed`.
+
+**Errores:** **401** token; **404** sin `users.wallet_address`; **500** Supabase no configurado.
+
+---
+
+### `GET /api/caja-fuerte/balance`
+
+Balances **simulados** para la caja fuerte: BNB nativo, USDT y RBTC (alineado al schema y a la visión producto; el contrato actual `StrongBox.sol` solo expone balance nativo — ver notas abajo). Requiere una fila en **`caja_fuerte`** con `contract_address` del usuario.
+
+**Cabeceras:** `Authorization: Bearer <access_token>`.
+
+**Respuesta 200:** objeto `balances` con `source: "mock"` y `dbSnapshot` con columnas cache del schema.
+
+**Errores:** **401**; **404** si no hay fila `caja_fuerte` para el usuario.
+
+---
+
 ## Ejemplo cURL (login)
 
 ```bash
@@ -192,16 +232,25 @@ curl -s http://localhost:3000/api/auth/me \
   -H 'Authorization: Bearer <ACCESS_TOKEN>'
 ```
 
+### Ejemplo cURL (balances con JWT)
+
+```bash
+curl -s http://localhost:3000/api/wallet/balance \
+  -H 'Authorization: Bearer <ACCESS_TOKEN>'
+
+curl -s http://localhost:3000/api/caja-fuerte/balance \
+  -H 'Authorization: Bearer <ACCESS_TOKEN>'
+```
+
 ---
 
 ## Pruebas desde el repo
 
 En `api/http/api.http` hay peticiones listas para **REST Client** (VS Code / Cursor).
 
----
+## Notas de alineación (contratos vs producto)
 
-## Próximos pasos posibles (no implementados aún)
-
-- Endpoints de wallet / caja fuerte / transacciones alineados al schema en `public`.
+- **`Wallet.sol`** expone `GetBalance()` nativo; no hay USDT en el contrato actual; el mock incluye USDT para la API objetivo del hackathon.
+- **`StrongBox.sol`** (`contracts/src/StrongBox.sol`): balance vía `getBalance()` nativo y modificador `OnlyOwner`; la lectura por backend vía RPC no depende del modificador. Documentación en `docs/INTEGRACION-CONTRATOS.md` describe `CajaFuerte` con más métodos que aún no coinciden 1:1 con el código en `contracts/src/`.
 
 Para el modelo de datos completo, ver la migración en `api/supabase/migrations/` y tipos en `api/src/types/database.types.ts`.
