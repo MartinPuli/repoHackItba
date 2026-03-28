@@ -9,6 +9,7 @@ const store = {
   investments: [],
   payment_requests: [],
   compliance: new Map(),
+  agent_decisions: [],
 };
 
 class Database {
@@ -201,6 +202,67 @@ class Database {
     }
     const { data } = await this.supabase.from("payment_requests").select("*").eq("id", id).single();
     return data;
+  }
+
+  // ── Agent Decisions (logging) ────────────────────────
+  async logAgentDecision(decision) {
+    const record = {
+      id: randomUUID(),
+      user_id: decision.user_id || null,
+      wallet_address: decision.wallet_address || null,
+      message: decision.message || null,
+      intent: decision.intent || null,
+      tool: decision.tool || null,
+      response: decision.response || null,
+      data: decision.data || null,
+      created_at: new Date().toISOString(),
+    };
+
+    if (this.useMemory) {
+      store.agent_decisions.push(record);
+      return record;
+    }
+
+    try {
+      const { data, error } = await this.supabase
+        .from("agent_decisions")
+        .insert(record)
+        .select()
+        .single();
+      if (error) {
+        // Fallback to memory if table doesn't exist
+        store.agent_decisions.push(record);
+        return record;
+      }
+      return data;
+    } catch {
+      store.agent_decisions.push(record);
+      return record;
+    }
+  }
+
+  async getAgentDecisions(userId, limit = 20) {
+    if (this.useMemory) {
+      return store.agent_decisions
+        .filter((d) => d.user_id === userId)
+        .slice(-limit)
+        .reverse();
+    }
+
+    try {
+      const { data } = await this.supabase
+        .from("agent_decisions")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      return data || [];
+    } catch {
+      return store.agent_decisions
+        .filter((d) => d.user_id === userId)
+        .slice(-limit)
+        .reverse();
+    }
   }
 
   // ── Daily volume tracking (compliance) ───────────────

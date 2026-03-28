@@ -22,7 +22,7 @@ type ActionType =
   | "alert"
   | "deadman";
 
-interface ActivityItem {
+export interface ActivityItem {
   id: string;
   type: ActionType;
   message: string;
@@ -68,59 +68,13 @@ const typeConfig: Record<
 interface ActivityFeedProps {
   items?: ActivityItem[];
   maxItems?: number;
+  loading?: boolean;
 }
 
-// Mock data for demo
-const mockItems: ActivityItem[] = [
-  {
-    id: "1",
-    type: "analysis",
-    message: "rBTC yield subio a 8.2% APY — evaluando rebalanceo",
-    timestamp: new Date(Date.now() - 120000).toISOString(),
-    status: "success",
-  },
-  {
-    id: "2",
-    type: "suggestion",
-    message: "Sugerencia: mover +5% a pool Rootstock",
-    timestamp: new Date(Date.now() - 300000).toISOString(),
-    status: "pending",
-    canRevert: false,
-  },
-  {
-    id: "3",
-    type: "compliance",
-    message: "Tx aprobada — compliance UIF verificado",
-    timestamp: new Date(Date.now() - 480000).toISOString(),
-    status: "success",
-  },
-  {
-    id: "4",
-    type: "deadman",
-    message: "resetTime() ejecutado — Dead Man's Switch activo",
-    timestamp: new Date(Date.now() - 900000).toISOString(),
-    status: "success",
-  },
-  {
-    id: "5",
-    type: "yield",
-    message: "Colateral Venus OK — LTV 68.2%",
-    timestamp: new Date(Date.now() - 1200000).toISOString(),
-    status: "success",
-  },
-  {
-    id: "6",
-    type: "execute",
-    message: "Deposito 100 USDT en Venus Protocol",
-    timestamp: new Date(Date.now() - 1800000).toISOString(),
-    status: "success",
-    canRevert: true,
-  },
-];
-
 export function ActivityFeed({
-  items = mockItems,
+  items = [],
   maxItems = 10,
+  loading = false,
 }: ActivityFeedProps) {
   const displayItems = items.slice(0, maxItems);
 
@@ -137,6 +91,26 @@ export function ActivityFeed({
       </div>
 
       <div className="flex-1 space-y-1 overflow-y-auto pr-1">
+        {loading && displayItems.length === 0 && (
+          <div className="space-y-2">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="flex items-start gap-3 rounded-lg px-3 py-2.5">
+                <div className="h-7 w-7 animate-pulse rounded-md bg-white/5" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="h-3 w-3/4 animate-pulse rounded bg-white/5" />
+                  <div className="h-2 w-1/4 animate-pulse rounded bg-white/5" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!loading && displayItems.length === 0 && (
+          <div className="flex flex-1 items-center justify-center py-12">
+            <p className="text-sm text-white/30">Sin actividad reciente</p>
+          </div>
+        )}
+
         <AnimatePresence initial={false}>
           {displayItems.map((item, index) => {
             const config = typeConfig[item.type];
