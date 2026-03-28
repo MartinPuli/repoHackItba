@@ -30,20 +30,30 @@ abstract contract HeirGuardians is Owner {
         _;
     }
 
-    /// @notice Configura el heredero 1. Solo el owner puede llamar.
-    function setHeirGuardian1(address newHeirGuardian) public OnlyOwner {
+    /// @dev Logica interna para que contratos hijos puedan aplicar otro modifier (p. ej. user EOA).
+    function _setHeirGuardian1(address newHeirGuardian) internal virtual {
         _validateHeir(newHeirGuardian, heirGuardian2);
         address old = heirGuardian1;
         heirGuardian1 = newHeirGuardian;
         emit HeirGuardianUpdated(1, old, newHeirGuardian);
     }
 
-    /// @notice Configura el heredero 2. Solo el owner puede llamar.
-    function setHeirGuardian2(address newHeirGuardian) public OnlyOwner {
+    /// @dev Logica interna para que contratos hijos puedan aplicar otro modifier.
+    function _setHeirGuardian2(address newHeirGuardian) internal virtual {
         _validateHeir(newHeirGuardian, heirGuardian1);
         address old = heirGuardian2;
         heirGuardian2 = newHeirGuardian;
         emit HeirGuardianUpdated(2, old, newHeirGuardian);
+    }
+
+    /// @notice Configura el heredero 1. Solo el owner puede llamar.
+    function setHeirGuardian1(address newHeirGuardian) public virtual OnlyOwner {
+        _setHeirGuardian1(newHeirGuardian);
+    }
+
+    /// @notice Configura el heredero 2. Solo el owner puede llamar.
+    function setHeirGuardian2(address newHeirGuardian) public virtual OnlyOwner {
+        _setHeirGuardian2(newHeirGuardian);
     }
 
     function getHeirGuardian1() public view returns(address) {

@@ -108,32 +108,33 @@ describe("Contratos Core", function () {
   // StrongBox
   // ============================================================
   describe("StrongBox", function () {
-    it("debe deployar con el owner correcto", async function () {
+    it("debe deployar con el owner correcto y userEOA", async function () {
       const { user } = await loadFixture(deployFixture);
 
       const SBFactory = await ethers.getContractFactory("StrongBox");
-      const sb = await SBFactory.deploy(user.address);
+      const sb = await SBFactory.deploy(user.address, user.address);
       expect(await sb.getOwner()).to.equal(user.address);
+      expect(await sb.getUserEOA()).to.equal(user.address);
     });
 
     it("debe aceptar depositos del owner", async function () {
       const { user } = await loadFixture(deployFixture);
 
       const SBFactory = await ethers.getContractFactory("StrongBox");
-      const sb = await SBFactory.deploy(user.address);
+      const sb = await SBFactory.deploy(user.address, user.address);
 
       await sb.connect(user).deposit({ value: ethers.parseEther("2") });
       expect(await sb.getBalance()).to.equal(ethers.parseEther("2"));
     });
 
-    it("debe recibir BNB directo via receive()", async function () {
-      const { deployer, user } = await loadFixture(deployFixture);
+    it("debe recibir BNB directo via receive() solo del owner", async function () {
+      const { user } = await loadFixture(deployFixture);
 
       const SBFactory = await ethers.getContractFactory("StrongBox");
-      const sb = await SBFactory.deploy(user.address);
+      const sb = await SBFactory.deploy(user.address, user.address);
       const sbAddr = await sb.getAddress();
 
-      await deployer.sendTransaction({ to: sbAddr, value: ethers.parseEther("1") });
+      await user.sendTransaction({ to: sbAddr, value: ethers.parseEther("1") });
       expect(await sb.getBalance()).to.equal(ethers.parseEther("1"));
     });
 
@@ -141,34 +142,65 @@ describe("Contratos Core", function () {
       const { user, attacker } = await loadFixture(deployFixture);
 
       const SBFactory = await ethers.getContractFactory("StrongBox");
-      const sb = await SBFactory.deploy(user.address);
+      const sb = await SBFactory.deploy(user.address, user.address);
 
       await expect(
         sb.connect(attacker).deposit({ value: ethers.parseEther("1") })
       ).to.be.reverted;
     });
 
-    it("debe permitir retiro del owner", async function () {
-      const { deployer, user } = await loadFixture(deployFixture);
+    it("debe permitir retiro del owner con aprobacion de ambos herederos", async function () {
+      const { deployer, user, heir1, heir2 } = await loadFixture(deployFixture);
 
       const SBFactory = await ethers.getContractFactory("StrongBox");
-      const sb = await SBFactory.deploy(user.address);
+      const sb = await SBFactory.deploy(user.address, user.address);
+
+      await sb.connect(user).setHeirGuardian1(heir1.address);
+      await sb.connect(user).setHeirGuardian2(heir2.address);
 
       await sb.connect(user).deposit({ value: ethers.parseEther("3") });
 
+      await sb.connect(user).requestWithdrawal(ethers.parseEther("1"), deployer.address);
+      const rid = 0n; // primer requestId
+
+      await sb.connect(heir1).approveWithdrawal(rid);
+      await sb.connect(heir2).approveWithdrawal(rid);
+
       const balBefore = await ethers.provider.getBalance(deployer.address);
-      await sb.connect(user).withdraw(ethers.parseEther("1"), deployer.address);
+      await sb.connect(user).executeWithdrawal(rid);
       const balAfter = await ethers.provider.getBalance(deployer.address);
 
       expect(balAfter - balBefore).to.equal(ethers.parseEther("1"));
       expect(await sb.getBalance()).to.equal(ethers.parseEther("2"));
     });
 
-    it("debe configurar herederos correctamente", async function () {
+    it("debe configurar herederos correctamente (owner o userEOA)", async function () {
       const { user, heir1, heir2 } = await loadFixture(deployFixture);
 
       const SBFactory = await ethers.getContractFactory("StrongBox");
-      const sb = await SBFactory.deploy(user.address);
+      const sb = await SBFactory.deploy(user.address, user.address);
+
+      await sb.connect(user).setHeirGuardian1(heir1.address);
+      await sb.connect(user).setHeirGuardian2(heir2.address);
+
+      expect(await sb.getHeirGuardian1()).to.equal(heir1.address);
+      expect(await sb.getHeirGuardian2()).to.equal(heir2.address);
+    });
+
+    it("userEOA puede configurar herederos cuando el owner es el contrato Wallet", async function () {
+      const { user, heir1, heir2 } = await loadFixture(deployFixture);
+
+      const FactoryContract = await ethers.getContractFactory("Factory");
+      const factory = await FactoryContract.deploy();
+
+      await factory.connect(user).createNewWallet("user@test.com", user.address);
+      const walletAddr = await factory.getWallet("user@test.com");
+      await factory.connect(user).createNewStrongBox(walletAddr);
+      const sbAddr = await factory.getStrongBox(walletAddr);
+
+      const sb = await ethers.getContractAt("StrongBox", sbAddr);
+      expect(await sb.getOwner()).to.equal(walletAddr);
+      expect(await sb.getUserEOA()).to.equal(user.address);
 
       await sb.connect(user).setHeirGuardian1(heir1.address);
       await sb.connect(user).setHeirGuardian2(heir2.address);
@@ -181,7 +213,7 @@ describe("Contratos Core", function () {
       const { user } = await loadFixture(deployFixture);
 
       const SBFactory = await ethers.getContractFactory("StrongBox");
-      const sb = await SBFactory.deploy(user.address);
+      const sb = await SBFactory.deploy(user.address, user.address);
 
       await expect(
         sb.connect(user).setHeirGuardian1(user.address)
@@ -192,7 +224,7 @@ describe("Contratos Core", function () {
       const { user, heir1 } = await loadFixture(deployFixture);
 
       const SBFactory = await ethers.getContractFactory("StrongBox");
-      const sb = await SBFactory.deploy(user.address);
+      const sb = await SBFactory.deploy(user.address, user.address);
 
       await sb.connect(user).setHeirGuardian1(heir1.address);
       await expect(
@@ -211,7 +243,7 @@ describe("Contratos Core", function () {
       const FactoryContract = await ethers.getContractFactory("Factory");
       const factory = await FactoryContract.deploy();
 
-      const tx = await factory.connect(user).createNewWallet("user@test.com");
+      const tx = await factory.connect(user).createNewWallet("user@test.com", user.address);
       await tx.wait();
 
       const walletAddr = await factory.getWallet("user@test.com");
@@ -224,10 +256,10 @@ describe("Contratos Core", function () {
       const FactoryContract = await ethers.getContractFactory("Factory");
       const factory = await FactoryContract.deploy();
 
-      await factory.connect(user).createNewWallet("user@test.com");
+      await factory.connect(user).createNewWallet("user@test.com", user.address);
 
       await expect(
-        factory.connect(user).createNewWallet("user@test.com")
+        factory.connect(user).createNewWallet("user@test.com", user.address)
       ).to.be.revertedWithCustomError(factory, "UserAlreadyHaveWallet");
     });
 
@@ -237,7 +269,7 @@ describe("Contratos Core", function () {
       const FactoryContract = await ethers.getContractFactory("Factory");
       const factory = await FactoryContract.deploy();
 
-      await factory.connect(user).createNewWallet("user@test.com");
+      await factory.connect(user).createNewWallet("user@test.com", user.address);
       const walletAddr = await factory.getWallet("user@test.com");
 
       await factory.connect(user).createNewStrongBox(walletAddr);
@@ -252,7 +284,7 @@ describe("Contratos Core", function () {
       const FactoryContract = await ethers.getContractFactory("Factory");
       const factory = await FactoryContract.deploy();
 
-      await factory.connect(user).createNewWallet("user@test.com");
+      await factory.connect(user).createNewWallet("user@test.com", user.address);
       const walletAddr = await factory.getWallet("user@test.com");
 
       await factory.connect(user).createNewStrongBox(walletAddr);

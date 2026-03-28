@@ -13,6 +13,7 @@ contract StrongBox is Owner, HeirGuardians, ReentrancyGuard {
     error BalanceEqualsZero();
     error InvalidAmount();
     error InvalidAddress();
+    error NotOwnerOrUserEOA();
     error InsufficientBalance();
     error TransferFailed();
     error WithdrawalNotApproved();
@@ -43,14 +44,41 @@ contract StrongBox is Owner, HeirGuardians, ReentrancyGuard {
     uint256 private withdrawalRequestCount;
     mapping(uint256 => WithdrawalRequest) private withdrawalRequests;
 
+    /// @dev EOA del usuario que puede configurar herederos (ademas del owner contrato Wallet)
+    address private immutable userEOA;
+
     modifier onlyAfterTime() {
         require(block.timestamp - lastTimeUsed >= timeLimit, "Time limit not reached yet");
         _;
     }
 
-    /// @param initialOwner Direccion del dueño de la caja fuerte
-    constructor(address initialOwner) Owner(initialOwner) {
+    modifier OnlyOwnerOrUserEOA() {
+        if (msg.sender != getOwner() && msg.sender != userEOA) {
+            revert NotOwnerOrUserEOA();
+        }
+        _;
+    }
+
+    /// @param initialOwner Dueno del contrato (normalmente la Wallet desplegada)
+    /// @param _userEOA Cuenta del usuario que firma desde el frontend para setear herederos
+    constructor(address initialOwner, address _userEOA) Owner(initialOwner) {
+        if (_userEOA == address(0)) revert InvalidAddress();
+        userEOA = _userEOA;
         lastTimeUsed = block.timestamp;
+    }
+
+    function getUserEOA() external view returns (address) {
+        return userEOA;
+    }
+
+    /// @inheritdoc HeirGuardians
+    function setHeirGuardian1(address newHeirGuardian) public virtual override OnlyOwnerOrUserEOA {
+        _setHeirGuardian1(newHeirGuardian);
+    }
+
+    /// @inheritdoc HeirGuardians
+    function setHeirGuardian2(address newHeirGuardian) public virtual override OnlyOwnerOrUserEOA {
+        _setHeirGuardian2(newHeirGuardian);
     }
 
     /// @notice Deposita BNB nativo en la caja fuerte. Solo el owner.

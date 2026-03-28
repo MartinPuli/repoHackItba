@@ -215,6 +215,84 @@ Balances **simulados** para la caja fuerte: BNB nativo, USDT y RBTC (alineado al
 
 ---
 
+### `POST /api/herederos`
+
+Registra herederos en **`public.herederos`** vinculados a la **`caja_fuerte`** del usuario autenticado. Cada entrada usa el **email** de un usuario que **ya debe existir** en `public.users` (misma lógica que en producto: primero se registran). La API toma **`users.wallet_address`** de cada heredero y valida formato `0x` de 42 caracteres.
+
+Después de un **201**, el cliente debe **firmar on-chain** `setHeirGuardian1` / `setHeirGuardian2` en el contrato StrongBox (el usuario puede hacerlo con su EOA si el deploy usó `userEOA` en el constructor; ver `contracts/src/StrongBox.sol`).
+
+**Cabeceras:** `Authorization: Bearer <access_token>` (obligatorio).
+
+**Body**
+
+| Campo          | Tipo   | Obligatorio | Notas                                      |
+| -------------- | ------ | ----------- | ------------------------------------------ |
+| `herederos`    | array  | sí          | Entre **1** y **2** elementos (límite del contrato). |
+
+Cada elemento de `herederos`:
+
+| Campo          | Tipo   | Obligatorio |
+| -------------- | ------ | ----------- |
+| `email`        | string | sí          |
+| `display_name` | string | no          |
+
+**Respuesta 201 (ejemplo)**
+
+```json
+{
+  "herederos": [
+    {
+      "slot": 1,
+      "email": "heredero1@dominio.com",
+      "address": "0x...",
+      "display_name": "Juan"
+    }
+  ],
+  "caja_fuerte_id": "uuid",
+  "message": "Herederos asignados en base de datos. Firmá la transacción on-chain para confirmar en el contrato."
+}
+```
+
+**Errores frecuentes**
+
+- **400** — array vacío, más de 2 herederos, emails duplicados, heredero sin cuenta, wallet inválida, mismo email que el titular, misma dirección que la smart wallet del titular.
+- **401** — token ausente o inválido.
+- **404** — sin fila `caja_fuerte` para el usuario (crear en DB tras deploy).
+
+---
+
+### `GET /api/herederos`
+
+Lista las filas de **`herederos`** de la caja fuerte del usuario autenticado, ordenadas por `slot`. Incluye `email` cuando se puede resolver desde `users.wallet_address`.
+
+**Cabeceras:** `Authorization: Bearer <access_token>`.
+
+**Respuesta 200**
+
+```json
+{
+  "herederos": [
+    {
+      "id": "uuid",
+      "caja_fuerte_id": "uuid",
+      "slot": 1,
+      "address": "0x...",
+      "display_name": "Juan",
+      "share_percentage": "50.00",
+      "nonce": 0,
+      "created_at": "...",
+      "updated_at": "...",
+      "email": "hermano@dominio.com"
+    }
+  ],
+  "caja_fuerte_id": "uuid"
+}
+```
+
+**Errores:** **401**; **404** sin `caja_fuerte`.
+
+---
+
 ## Ejemplo cURL (login)
 
 ```bash
@@ -239,6 +317,18 @@ curl -s http://localhost:3000/api/wallet/balance \
   -H 'Authorization: Bearer <ACCESS_TOKEN>'
 
 curl -s http://localhost:3000/api/caja-fuerte/balance \
+  -H 'Authorization: Bearer <ACCESS_TOKEN>'
+```
+
+### Ejemplo cURL (herederos)
+
+```bash
+curl -s -X POST http://localhost:3000/api/herederos \
+  -H 'Authorization: Bearer <ACCESS_TOKEN>' \
+  -H 'Content-Type: application/json' \
+  -d '{"herederos":[{"email":"heredero@dominio.com","display_name":"María"}]}'
+
+curl -s http://localhost:3000/api/herederos \
   -H 'Authorization: Bearer <ACCESS_TOKEN>'
 ```
 

@@ -53,7 +53,7 @@ contract Factory {
             revert WalletNotRegistered();
         }
 
-        StrongBox strongBox = new StrongBox(walletAddress);
+        StrongBox strongBox = new StrongBox(walletAddress, msg.sender);
         strongBoxAddress = strongBox.getAddress();
 
         setStrongBox(walletAddress, strongBoxAddress);

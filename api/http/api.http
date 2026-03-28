@@ -66,3 +66,18 @@ Authorization: Bearer {{accessToken}}
 GET {{baseUrl}}/api/caja-fuerte/balance
 Authorization: Bearer {{accessToken}}
 
+### Herederos — listar (requiere fila caja_fuerte y JWT)
+GET {{baseUrl}}/api/herederos
+Authorization: Bearer {{accessToken}}
+
+### Herederos — crear/actualizar en DB (emails deben existir en users; máx. 2)
+POST {{baseUrl}}/api/herederos
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "herederos": [
+    { "email": "otro-usuario@dominio.com", "display_name": "Heredero 1" }
+  ]
+}
+
