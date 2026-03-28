@@ -1,7 +1,9 @@
 import type { Request, Response } from 'express';
 
 import { HttpError } from '../middlewares/httpError.js';
+import { getProvider } from '../services/chainProvider.js';
 import {
+  buildCajaFuerteBalancesFromRpc,
   readCajaFuerteBalancesMock,
   readSmartWalletBalancesMock,
 } from '../services/mockChainBalance.js';
@@ -10,6 +12,10 @@ import {
   resolveCajaFuerteMockAddress,
   resolveSmartWalletForUser,
 } from '../services/userContractsService.js';
+
+function isEvmAddress(addr: string): boolean {
+  return /^0x[a-fA-F0-9]{40}$/.test(addr);
+}
 
 export async function getWalletBalance(req: Request, res: Response): Promise<void> {
   const authUserId = req.authUserId;
@@ -45,8 +51,21 @@ export async function getCajaFuerteBalance(req: Request, res: Response): Promise
   }
 
   const row = await getCajaFuerteRowForUser(authUserId);
-  const mockAddr = resolveCajaFuerteMockAddress(row);
-  const balances = readCajaFuerteBalancesMock(mockAddr, row.chain_id);
+
+  let balances;
+  if (row.is_deployed && row.contract_address && isEvmAddress(row.contract_address)) {
+    try {
+      const provider = getProvider();
+      const nativeWei = await provider.getBalance(row.contract_address);
+      balances = buildCajaFuerteBalancesFromRpc(row.contract_address, row.chain_id, nativeWei);
+    } catch (e) {
+      if (e instanceof HttpError) throw e;
+      throw new HttpError(502, 'No se pudo leer el balance on-chain');
+    }
+  } else {
+    const mockAddr = resolveCajaFuerteMockAddress(row);
+    balances = readCajaFuerteBalancesMock(mockAddr, row.chain_id);
+  }
 
   res.status(200).json({
     balances,

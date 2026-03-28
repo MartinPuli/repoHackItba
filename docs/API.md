@@ -129,13 +129,14 @@ Si hay fila `wallets`, `resolution` será `"wallets"` y `dbSnapshot` incluirá `
 
 ### `GET /api/caja-fuerte/balance`
 
-Balances **simulados** para la caja fuerte: BNB nativo, USDT y RBTC. Requiere una fila en **`caja_fuerte`**. Si **`contract_address`** aún es `null` (caja solo en DB, sin deploy), el mock usa una dirección derivada del `id` de la fila.
+Requiere fila **`caja_fuerte`**.
+
+- Si **`is_deployed`** es **true** y hay **`contract_address`** válida: el backend lee el **BNB nativo real** del contrato vía **`RPC_URL`** (`provider.getBalance`). El objeto `balances` tiene **`source: "rpc"`**; USDT y RBTC se devuelven en **0** (el StrongBox on-chain solo gestiona nativo).
+- Si la caja aún **no** está deployada on-chain (`contract_address` null o `is_deployed` false): se usa balance **simulado** como antes (`source: "mock"`).
 
 **Cabeceras:** `Authorization: Bearer <access_token>`.
 
-**Respuesta 200:** objeto `balances` con `source: "mock"` y `dbSnapshot` con columnas cache del schema.
-
-**Errores:** **401**; **404** si no hay fila `caja_fuerte` para el usuario.
+**Errores:** **401**; **404** sin fila `caja_fuerte`; **500** sin `RPC_URL` al leer on-chain; **502** fallo del nodo RPC.
 
 ---
 
@@ -172,6 +173,44 @@ Las cuatro wallets deben ser **distintas** entre sí y **distintas** de la `wall
 
 ---
 
+### `POST /api/strongbox/confirm-deploy`
+
+Tras que el **frontend** ejecute on-chain **`Factory.createStrongBox(...)`** (MetaMask), el cliente envía la dirección del StrongBox y el hash del deploy. El backend **verifica** que exista bytecode en esa dirección (`getCode`), actualiza **`caja_fuerte`**: **`contract_address`**, **`is_deployed: true`**, **`deploy_tx_hash`**.
+
+**Cabeceras:** `Authorization: Bearer <access_token>`.
+
+**Body (JSON)**
+
+| Campo                 | Tipo   | Obligatorio | Notas |
+| --------------------- | ------ | ----------- | ----- |
+| `contract_address`    | string | sí          | Dirección del contrato StrongBox (0x…40 hex). |
+| `deploy_tx_hash`      | string | sí          | Hash de la tx de creación (0x + 64 hex). |
+
+**Respuesta 200:** `{ "ok": true, "contract_address": "0x…" }`
+
+**Errores:** **400** (dirección sin contrato, hashes inválidos); **401**; **404** sin `caja_fuerte`; **409** si ya estaba `is_deployed`; **500** Supabase / sin `RPC_URL`.
+
+---
+
+### `POST /api/strongbox/confirm-deposit`
+
+Tras **`StrongBox.deposit()`** firmado por el usuario, el cliente envía el hash de la tx y el monto en BNB. El backend **valida** receipt (`to` = StrongBox, `value` = `amount_bnb`, `from` = `users.wallet_address`) e inserta fila en **`transactions`**.
+
+**Cabeceras:** `Authorization: Bearer <access_token>`.
+
+**Body (JSON)**
+
+| Campo         | Tipo   | Obligatorio | Notas |
+| ------------- | ------ | ----------- | ----- |
+| `tx_hash`     | string | sí          | Hash de la tx (0x + 64 hex). |
+| `amount_bnb`  | string | sí          | Debe coincidir con `msg.value` (ej. `"0.05"`). |
+
+**Respuesta 200:** `{ "ok": true }`
+
+**Errores:** **400** (validación, tx no al StrongBox, monto distinto, firmante distinto); **401**; **404** (sin `caja_fuerte`, tx no en cadena); **500** Supabase.
+
+---
+
 ### Ejemplo cURL (`/me` con JWT)
 
 Sustituí `<ACCESS_TOKEN>` por `session.access_token` obtenido en el frontend tras Web3 login:
@@ -198,6 +237,20 @@ curl -s -X POST http://localhost:3000/api/strongbox/setup \
   -H 'Authorization: Bearer <ACCESS_TOKEN>' \
   -H 'Content-Type: application/json' \
   -d '{"own_email":"yo@dominio.com","guardians":[{"wallet":"0x1111111111111111111111111111111111111111","email":"g1@dominio.com"},{"wallet":"0x2222222222222222222222222222222222222222","email":"g2@dominio.com"}],"heirs":[{"wallet":"0x3333333333333333333333333333333333333333","email":"h1@dominio.com"},{"wallet":"0x4444444444444444444444444444444444444444","email":"h2@dominio.com"}]}'
+```
+
+### Ejemplo cURL (strongbox confirm-deploy / confirm-deposit)
+
+```bash
+curl -s -X POST http://localhost:3000/api/strongbox/confirm-deploy \
+  -H 'Authorization: Bearer <ACCESS_TOKEN>' \
+  -H 'Content-Type: application/json' \
+  -d '{"contract_address":"0x…","deploy_tx_hash":"0x…"}'
+
+curl -s -X POST http://localhost:3000/api/strongbox/confirm-deposit \
+  -H 'Authorization: Bearer <ACCESS_TOKEN>' \
+  -H 'Content-Type: application/json' \
+  -d '{"tx_hash":"0x…","amount_bnb":"0.05"}'
 ```
 
 ---

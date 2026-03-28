@@ -1,6 +1,6 @@
 import { createHash } from 'crypto';
 
-export type BalanceSource = 'mock';
+export type BalanceSource = 'mock' | 'rpc';
 
 export interface NativeBalance {
   symbol: 'BNB';
@@ -60,6 +60,37 @@ export function readSmartWalletBalancesMock(
       formatted: formatFixed(usdtRaw, 6, 2),
     },
     source: 'mock',
+  };
+}
+
+/** BNB real desde el nodo; USDT/RBTC en 0 (no hay en el contrato StrongBox actual). */
+export function buildCajaFuerteBalancesFromRpc(
+  contractAddress: string,
+  chainId: number,
+  nativeWei: bigint
+): CajaFuerteBalancesMock {
+  const addr = contractAddress.toLowerCase();
+  return {
+    chainId,
+    contractAddress: addr,
+    native: {
+      symbol: 'BNB',
+      wei: nativeWei.toString(),
+      formatted: formatFixed(nativeWei, 18, 6),
+    },
+    usdt: {
+      symbol: 'USDT',
+      raw: '0',
+      decimals: 6,
+      formatted: formatFixed(0n, 6, 2),
+    },
+    rbtc: {
+      symbol: 'RBTC',
+      raw: '0',
+      decimals: 18,
+      formatted: formatFixed(0n, 18, 6),
+    },
+    source: 'rpc',
   };
 }
 

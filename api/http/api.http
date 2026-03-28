@@ -29,10 +29,30 @@ Content-Type: application/json
   ]
 }
 
+### Caja fuerte — confirmar deploy on-chain (después de Factory.createStrongBox desde el frontend)
+POST {{baseUrl}}/api/strongbox/confirm-deploy
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "contract_address": "0x0000000000000000000000000000000000000000",
+  "deploy_tx_hash": "0x0000000000000000000000000000000000000000000000000000000000000000"
+}
+
+### Caja fuerte — confirmar depósito (después de StrongBox.deposit desde el frontend)
+POST {{baseUrl}}/api/strongbox/confirm-deposit
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "tx_hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "amount_bnb": "0.05"
+}
+
 ### Balance smart wallet (mock chain; JWT obligatorio)
 GET {{baseUrl}}/api/wallet/balance
 Authorization: Bearer {{accessToken}}
 
-### Balance caja fuerte (mock; requiere fila caja_fuerte en DB)
+### Balance caja fuerte (BNB real si is_deployed + contract_address; si no, mock)
 GET {{baseUrl}}/api/caja-fuerte/balance
 Authorization: Bearer {{accessToken}}

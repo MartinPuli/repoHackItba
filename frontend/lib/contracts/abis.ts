@@ -1,20 +1,70 @@
 // Auto-generated from hardhat compile — do not edit manually
-// Run: cd contracts && npx hardhat compile, then update this file
+// Run: cd contracts && npx hardhat compile && node contracts/scripts/sync-abis.js
 
 export const FACTORY_ABI = [
   {
-    "inputs": [],
-    "name": "AccountAlreadyExists",
-    "type": "error"
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "initialOwner",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
   },
   {
-    "inputs": [],
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
     "name": "InvalidAddress",
     "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      }
+    ],
+    "name": "InvalidOwner",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "timeLimit",
+        "type": "uint256"
+      }
+    ],
+    "name": "InvalidTimeLimit",
+    "type": "error"
+  },
+  {
     "inputs": [],
-    "name": "InvalidTimeoutPeriod",
+    "name": "NotOwner",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "wallet",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "strongBox",
+        "type": "address"
+      }
+    ],
+    "name": "StrongBoxAlreadyExists",
     "type": "error"
   },
   {
@@ -23,9 +73,34 @@ export const FACTORY_ABI = [
       {
         "indexed": true,
         "internalType": "address",
-        "name": "user",
+        "name": "wallet",
         "type": "address"
       },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "strongBox",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "guardianContract",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "heirContract",
+        "type": "address"
+      }
+    ],
+    "name": "StrongBoxCreated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
       {
         "indexed": true,
         "internalType": "address",
@@ -35,91 +110,46 @@ export const FACTORY_ABI = [
       {
         "indexed": true,
         "internalType": "address",
-        "name": "cajaFuerte",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "heredero1",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "heredero2",
+        "name": "strongBox",
         "type": "address"
       }
     ],
-    "name": "AccountCreated",
+    "name": "StrongBoxSet",
     "type": "event"
   },
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "name": "allUsers",
-    "outputs": [
-      {
         "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "user",
-        "type": "address"
-      }
-    ],
-    "name": "checkUserHasAccount",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "heredero1",
+        "name": "guardian1",
         "type": "address"
       },
       {
         "internalType": "address",
-        "name": "heredero2",
+        "name": "guardian2",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "heir1",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "heir2",
         "type": "address"
       },
       {
         "internalType": "uint256",
-        "name": "timeoutDays",
+        "name": "timeLimit",
         "type": "uint256"
       }
     ],
-    "name": "crear",
+    "name": "createStrongBox",
     "outputs": [
       {
         "internalType": "address",
-        "name": "walletAddr",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "cajaFuerteAddr",
+        "name": "strongBoxAddress",
         "type": "address"
       }
     ],
@@ -127,51 +157,13 @@ export const FACTORY_ABI = [
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "user",
-        "type": "address"
-      }
-    ],
-    "name": "getCajaFuerte",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "user",
-        "type": "address"
-      }
-    ],
-    "name": "getWallet",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [],
-    "name": "totalUsers",
+    "name": "getOwner",
     "outputs": [
       {
-        "internalType": "uint256",
+        "internalType": "address",
         "name": "",
-        "type": "uint256"
+        "type": "address"
       }
     ],
     "stateMutability": "view",
@@ -181,12 +173,23 @@ export const FACTORY_ABI = [
     "inputs": [
       {
         "internalType": "address",
+        "name": "wallet",
+        "type": "address"
+      }
+    ],
+    "name": "getStrongBox",
+    "outputs": [
+      {
+        "internalType": "address",
         "name": "",
         "type": "address"
       }
     ],
-    "name": "userContracts",
-    "outputs": [
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
       {
         "internalType": "address",
         "name": "wallet",
@@ -194,73 +197,241 @@ export const FACTORY_ABI = [
       },
       {
         "internalType": "address",
-        "name": "cajaFuerte",
+        "name": "strongBox",
         "type": "address"
-      },
-      {
-        "internalType": "bool",
-        "name": "exists",
-        "type": "bool"
       }
     ],
-    "stateMutability": "view",
+    "name": "setStrongBox",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   }
 ] as const;
 
-export const WALLET_ABI = [
+export const STRONGBOX_ABI = [
   {
-    "inputs": [],
-    "name": "AlreadyInitialized",
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "initialOwner",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "guardianAddress",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "heirAddress",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_timeLimit",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "requestId",
+        "type": "uint256"
+      }
+    ],
+    "name": "ActiveWithdrawalRequestExists",
     "type": "error"
   },
   {
-    "inputs": [],
-    "name": "ExceedsSessionLimit",
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "heir",
+        "type": "address"
+      }
+    ],
+    "name": "AlreadyClaimed",
     "type": "error"
   },
   {
-    "inputs": [],
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "requested",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "available",
+        "type": "uint256"
+      }
+    ],
     "name": "InsufficientBalance",
     "type": "error"
   },
   {
-    "inputs": [],
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
     "name": "InvalidAddress",
     "type": "error"
   },
   {
-    "inputs": [],
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
     "name": "InvalidAmount",
     "type": "error"
   },
   {
-    "inputs": [],
-    "name": "NotInitialized",
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      }
+    ],
+    "name": "InvalidOwner",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "timeLimit",
+        "type": "uint256"
+      }
+    ],
+    "name": "InvalidTimeLimit",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "OnlyOwner",
+    "name": "NoActiveWithdrawalRequest",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "caller",
+        "type": "address"
+      }
+    ],
+    "name": "NotGuardian",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "caller",
+        "type": "address"
+      }
+    ],
+    "name": "NotHeir",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "ReentrancyGuardReentrantCall",
+    "name": "NotOwner",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "SessionKeyExpired",
+    "name": "NothingToClaim",
     "type": "error"
   },
   {
-    "inputs": [],
-    "name": "SessionKeyInvalid",
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "requestId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "guardian",
+        "type": "address"
+      }
+    ],
+    "name": "RequestAlreadyApproved",
     "type": "error"
   },
   {
-    "inputs": [],
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "requestId",
+        "type": "uint256"
+      }
+    ],
+    "name": "RequestAlreadyCancelled",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "requestId",
+        "type": "uint256"
+      }
+    ],
+    "name": "RequestAlreadyExecuted",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "requestId",
+        "type": "uint256"
+      }
+    ],
+    "name": "RequestDoesNotExist",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "currentTime",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "requiredTime",
+        "type": "uint256"
+      }
+    ],
+    "name": "TimeLimitNotReached",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
     "name": "TransferFailed",
     "type": "error"
   },
@@ -278,9 +449,15 @@ export const WALLET_ABI = [
         "internalType": "uint256",
         "name": "amount",
         "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newBalance",
+        "type": "uint256"
       }
     ],
-    "name": "Deposited",
+    "name": "DepositMade",
     "type": "event"
   },
   {
@@ -289,22 +466,66 @@ export const WALLET_ABI = [
       {
         "indexed": true,
         "internalType": "address",
-        "name": "oldOwner",
+        "name": "heir",
         "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "InheritanceClaimed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "previousTime",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "newTime",
+        "type": "uint256"
+      }
+    ],
+    "name": "LastTimeUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "requestId",
+        "type": "uint256"
       },
       {
         "indexed": true,
         "internalType": "address",
-        "name": "newOwner",
+        "name": "guardian",
         "type": "address"
       }
     ],
-    "name": "OwnershipTransferred",
+    "name": "WithdrawalApproved",
     "type": "event"
   },
   {
     "anonymous": false,
     "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "requestId",
+        "type": "uint256"
+      },
       {
         "indexed": true,
         "internalType": "address",
@@ -318,7 +539,7 @@ export const WALLET_ABI = [
         "type": "uint256"
       }
     ],
-    "name": "Sent",
+    "name": "WithdrawalExecuted",
     "type": "event"
   },
   {
@@ -326,24 +547,18 @@ export const WALLET_ABI = [
     "inputs": [
       {
         "indexed": true,
+        "internalType": "uint256",
+        "name": "requestId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
         "internalType": "address",
-        "name": "key",
+        "name": "guardian",
         "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "maxAmount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "validUntil",
-        "type": "uint256"
       }
     ],
-    "name": "SessionKeyGranted",
+    "name": "WithdrawalRejected",
     "type": "event"
   },
   {
@@ -351,428 +566,16 @@ export const WALLET_ABI = [
     "inputs": [
       {
         "indexed": true,
-        "internalType": "address",
-        "name": "key",
-        "type": "address"
-      }
-    ],
-    "name": "SessionKeyRevoked",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
         "internalType": "uint256",
-        "name": "amount",
+        "name": "requestId",
         "type": "uint256"
-      }
-    ],
-    "name": "TransferredToCajaFuerte",
-    "type": "event"
-  },
-  {
-    "inputs": [],
-    "name": "cajaFuerte",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      }
-    ],
-    "name": "depositarEnCajaFuerte",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "to",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      }
-    ],
-    "name": "enviar",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "getBalance",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "key",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "maxAmount",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "duration",
-        "type": "uint256"
-      }
-    ],
-    "name": "grantSessionKey",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_owner",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_cajaFuerte",
-        "type": "address"
-      }
-    ],
-    "name": "initialize",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "initialized",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "key",
-        "type": "address"
-      }
-    ],
-    "name": "isSessionKeyValid",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "owner",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "key",
-        "type": "address"
-      }
-    ],
-    "name": "revokeSessionKey",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "name": "sessionKeys",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "maxAmount",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "validUntil",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bool",
-        "name": "active",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "stateMutability": "payable",
-    "type": "receive"
-  }
-] as const;
-
-export const CAJA_FUERTE_ABI = [
-  {
-    "inputs": [],
-    "name": "AlreadyInitialized",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "DeadManSwitchNotExpired",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InsufficientBalance",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidAddress",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidAmount",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidTimeoutPeriod",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "NoBalance",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "NotInitialized",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "OnlyHeredero",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "OnlyOwner",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "OnlyOwnerOrUserEOA",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "RecoveryActiveCannotChangeHerederos",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "RecoveryAlreadyPending",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "RecoveryNotPending",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "ReentrancyGuardReentrantCall",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "TimelockNotExpired",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "TransferFailed",
-    "type": "error"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "from",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      }
-    ],
-    "name": "Deposited",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "heredero1",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "heredero2",
-        "type": "address"
-      }
-    ],
-    "name": "HerederosUpdated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "cancelledBy",
-        "type": "address"
-      }
-    ],
-    "name": "RecoveryCancelled",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "heredero1",
-        "type": "address"
       },
       {
         "indexed": true,
         "internalType": "address",
-        "name": "heredero2",
+        "name": "owner",
         "type": "address"
       },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "amountEach",
-        "type": "uint256"
-      }
-    ],
-    "name": "RecoveryExecuted",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "initiator",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "unlocksAt",
-        "type": "uint256"
-      }
-    ],
-    "name": "RecoveryInitiated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "newTimestamp",
-        "type": "uint256"
-      }
-    ],
-    "name": "TimeReset",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "newPeriod",
-        "type": "uint256"
-      }
-    ],
-    "name": "TimeoutPeriodUpdated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
       {
         "indexed": true,
         "internalType": "address",
@@ -786,72 +589,53 @@ export const CAJA_FUERTE_ABI = [
         "type": "uint256"
       }
     ],
-    "name": "Withdrawn",
+    "name": "WithdrawalRequested",
     "type": "event"
   },
   {
-    "inputs": [],
-    "name": "TIMELOCK",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_h1",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_h2",
-        "type": "address"
-      }
-    ],
-    "name": "actualizarHerederos",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "_days",
+        "name": "requestId",
         "type": "uint256"
       }
     ],
-    "name": "actualizarTimeout",
+    "name": "approveWithdrawal",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   },
   {
     "inputs": [],
-    "name": "cancelarRecuperacion",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "depositar",
+    "name": "deposit",
     "outputs": [],
     "stateMutability": "payable",
     "type": "function"
   },
   {
     "inputs": [],
-    "name": "ejecutarRecuperacion",
-    "outputs": [],
-    "stateMutability": "nonpayable",
+    "name": "getActiveWithdrawalRequestId",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getAddress",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -869,17 +653,12 @@ export const CAJA_FUERTE_ABI = [
   },
   {
     "inputs": [],
-    "name": "getHerederos",
+    "name": "getHeir1Claimed",
     "outputs": [
       {
-        "internalType": "address",
+        "internalType": "bool",
         "name": "",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
+        "type": "bool"
       }
     ],
     "stateMutability": "view",
@@ -887,21 +666,24 @@ export const CAJA_FUERTE_ABI = [
   },
   {
     "inputs": [],
-    "name": "getRecoveryInfo",
+    "name": "getHeir2Claimed",
     "outputs": [
       {
-        "internalType": "enum CajaFuerte.RecoveryState",
-        "name": "state",
-        "type": "uint8"
-      },
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getLastTimeUsed",
+    "outputs": [
       {
         "internalType": "uint256",
-        "name": "requestedAt",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "unlocksAt",
+        "name": "",
         "type": "uint256"
       }
     ],
@@ -910,7 +692,7 @@ export const CAJA_FUERTE_ABI = [
   },
   {
     "inputs": [],
-    "name": "heredero1",
+    "name": "getOwner",
     "outputs": [
       {
         "internalType": "address",
@@ -923,12 +705,58 @@ export const CAJA_FUERTE_ABI = [
   },
   {
     "inputs": [],
-    "name": "heredero2",
+    "name": "getTimeLimit",
     "outputs": [
       {
-        "internalType": "address",
+        "internalType": "uint256",
         "name": "",
-        "type": "address"
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "requestId",
+        "type": "uint256"
+      }
+    ],
+    "name": "getWithdrawalRequest",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "amount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "to",
+            "type": "address"
+          },
+          {
+            "internalType": "bool",
+            "name": "guardian1Approved",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "guardian2Approved",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "executed",
+            "type": "bool"
+          }
+        ],
+        "internalType": "struct StrongBox.WithdrawalRequest",
+        "name": "",
+        "type": "tuple"
       }
     ],
     "stateMutability": "view",
@@ -936,7 +764,33 @@ export const CAJA_FUERTE_ABI = [
   },
   {
     "inputs": [],
-    "name": "iniciarRecuperacion",
+    "name": "getWithdrawalRequestCount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "hasPendingWithdrawalRequest",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "inherit",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -944,39 +798,12 @@ export const CAJA_FUERTE_ABI = [
   {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "_owner",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_userEOA",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_heredero1",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_heredero2",
-        "type": "address"
-      },
-      {
         "internalType": "uint256",
-        "name": "_timeoutDays",
+        "name": "requestId",
         "type": "uint256"
       }
     ],
-    "name": "initialize",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "initialized",
+    "name": "isWithdrawalRequestCancelled",
     "outputs": [
       {
         "internalType": "bool",
@@ -988,73 +815,14 @@ export const CAJA_FUERTE_ABI = [
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "isExpired",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "lastActivity",
-    "outputs": [
+    "inputs": [
       {
         "internalType": "uint256",
-        "name": "",
+        "name": "requestId",
         "type": "uint256"
       }
     ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "owner",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "recoveryRequestedAt",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "recoveryState",
-    "outputs": [
-      {
-        "internalType": "enum CajaFuerte.RecoveryState",
-        "name": "",
-        "type": "uint8"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "resetTime",
+    "name": "rejectWithdrawal",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -1072,57 +840,19 @@ export const CAJA_FUERTE_ABI = [
         "type": "address"
       }
     ],
-    "name": "retirar",
+    "name": "withdraw",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "timeRemaining",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "timeoutPeriod",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "userEOA",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "stateMutability": "payable",
-    "type": "receive"
   }
 ] as const;
 
-// Contract addresses — update after deploy to BSC Testnet
+/** @deprecated use STRONGBOX_ABI */
+export const CAJA_FUERTE_ABI = STRONGBOX_ABI;
+
+// Contract addresses — set NEXT_PUBLIC_FACTORY_ADDRESS (or NEXT_PUBLIC_WALLET_FACTORY_ADDRESS) after deploy
 export const CONTRACTS = {
-  factory: (process.env.NEXT_PUBLIC_FACTORY_ADDRESS || "0x0000000000000000000000000000000000000000") as `0x${string}`,
+  factory: (process.env.NEXT_PUBLIC_FACTORY_ADDRESS ||
+    process.env.NEXT_PUBLIC_WALLET_FACTORY_ADDRESS ||
+    "0x0000000000000000000000000000000000000000") as `0x${string}`,
 } as const;
