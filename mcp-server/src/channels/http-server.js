@@ -78,7 +78,13 @@ export class HttpServer {
         // ── WhatsApp Webhook (Twilio) ────────────
         if (path === "/api/webhook/whatsapp" && req.method === "POST") {
           const body = await this._readFormBody(req);
+          console.error("[HTTP] WhatsApp webhook POST", {
+            From: body.From,
+            Body: body.Body?.slice?.(0, 120),
+            keys: Object.keys(body),
+          });
           const result = await this.whatsAppBot.handleWebhook(body);
+          console.error("[HTTP] WhatsApp handleWebhook result", result);
 
           // Twilio expects TwiML response
           res.writeHead(200, { "Content-Type": "text/xml" });
