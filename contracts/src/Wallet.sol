@@ -44,4 +44,8 @@ contract Wallet {
     function GetBalance() public view returns (uint) {
         return address(this).balance;
     }
+
+    function getAddress() public view returns (address) {
+        return address(this);
+    }
 }

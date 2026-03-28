@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >= 0.8.10;
 
+import {Wallet} from "HackITBA2026/Wallet.sol";
+import {StrongBox} from "HackITBA2026/StrongBox.sol";
+
 contract Factory {
 
     error UserAlreadyHaveWallet();
@@ -17,7 +20,8 @@ contract Factory {
             revert UserAlreadyHaveWallet();
         }
 
-        // Creamos wallet al nuevo usuario
+        Wallet wallet = new Wallet();
+        address walletAddress = wallet.getAddress();
 
         emit NewWalletCreated(email, walletAddress);
 
@@ -29,7 +33,8 @@ contract Factory {
             revert UserAlreadyHaveStrongBox();
         }
 
-        // Creamos strongbox al usuario que lo desee
+        StrongBox strongBox = new StrongBox(walletAddress);
+        address strongBoxAddress = strongBox.getAddress();
 
         emit NewStrongBoxCreated(walletAddress, strongBoxAddress);
 

@@ -26,7 +26,7 @@ contract StrongBox is Owner, HeirGuardians {
         _;
     }
 
-    constructor() {} // Completar el constructor
+    constructor(address initialOwner) Owner(initialOwner) {}
 
     function deposit() public payable OnlyOwner returns(bool) {
         if (msg.value == 0) revert InvalidAmount();
@@ -44,17 +44,25 @@ contract StrongBox is Owner, HeirGuardians {
         updateTime();
 
         // Los guardianes herederos deben confirmar la transaccion
+
+        return true;
     }
 
     function getBalance() public view OnlyOwner returns(uint) {
         return address(this).balance;
     }
 
+    function getAddress() public view returns (address) {
+        return address(this);
+    }
+
     function updateTime() public OnlyOwner {
         lastTimeUsed = block.timestamp;
     }
 
-    function inherit() OnlyHeirGuardians OnlyAfterTime returns(bool) {
+    function inherit() public OnlyHeirGuardians OnlyAfterTime returns(bool) {
+        //Si el segundo heredero retira después, se llevará el 50% de lo que quedó (es decir, el 25% del total original).
+
         if (address(this).balance == 0) {
             revert BalanceEqualsZero();
         }
@@ -64,7 +72,6 @@ contract StrongBox is Owner, HeirGuardians {
 
         emit TxToHeirGuardian(to, amount);
         
-
         (bool success, ) = to.call{value: amount}("");
         if (!success) revert TransferFailed();
 
