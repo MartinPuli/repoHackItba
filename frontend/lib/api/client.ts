@@ -60,32 +60,40 @@ export async function apiFetch<T = unknown>(
   return parsed as T;
 }
 
-export type CajaFuerteBalanceResponse = {
+export type StrongboxBalanceResponse = {
   balances: {
+    chainId: number;
+    contractAddress: string;
     native: { symbol: string; wei: string; formatted: string };
     source: "mock" | "rpc";
   };
   dbSnapshot: {
+    balance_native: string | null;
     is_deployed: boolean;
     recovery_state: string;
-    balance_usdt?: unknown;
-    balance_btcb?: unknown;
-    balance_rbtc?: unknown;
+    time_limit_seconds: number;
+    last_activity_at: string;
   };
 };
 
-export function getCajaFuerteBalance(accessToken: string) {
-  return apiFetch<CajaFuerteBalanceResponse>("/api/caja-fuerte/balance", {
+/** Alias por compatibilidad con código anterior. */
+export type CajaFuerteBalanceResponse = StrongboxBalanceResponse;
+
+export function getStrongboxBalance(accessToken: string) {
+  return apiFetch<StrongboxBalanceResponse>("/api/strongbox/balance", {
     accessToken,
   });
 }
+
+/** @deprecated Preferir getStrongboxBalance */
+export const getCajaFuerteBalance = getStrongboxBalance;
 
 export function postStrongboxSetup(
   accessToken: string,
   body: {
     own_email: string;
     guardians: { wallet: string; email: string }[];
-    heirs: { wallet: string; email: string }[];
+    recovery_contacts: { wallet: string; email: string }[];
   },
 ) {
   return apiFetch<{ ok: true }>("/api/strongbox/setup", {

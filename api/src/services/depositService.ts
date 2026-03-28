@@ -4,7 +4,7 @@ import { supabaseAdmin } from '../config/supabase.js';
 import { HttpError } from '../middlewares/httpError.js';
 import type { Database } from '../types/database.types.js';
 import { getProvider } from './chainProvider.js';
-import { getCajaFuerteRowForUser } from './userContractsService.js';
+import { getStrongboxRowForUser } from './userContractsService.js';
 
 export type ConfirmDepositBody = { tx_hash: string; amount_bnb: string };
 
@@ -50,7 +50,7 @@ export async function confirmDeposit(
   const expectedWei = parseEther(amount_bnb);
   const txHash = normalizeTxHash(body.tx_hash);
 
-  const row = await getCajaFuerteRowForUser(userId);
+  const row = await getStrongboxRowForUser(userId);
   if (!row.is_deployed || !row.contract_address?.trim()) {
     throw new HttpError(
       400,
@@ -101,16 +101,14 @@ export async function confirmDeposit(
 
   const insert: Database['public']['Tables']['transactions']['Insert'] = {
     user_id: userId,
-    caja_fuerte_id: row.id,
+    strongbox_id: row.id,
     tx_type: 'deposit',
     status: 'confirmed',
     chain_id: row.chain_id,
     tx_hash: txHash,
     from_address: fromAddr.toLowerCase(),
     to_address: strongbox,
-    token_symbol: 'BNB',
     amount: expectedWei.toString(),
-    initiated_by: userId,
     confirmed_at: new Date().toISOString(),
   };
 

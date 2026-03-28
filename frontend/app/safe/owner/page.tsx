@@ -18,7 +18,11 @@ import { useVaultFlow } from "@/context/VaultFlowContext";
 import { formatAddress } from "@/lib/utils";
 import { Pencil } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useCajaFuerteData, type Heredero } from "@/hooks/useSupabase";
+import {
+  useCajaFuerteData,
+  type GuardianRow,
+  type RecoveryContactRow,
+} from "@/hooks/useSupabase";
 import {
   useFactoryConfigured,
   useCreateStrongBox,
@@ -33,17 +37,20 @@ import {
 import { CONTRACTS, FACTORY_ABI } from "@/lib/contracts/abis";
 import { usePublicClient } from "wagmi";
 
-function labelHeredero(h: Heredero): string {
-  const role = h.rol === "guardian" ? "Guardian" : "Heir";
-  return `${role} ${h.slot}`;
-}
-
-function pickHerederoAddress(
-  herederos: Heredero[] | undefined,
-  rol: "guardian" | "heir",
+function pickGuardianAddress(
+  guardians: GuardianRow[] | undefined,
   slot: number,
 ): Address | null {
-  const h = herederos?.find((x) => x.rol === rol && x.slot === slot);
+  const h = guardians?.find((x) => x.slot === slot);
+  if (!h?.address || !isAddress(h.address)) return null;
+  return getAddress(h.address);
+}
+
+function pickRecoveryAddress(
+  contacts: RecoveryContactRow[] | undefined,
+  slot: number,
+): Address | null {
+  const h = contacts?.find((x) => x.slot === slot);
   if (!h?.address || !isAddress(h.address)) return null;
   return getAddress(h.address);
 }
@@ -99,14 +106,23 @@ export default function SafeOwnerDashboardPage() {
   }, [loadBalance]);
 
   const rows = useMemo(() => {
-    const list = caja?.herederos ?? [];
-    return list.map((h) => ({
-      key: `${h.rol}-${h.slot}`,
-      name: labelHeredero(h),
-      gains: h.address,
-      status: "Active" as const,
-    }));
-  }, [caja?.herederos]);
+    const g = caja?.guardians ?? [];
+    const r = caja?.recovery_contacts ?? [];
+    return [
+      ...g.map((h) => ({
+        key: `g-${h.slot}`,
+        name: `Guardian ${h.slot}`,
+        gains: h.address,
+        status: "Active" as const,
+      })),
+      ...r.map((h) => ({
+        key: `r-${h.slot}`,
+        name: `Recovery ${h.slot}`,
+        gains: h.address,
+        status: "Active" as const,
+      })),
+    ];
+  }, [caja?.guardians, caja?.recovery_contacts]);
 
   const filtered = rows.filter(
     (r) =>
@@ -123,11 +139,11 @@ export default function SafeOwnerDashboardPage() {
     !!caja &&
     !caja.is_deployed &&
     factoryOk &&
-    !!pickHerederoAddress(caja.herederos, "guardian", 1) &&
-    !!pickHerederoAddress(caja.herederos, "guardian", 2) &&
-    !!pickHerederoAddress(caja.herederos, "heir", 1) &&
-    !!pickHerederoAddress(caja.herederos, "heir", 2) &&
-    caja.dead_man_timeout_seconds > 0;
+    !!pickGuardianAddress(caja.guardians, 1) &&
+    !!pickGuardianAddress(caja.guardians, 2) &&
+    !!pickRecoveryAddress(caja.recovery_contacts, 1) &&
+    !!pickRecoveryAddress(caja.recovery_contacts, 2) &&
+    caja.time_limit_seconds > 0;
 
   const strongBoxAddr =
     caja?.contract_address &&
@@ -147,10 +163,10 @@ export default function SafeOwnerDashboardPage() {
     setDeployError(null);
     setActionBusy(true);
     try {
-      const g1 = pickHerederoAddress(caja.herederos, "guardian", 1);
-      const g2 = pickHerederoAddress(caja.herederos, "guardian", 2);
-      const h1 = pickHerederoAddress(caja.herederos, "heir", 1);
-      const h2 = pickHerederoAddress(caja.herederos, "heir", 2);
+      const g1 = pickGuardianAddress(caja.guardians, 1);
+      const g2 = pickGuardianAddress(caja.guardians, 2);
+      const h1 = pickRecoveryAddress(caja.recovery_contacts, 1);
+      const h2 = pickRecoveryAddress(caja.recovery_contacts, 2);
       if (!g1 || !g2 || !h1 || !h2) {
         throw new Error("Faltan direcciones válidas en guardianes/herederos.");
       }
@@ -160,7 +176,7 @@ export default function SafeOwnerDashboardPage() {
         guardian2: g2,
         heir1: h1,
         heir2: h2,
-        timeLimitSeconds: BigInt(caja.dead_man_timeout_seconds),
+        timeLimitSeconds: BigInt(caja.time_limit_seconds),
       });
 
       const deployed = await publicClient.readContract({

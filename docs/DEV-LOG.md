@@ -53,3 +53,30 @@ Proyecto pivoteo de "Smart Wallet Agent-First" a **StrongBox**: caja fuerte no c
 
 ### Actualizado
 - CLAUDE.md, README.md, INTEGRACION-CONTRATOS.md, SEGURIDAD-HERENCIA.md, SUPABASE-SCHEMA.md, API.md, RUBRICA-HACKITBA.md — todo alineado a la nueva vision StrongBox
+
+---
+
+## 2026-03-28 — Sesion 4: Schema unificado (strongboxes)
+
+### Source of truth
+- Migracion: `api/supabase/migrations/20260328120000_001_initial_schema.sql`
+- Tablas: `users`, `strongboxes`, `guardians`, `recovery_contacts`, `withdrawal_requests`, `transactions`, `alerts`
+
+### Backend
+- `deployService` / `depositService`: tablas y FK alineadas (`strongboxes`, `strongbox_id` en `transactions`).
+- `POST /api/strongbox/setup`: acepta `recovery_contacts` o alias `heirs` en el JSON.
+- `GET /api/strongbox/balance`: si `is_deployed` y hay `contract_address`, balance via RPC (`RPC_URL`); si no, mock deterministico.
+- Alias de ruta: `GET /api/caja-fuerte/balance` (mismo handler).
+
+### Frontend
+- `useSupabase.ts`: consulta `strongboxes`, `guardians`, `recovery_contacts`; eliminados hooks que apuntaban a tablas inexistentes (`wallets`, `agent_decisions`, etc.).
+- API client: `GET /api/strongbox/balance`, body de setup con `recovery_contacts`.
+
+### Supabase local: reset de DB
+Requiere Docker. Desde `api/`:
+
+```bash
+npx supabase db reset --local
+```
+
+Si falla por Docker apagado, levantar Docker Desktop y reintentar. Para proyecto remoto, aplicar migraciones con el flujo de equipo (`db push` / SQL editor) segun corresponda.

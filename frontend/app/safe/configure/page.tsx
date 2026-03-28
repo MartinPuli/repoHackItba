@@ -64,7 +64,7 @@ export default function SafeConfigurationPage() {
       await postStrongboxSetup(session.access_token, {
         own_email: form.ownerEmail.trim(),
         guardians,
-        heirs,
+        recovery_contacts: heirs,
       });
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) {

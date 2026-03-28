@@ -73,7 +73,6 @@ export async function setupStrongbox(userId: string, body: StrongboxSetupBody): 
 
   const admin = assertAdmin();
 
-  // Check owner wallet
   const { data: userRow, error: userErr } = await admin
     .from('users')
     .select('wallet_address')
@@ -82,7 +81,13 @@ export async function setupStrongbox(userId: string, body: StrongboxSetupBody): 
   if (userErr) {
     throw new HttpError(500, userErr.message, userErr.code);
   }
-  const ownerWallet = userRow?.wallet_address?.toLowerCase();
+  if (!userRow) {
+    throw new HttpError(
+      404,
+      'Usuario no encontrado en public.users. Recargá la página para que /api/auth/me cree tu perfil primero.'
+    );
+  }
+  const ownerWallet = userRow.wallet_address?.toLowerCase();
   if (ownerWallet && addresses.some((a) => a === ownerWallet)) {
     throw new HttpError(400, 'Guardianes/recovery contacts no pueden usar la wallet del titular');
   }
