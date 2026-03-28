@@ -1,0 +1,27 @@
+{
+  "name": "smartwallet-mcp-server",
+  "version": "0.1.0",
+  "description": "MCP Server - Smart Wallet Agent-First. Rail de pagos y wallet para humanos y agentes AI.",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "keywords": [
+    "mcp",
+    "wallet",
+    "agent",
+    "defi",
+    "erc4337"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.28.0",
+    "@supabase/supabase-js": "^2.100.1",
+    "dotenv": "^17.3.1",
+    "ethers": "^6.16.0",
+    "uuid": "^13.0.0",
+    "zod": "^4.3.6"
+  }
+}

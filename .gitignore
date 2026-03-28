@@ -10,4 +10,12 @@ coverage/
 out/
 .gsd/browser-state/
 .gsd/browser-baselines/
+.bg-shell/
+.claude/
 *.log
+
+# Repos de terceros (referencia, no nuestros)
+smart-wallet/
+goat/
+TradingAgents/
+Multi-Agent-AI-Finance-Assistant/
