@@ -5,7 +5,7 @@ import helmet from 'helmet';
 import { errorHandler } from './middlewares/errorHandler.js';
 import authRoutes from './routes/authRoutes.js';
 import balanceRoutes from './routes/balanceRoutes.js';
-import herederosRoutes from './routes/herederosRoutes.js';
+import strongboxRoutes from './routes/strongboxRoutes.js';
 
 export const app = express();
 
@@ -19,6 +19,6 @@ app.get('/health', (_req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api', balanceRoutes);
-app.use('/api', herederosRoutes);
+app.use('/api', strongboxRoutes);
 
 app.use(errorHandler);

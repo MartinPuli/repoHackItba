@@ -51,8 +51,8 @@ CREATE TABLE wallets (
 CREATE TABLE caja_fuerte (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  wallet_id UUID NOT NULL REFERENCES wallets(id) ON DELETE CASCADE,
-  contract_address TEXT UNIQUE NOT NULL,
+  wallet_id UUID REFERENCES wallets(id) ON DELETE CASCADE,
+  contract_address TEXT UNIQUE,
   chain_id INTEGER NOT NULL DEFAULT 97,
   balance_usdt NUMERIC(28,18) DEFAULT 0,
   balance_btcb NUMERIC(28,18) DEFAULT 0,
@@ -71,13 +71,15 @@ CREATE TABLE herederos (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   caja_fuerte_id UUID NOT NULL REFERENCES caja_fuerte(id) ON DELETE CASCADE,
   slot SMALLINT NOT NULL CHECK (slot IN (1, 2)),
+  rol TEXT NOT NULL CHECK (rol IN ('guardian', 'heir')),
   address TEXT NOT NULL,
+  email TEXT,
   display_name TEXT,
   share_percentage NUMERIC(5,2) NOT NULL DEFAULT 50.00,
   nonce INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE(caja_fuerte_id, slot)
+  UNIQUE(caja_fuerte_id, rol, slot)
 );
 
 CREATE TABLE transactions (

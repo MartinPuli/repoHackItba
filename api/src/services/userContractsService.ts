@@ -1,3 +1,5 @@
+import { createHash } from 'crypto';
+
 import { supabaseAdmin } from '../config/supabase.js';
 import { HttpError } from '../middlewares/httpError.js';
 import type { Database } from '../types/database.types.js';
@@ -78,8 +80,20 @@ export async function getCajaFuerteRowForUser(userId: string): Promise<CajaFuert
       'Caja fuerte no configurada en base de datos; crear fila en caja_fuerte tras deploy'
     );
   }
-  if (!isLikelyEthereumAddress(row.contract_address)) {
+  if (
+    row.contract_address != null &&
+    row.contract_address !== '' &&
+    !isLikelyEthereumAddress(row.contract_address)
+  ) {
     throw new HttpError(500, 'contract_address de caja fuerte con formato inválido');
   }
   return row;
+}
+
+/** Dirección para mocks cuando aún no hay contrato on-chain (`contract_address` null). */
+export function resolveCajaFuerteMockAddress(row: CajaFuerteRow): string {
+  if (row.contract_address && isLikelyEthereumAddress(row.contract_address)) {
+    return row.contract_address;
+  }
+  return `0x${createHash('sha256').update(row.id).digest('hex').slice(0, 40)}`;
 }

@@ -1,6 +1,4 @@
-import { createHash } from 'crypto';
-
-import type { Session, User } from '@supabase/supabase-js';
+import type { User } from '@supabase/supabase-js';
 
 import { supabaseAdmin } from '../config/supabase.js';
 import { HttpError } from '../middlewares/httpError.js';
@@ -13,14 +11,6 @@ function assertAdmin() {
     throw new HttpError(500, 'Supabase admin client is not configured');
   }
   return supabaseAdmin;
-}
-
-/**
- * Dirección placeholder única por usuario hasta deploy CREATE2 (ethers).
- * TODO: reemplazar por smart wallet real on-chain.
- */
-export function walletPlaceholderForAuthUserId(authUserId: string): string {
-  return `0x${createHash('sha256').update(authUserId).digest('hex').slice(0, 40)}`;
 }
 
 function toPublicProfile(row: Database['public']['Tables']['users']['Row']): PublicProfile {
@@ -36,131 +26,67 @@ function toPublicProfile(row: Database['public']['Tables']['users']['Row']): Pub
   };
 }
 
-async function insertPublicUserRow(payload: UsersInsert): Promise<PublicProfile> {
-  const admin = assertAdmin();
-  const { data, error } = await admin.from('users').insert(payload).select().single();
-  if (error) {
-    if (error.code === '23505') {
-      throw new HttpError(409, 'User profile already exists', error.code);
-    }
-    throw new HttpError(500, error.message, error.code);
-  }
-  return toPublicProfile(data);
-}
-
-export async function signUpUser(
-  email: string,
-  password: string
-): Promise<{ user: User; session: Session | null; profile: PublicProfile }> {
-  const admin = assertAdmin();
-  const { data: signUpData, error: signUpError } = await admin.auth.signUp({
-    email,
-    password,
-  });
-  if (signUpError) {
-    const status = signUpError.status === 400 ? 400 : 422;
-    throw new HttpError(status, signUpError.message);
-  }
-  const authUser = signUpData.user;
-  if (!authUser?.id) {
-    throw new HttpError(500, 'Auth sign-up did not return a user id');
-  }
-
-  const row: UsersInsert = {
-    id: authUser.id,
-    email,
-    wallet_address: walletPlaceholderForAuthUserId(authUser.id),
-  };
-
-  try {
-    const profile = await insertPublicUserRow(row);
-    return {
-      user: authUser,
-      session: signUpData.session,
-      profile,
-    };
-  } catch (err) {
-    if (err instanceof HttpError && err.statusCode === 409) {
-      const { data: existing, error: fetchErr } = await admin
-        .from('users')
-        .select('*')
-        .eq('id', authUser.id)
-        .maybeSingle();
-      if (fetchErr || !existing) {
-        throw err;
-      }
-      return {
-        user: authUser,
-        session: signUpData.session,
-        profile: toPublicProfile(existing),
-      };
-    }
-    throw err;
-  }
-}
-
-export async function signInUser(
-  email: string,
-  password: string
-): Promise<{ user: User; session: Session; profile: PublicProfile }> {
-  const admin = assertAdmin();
-  const { data: signInData, error: signInError } = await admin.auth.signInWithPassword({
-    email,
-    password,
-  });
-  if (signInError) {
-    const status = signInError.message.includes('Invalid login') ? 401 : 400;
-    throw new HttpError(status, signInError.message);
-  }
-  const session = signInData.session;
-  const authUser = signInData.user;
-  if (!session || !authUser?.id) {
+/**
+ * Metadata que suele setear Supabase Auth tras Web3 (MetaMask).
+ */
+function walletFromAuthUser(authUser: User): string {
+  const meta = authUser.user_metadata as Record<string, unknown> | undefined;
+  const raw = meta?.ethereum_address ?? meta?.wallet_address ?? meta?.address;
+  if (typeof raw !== 'string' || !/^0x[a-fA-F0-9]{40}$/.test(raw)) {
     throw new HttpError(
-      401,
-      'No session returned (¿email sin confirmar?). Revisá la configuración de Auth en Supabase.'
+      422,
+      'No se encontró wallet EVM en la sesión (metadata: ethereum_address / wallet_address)'
     );
   }
+  return raw.toLowerCase();
+}
 
-  const { data: profileRow, error: profileError } = await admin
+/**
+ * Asegura fila en `public.users` alineada al JWT y reporta si ya existe caja fuerte lógica.
+ */
+export async function getMeForAuthUser(authUser: User): Promise<{
+  profile: PublicProfile;
+  has_strongbox: boolean;
+}> {
+  const admin = assertAdmin();
+  const wallet_address = walletFromAuthUser(authUser);
+  const id = authUser.id;
+
+  const row: UsersInsert = { id, wallet_address };
+
+  const { data: profileRow, error: upsertErr } = await admin
     .from('users')
-    .select('*')
-    .eq('id', authUser.id)
-    .maybeSingle();
+    .upsert(row, { onConflict: 'id' })
+    .select()
+    .single();
 
-  if (profileError) {
-    throw new HttpError(500, profileError.message);
+  if (upsertErr) {
+    if (upsertErr.code === '23505') {
+      throw new HttpError(
+        409,
+        'Conflicto: wallet_address ya usada por otro usuario',
+        upsertErr.code
+      );
+    }
+    throw new HttpError(500, upsertErr.message, upsertErr.code);
   }
   if (!profileRow) {
-    throw new HttpError(
-      404,
-      'Perfil de aplicación no encontrado; completá el registro o contactá soporte.'
-    );
+    throw new HttpError(500, 'Upsert de usuario no devolvió fila');
+  }
+
+  const { data: cfRow, error: cfErr } = await admin
+    .from('caja_fuerte')
+    .select('id')
+    .eq('user_id', id)
+    .limit(1)
+    .maybeSingle();
+
+  if (cfErr) {
+    throw new HttpError(500, cfErr.message, cfErr.code);
   }
 
   return {
-    user: authUser,
-    session,
     profile: toPublicProfile(profileRow),
+    has_strongbox: cfRow != null,
   };
-}
-
-export async function getMeForAuthUserId(authUserId: string): Promise<PublicProfile> {
-  const admin = assertAdmin();
-  const { data: profileRow, error: profileError } = await admin
-    .from('users')
-    .select('*')
-    .eq('id', authUserId)
-    .maybeSingle();
-
-  if (profileError) {
-    throw new HttpError(500, profileError.message);
-  }
-  if (!profileRow) {
-    throw new HttpError(
-      404,
-      'Perfil de aplicación no encontrado; completá el registro o contactá soporte.'
-    );
-  }
-
-  return toPublicProfile(profileRow);
 }

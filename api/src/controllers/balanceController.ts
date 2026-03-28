@@ -7,6 +7,7 @@ import {
 } from '../services/mockChainBalance.js';
 import {
   getCajaFuerteRowForUser,
+  resolveCajaFuerteMockAddress,
   resolveSmartWalletForUser,
 } from '../services/userContractsService.js';
 
@@ -44,7 +45,8 @@ export async function getCajaFuerteBalance(req: Request, res: Response): Promise
   }
 
   const row = await getCajaFuerteRowForUser(authUserId);
-  const balances = readCajaFuerteBalancesMock(row.contract_address, row.chain_id);
+  const mockAddr = resolveCajaFuerteMockAddress(row);
+  const balances = readCajaFuerteBalancesMock(mockAddr, row.chain_id);
 
   res.status(200).json({
     balances,

@@ -1,11 +1,11 @@
 import { Router } from 'express';
 
-import { me } from '../controllers/authController.js';
+import { postStrongboxSetup } from '../controllers/strongboxController.js';
 import { asyncHandler } from '../middlewares/asyncHandler.js';
 import { requireAuth } from '../middlewares/requireAuth.js';
 
 const router = Router();
 
-router.get('/me', requireAuth, asyncHandler(me));
+router.post('/strongbox/setup', requireAuth, asyncHandler(postStrongboxSetup));
 
 export default router;
