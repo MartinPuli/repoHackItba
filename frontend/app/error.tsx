@@ -16,16 +16,18 @@ export default function Error({
         flexDirection: "column",
         alignItems: "flex-start",
         justifyContent: "center",
-        fontFamily: "system-ui, sans-serif",
+        fontFamily: "Inter, system-ui, sans-serif",
+        backgroundColor: "#F9FCF7",
+        color: "#1a2e1f",
       }}
     >
-      <h1 style={{ fontSize: 18, fontWeight: 600, color: "#f0f1f4" }}>
+      <h1 style={{ fontSize: 18, fontWeight: 600, color: "#1a2e1f" }}>
         Algo salió mal
       </h1>
       <pre
         style={{
           marginTop: 12,
-          color: "#b87a7a",
+          color: "#d46b6b",
           whiteSpace: "pre-wrap",
           fontSize: 13,
         }}
@@ -38,12 +40,13 @@ export default function Error({
         style={{
           marginTop: 20,
           padding: "10px 16px",
-          borderRadius: 10,
+          borderRadius: 12,
           border: "none",
-          background: "#8fb4c9",
-          color: "#0a0d10",
+          background: "#96CCA8",
+          color: "#142822",
           fontWeight: 600,
           cursor: "pointer",
+          boxShadow: "0 4px 14px rgba(150, 204, 168, 0.35)",
         }}
       >
         Reintentar

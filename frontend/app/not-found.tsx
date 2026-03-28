@@ -5,23 +5,23 @@ export default function NotFound() {
     <div
       style={{
         minHeight: "100vh",
-        backgroundColor: "#08090c",
-        color: "#f0f1f4",
+        backgroundColor: "#F9FCF7",
+        color: "#1a2e1f",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
         gap: 16,
-        fontFamily: "system-ui, sans-serif",
+        fontFamily: "Inter, system-ui, sans-serif",
         padding: 24,
       }}
     >
       <h1 style={{ fontSize: 20, fontWeight: 600 }}>404</h1>
-      <p style={{ color: "#8b909c" }}>Esta página no existe.</p>
+      <p style={{ color: "#5a7d64" }}>Esta página no existe.</p>
       <Link
         href="/"
         style={{
-          color: "#8fb4c9",
+          color: "#3f7a63",
           fontWeight: 600,
           textDecoration: "none",
         }}

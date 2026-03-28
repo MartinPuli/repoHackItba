@@ -57,3 +57,12 @@ Content-Type: application/json
 {
   "password": "{{password}}"
 }
+
+### Balance smart wallet (mock chain; JWT obligatorio)
+GET {{baseUrl}}/api/wallet/balance
+Authorization: Bearer {{accessToken}}
+
+### Balance caja fuerte (mock; requiere fila caja_fuerte en DB)
+GET {{baseUrl}}/api/caja-fuerte/balance
+Authorization: Bearer {{accessToken}}
+

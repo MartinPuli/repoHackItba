@@ -36,7 +36,7 @@ export function TopBar({ title, unreadAlerts = 0 }: TopBarProps) {
             >
               <Bell className="h-[18px] w-[18px]" strokeWidth={1.75} />
               {unreadAlerts > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-pistachio px-1 text-[10px] font-semibold text-white">
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-pistachio px-1 text-[10px] font-semibold text-primary-foreground">
                   {unreadAlerts > 99 ? "99+" : unreadAlerts}
                 </span>
               )}

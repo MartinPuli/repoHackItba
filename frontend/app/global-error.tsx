@@ -18,14 +18,14 @@ export default function GlobalError({
         style={{
           margin: 0,
           minHeight: "100vh",
-          backgroundColor: "#08090c",
-          color: "#f0f1f4",
-          fontFamily: "system-ui, sans-serif",
+          backgroundColor: "#F9FCF7",
+          color: "#1a2e1f",
+          fontFamily: "Inter, system-ui, sans-serif",
           padding: 24,
         }}
       >
         <h1 style={{ fontSize: 18, fontWeight: 600 }}>Error en la app</h1>
-        <p style={{ color: "#8b909c", fontSize: 14, maxWidth: 480 }}>
+        <p style={{ color: "#5a7d64", fontSize: 14, maxWidth: 480 }}>
           {error?.message || "Error desconocido"}
         </p>
         <button
@@ -34,12 +34,13 @@ export default function GlobalError({
           style={{
             marginTop: 20,
             padding: "10px 16px",
-            borderRadius: 10,
+            borderRadius: 12,
             border: "none",
-            background: "#8fb4c9",
-            color: "#0a0d10",
+            background: "#96CCA8",
+            color: "#142822",
             fontWeight: 600,
             cursor: "pointer",
+            boxShadow: "0 4px 14px rgba(150, 204, 168, 0.35)",
           }}
         >
           Reintentar
