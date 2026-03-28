@@ -11,7 +11,7 @@ export function StatBlock({ label, value, hint, className }: StatBlockProps) {
   return (
     <div
       className={cn(
-        "surface-card rounded-card px-4 py-4 transition-colors hover:border-line-strong",
+        "rounded-[14px] border border-pistachio-muted bg-cream px-4 py-4 transition-colors hover:border-pistachio-light",
         className
       )}
     >

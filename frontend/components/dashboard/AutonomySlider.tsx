@@ -12,45 +12,49 @@ const levels: {
   label: string;
   description: string;
   icon: React.ReactNode;
-  color: string;
+  textColor: string;
+  dotColor: string;
   bgColor: string;
   permissions: string[];
 }[] = [
   {
     key: "asistente",
     label: "Asistente",
-    description: "El agente sugiere, tu decides todo",
+    description: "El agente sugiere, vos decidís todo",
     icon: <ShieldCheck className="h-5 w-5" />,
-    color: "text-accent-green",
+    textColor: "text-accent-green",
+    dotColor: "bg-accent-green",
     bgColor: "bg-accent-green",
     permissions: [
-      "Ver sugerencias de inversion",
-      "Ver analisis de mercado",
+      "Ver sugerencias de inversión",
+      "Ver análisis de mercado",
     ],
   },
   {
     key: "copiloto",
     label: "Co-Piloto",
-    description: "El agente prepara, tu apruebas con 1 click",
+    description: "El agente prepara, vos aprobás con 1 click",
     icon: <Compass className="h-5 w-5" />,
-    color: "text-accent-yellow",
+    textColor: "text-accent-yellow",
+    dotColor: "bg-accent-yellow",
     bgColor: "bg-accent-yellow",
     permissions: [
-      "Compliance UIF/CNV automatico",
+      "Compliance UIF/CNV automático",
       "Preparar transacciones",
       "Notificaciones proactivas",
     ],
   },
   {
     key: "autonomo",
-    label: "Autonomo",
+    label: "Autónomo",
     description: "El agente ejecuta con Session Keys",
     icon: <Bot className="h-5 w-5" />,
-    color: "text-accent-orange",
+    textColor: "text-accent-orange",
+    dotColor: "bg-accent-orange",
     bgColor: "bg-accent-orange",
     permissions: [
       "Session Keys activas",
-      "Rebalanceo automatico",
+      "Rebalanceo automático",
       "Yield optimization",
       "Agentic Commerce",
     ],
@@ -76,7 +80,6 @@ export function AutonomySlider({
   function handleSelect(level: AutonomyLevel) {
     if (level === currentLevel) return;
 
-    // Require confirmation to go to Autonomo
     if (level === "autonomo") {
       setPendingLevel(level);
       setShowConfirm(true);
@@ -99,10 +102,10 @@ export function AutonomySlider({
   return (
     <div className="glass-card p-5">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-sm font-medium uppercase tracking-wider text-white/40">
-          Nivel de Autonomia
+        <h3 className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-faint">
+          Nivel de Autonomía
         </h3>
-        <div className={cn("flex items-center gap-2", activeLevel.color)}>
+        <div className={cn("flex items-center gap-2", activeLevel.textColor)}>
           {activeLevel.icon}
           <span className="text-sm font-semibold">{activeLevel.label}</span>
         </div>
@@ -110,16 +113,16 @@ export function AutonomySlider({
 
       {/* Slider Track */}
       <div className="relative mb-6">
-        <div className="flex h-12 items-center rounded-xl bg-white/5 p-1">
-          {levels.map((level, index) => (
+        <div className="flex h-12 items-center rounded-xl bg-surface-muted p-1 ring-1 ring-line">
+          {levels.map((level) => (
             <button
               key={level.key}
               onClick={() => handleSelect(level.key)}
               className={cn(
                 "relative z-10 flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-xs font-medium transition-all duration-300",
                 currentLevel === level.key
-                  ? "text-black"
-                  : "text-white/40 hover:text-white/70"
+                  ? "text-white"
+                  : "text-ink-muted hover:text-ink"
               )}
             >
               {level.icon}
@@ -130,7 +133,7 @@ export function AutonomySlider({
           {/* Sliding indicator */}
           <motion.div
             className={cn(
-              "absolute top-1 h-10 rounded-lg",
+              "absolute top-1 h-10 rounded-lg shadow-sm",
               activeLevel.bgColor
             )}
             initial={false}
@@ -152,17 +155,17 @@ export function AutonomySlider({
           exit={{ opacity: 0, y: -4 }}
           className="space-y-3"
         >
-          <p className="text-sm text-white/60">{activeLevel.description}</p>
+          <p className="text-sm text-ink-muted">{activeLevel.description}</p>
           <div className="space-y-1.5">
             {activeLevel.permissions.map((perm) => (
               <div key={perm} className="flex items-center gap-2 text-xs">
                 <div
                   className={cn(
                     "h-1.5 w-1.5 rounded-full",
-                    activeLevel.bgColor
+                    activeLevel.dotColor
                   )}
                 />
-                <span className="text-white/50">{perm}</span>
+                <span className="text-ink-muted">{perm}</span>
               </div>
             ))}
           </div>
@@ -176,7 +179,7 @@ export function AutonomySlider({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm"
             onClick={() => setShowConfirm(false)}
           >
             <motion.div
@@ -188,30 +191,32 @@ export function AutonomySlider({
             >
               <div className="mb-4 flex items-center gap-3 text-accent-orange">
                 <AlertTriangle className="h-6 w-6" />
-                <h3 className="text-lg font-bold">Activar Modo Autonomo</h3>
+                <h3 className="text-lg font-bold text-ink">
+                  Activar Modo Autónomo
+                </h3>
               </div>
-              <p className="mb-2 text-sm text-white/60">
-                El agente podra ejecutar transacciones automaticamente usando
+              <p className="mb-2 text-sm text-ink-muted">
+                El agente podrá ejecutar transacciones automáticamente usando
                 Session Keys. Esto incluye:
               </p>
-              <ul className="mb-6 space-y-1 text-sm text-white/50">
-                <li>- Rebalanceo automatico del portafolio</li>
-                <li>- Optimizacion de yield (Venus + Rootstock)</li>
-                <li>- Pagos via Agentic Commerce</li>
+              <ul className="mb-6 space-y-1 text-sm text-ink-muted">
+                <li>— Rebalanceo automático del portafolio</li>
+                <li>— Optimización de yield (Venus + Rootstock)</li>
+                <li>— Pagos via Agentic Commerce</li>
               </ul>
-              <p className="mb-6 text-xs text-accent-yellow">
-                Siempre podes desactivar con el Kill Switch.
+              <p className="mb-6 text-xs text-accent-yellow font-medium">
+                Siempre podés desactivar con el Kill Switch.
               </p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowConfirm(false)}
-                  className="flex-1 rounded-xl bg-white/5 px-4 py-2.5 text-sm font-medium text-white/60 transition-colors hover:bg-white/10"
+                  className="flex-1 rounded-xl border border-line bg-surface-muted px-4 py-2.5 text-sm font-medium text-ink-muted transition-colors hover:bg-surface-hover hover:text-ink"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={confirmAutonomo}
-                  className="flex-1 rounded-xl bg-accent-orange px-4 py-2.5 text-sm font-bold text-black transition-all hover:brightness-110"
+                  className="flex-1 rounded-xl bg-accent-orange px-4 py-2.5 text-sm font-bold text-white transition-all hover:brightness-105"
                 >
                   Confirmar
                 </button>
