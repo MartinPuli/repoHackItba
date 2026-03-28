@@ -7,6 +7,7 @@ import { config } from "@/lib/wagmi/config";
 import { useState } from "react";
 
 import "@rainbow-me/rainbowkit/styles.css";
+import { VaultFlowProvider } from "@/context/VaultFlowContext";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
@@ -22,7 +23,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             overlayBlur: "small",
           })}
         >
-          {children}
+          <VaultFlowProvider>{children}</VaultFlowProvider>
         </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>

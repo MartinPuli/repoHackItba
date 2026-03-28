@@ -77,12 +77,13 @@ export function useTokenPrices(): { prices: TokenPrices; loading: boolean } {
   useEffect(() => {
     let cancelled = false;
 
-    fetchPrices().then((p) => {
-      if (!cancelled) {
-        setPrices(p);
-        setLoading(false);
-      }
-    });
+    fetchPrices()
+      .then((p) => {
+        if (!cancelled) setPrices(p);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
 
     // Refresh every 60s
     const interval = setInterval(() => {

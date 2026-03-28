@@ -13,6 +13,7 @@ out/
 .bg-shell/
 .claude/
 *.log
+**/tsconfig.tsbuildinfo
 
 api/supabase/.temp/
 # Repos de terceros (referencia, no nuestros)
