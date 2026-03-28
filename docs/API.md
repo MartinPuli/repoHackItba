@@ -16,6 +16,7 @@ El prefijo de auth es **`/api/auth`**. No hay versión en URL (`/v1`) por ahora.
 ### Cabeceras
 
 - **`Content-Type: application/json`** en `POST` con cuerpo.
+- **`Authorization: Bearer <access_token>`** en rutas protegidas (el mismo `access_token` que devuelve `session` en login o register).
 
 ### Respuestas de error
 
@@ -28,13 +29,20 @@ Errores controlados devuelven JSON:
 }
 ```
 
-Los códigos HTTP habituales: **400** (validación), **401** (login inválido o sin sesión), **404** (perfil de app inexistente), **409** (conflicto, p. ej. perfil duplicado), **422** (Auth / reglas de Supabase), **500** (interno o Supabase no configurado).
+Los códigos HTTP habituales: **400** (validación), **401** (login inválido, token ausente, JWT inválido o expirado), **404** (perfil de app inexistente), **409** (conflicto, p. ej. perfil duplicado), **422** (Auth / reglas de Supabase), **500** (interno o Supabase no configurado).
+
+### Rutas protegidas (JWT)
+
+1. Llamá a **`POST /api/auth/login`** (o register con sesión) y guardá **`session.access_token`**.
+2. En siguientes peticiones, enviá **`Authorization: Bearer <access_token>`**.
+3. Si el token expiró o es inválido, la API responde **401** con cuerpo `{ "error": "..." }`.
 
 ### Auth y Supabase (contexto para frontend)
 
 - El registro y login usan **Supabase Auth** en el servidor (clave **service role**). El frontend **no** debe usar la service role.
-- La API devuelve el objeto **`session`** de Supabase cuando el flujo lo permite (incluye `access_token`, `refresh_token`, `expires_in`, etc.). El front puede guardarlo (p. ej. memoria segura / storage acotado) y crear un cliente Supabase con el **`access_token`** si necesitás llamar a la DB con RLS como “ese usuario”.
-- En **`public.users`** el `id` coincide con el `user.id` de Auth; el campo **`wallet_address`** suele ser un **placeholder** hasta el deploy del smart wallet (CREATE2).
+- En **login** y **register** la respuesta incluye solo **`session`** (objeto Supabase, con `access_token`, `refresh_token`, `session.user`, etc.) y **`profile`** (fila `public.users`). No se repite un `user` suelto en la raíz: para `id` / `email` de Auth usá **`session.user`**; para datos de app usá **`profile`**.
+- El front puede persistir **`session`** y usar **`access_token`** en cabeceras `Authorization: Bearer` o con el cliente Supabase si llamás a la DB con RLS.
+- En **`public.users`** el `id` coincide con `session.user.id`; el campo **`wallet_address`** suele ser un **placeholder** hasta el deploy del smart wallet (CREATE2).
 
 ### Email: sin verificación por mail (recomendado para el hackathon)
 
@@ -78,16 +86,15 @@ Crea usuario en **Supabase Auth** y fila en **`public.users`** (mismo `id` que A
 
 ```json
 {
-  "user": {
-    "id": "uuid",
-    "email": "usuario@dominio.com"
-  },
   "session": {
     "access_token": "...",
     "refresh_token": "...",
     "expires_in": 3600,
     "token_type": "bearer",
-    "user": { }
+    "user": {
+      "id": "uuid",
+      "email": "usuario@dominio.com"
+    }
   },
   "profile": {
     "id": "uuid",
@@ -133,12 +140,56 @@ Misma forma que register (201), pero status **200** y **`session`** debe existir
 
 ---
 
+### `GET /api/auth/me`
+
+Devuelve el perfil en **`public.users`** (`id`, `email`, `wallet_address`, etc.). Los datos de sesión Auth (`session.user`) ya los tenés del login o podés inspeccionar el JWT. Requiere JWT válido.
+
+**Cabeceras**
+
+| Cabecera        | Valor                                      |
+| --------------- | ------------------------------------------ |
+| `Authorization` | `Bearer <access_token>` (obligatorio)   |
+
+**Respuesta 200**
+
+```json
+{
+  "profile": {
+    "id": "uuid",
+    "wallet_address": "0x...",
+    "display_name": null,
+    "email": "usuario@dominio.com",
+    "autonomy_level": "asistente",
+    "created_at": "2026-03-28T04:44:39.690308+00:00",
+    "updated_at": "2026-03-28T04:44:39.690308+00:00",
+    "last_active_at": "2026-03-28T04:44:39.690308+00:00"
+  }
+}
+```
+
+**Errores frecuentes**
+
+- **401** — sin cabecera `Authorization`, no es `Bearer`, token inválido o expirado.
+- **404** — usuario de Auth válido pero sin fila en `public.users`.
+- **500** — Supabase no configurado u otro error de servidor.
+
+---
+
 ## Ejemplo cURL (login)
 
 ```bash
 curl -s -X POST http://localhost:3000/api/auth/login \
   -H 'Content-Type: application/json' \
   -d '{"email":"usuario@dominio.com","password":"TuPasswordSeguro"}'
+```
+
+### Ejemplo cURL (`/me` con JWT)
+
+Sustituí `<ACCESS_TOKEN>` por el valor de `session.access_token` del login:
+
+```bash
+curl -s http://localhost:3000/api/auth/me \
+  -H 'Authorization: Bearer <ACCESS_TOKEN>'
 ```
 
 ---
@@ -151,7 +202,6 @@ En `api/http/api.http` hay peticiones listas para **REST Client** (VS Code / Cur
 
 ## Próximos pasos posibles (no implementados aún)
 
-- Rutas protegidas con middleware JWT (`Authorization: Bearer <access_token>`).
 - Endpoints de wallet / caja fuerte / transacciones alineados al schema en `public`.
 
 Para el modelo de datos completo, ver la migración en `api/supabase/migrations/` y tipos en `api/src/types/database.types.ts`.

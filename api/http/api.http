@@ -1,6 +1,8 @@
 @baseUrl = http://localhost:3000
-@email = jmartinbejaranoa@gmail.com
-@password = jmartinbejaranoa123!
+@email = martinbejarano12@outlook.com
+@password = martinbejarano12!
+### Pegar aquí el access_token devuelto por login/register (sin "Bearer ")
+@accessToken = yJhbGciOiJFUzI1NiIsImtpZCI6ImNhNTEzOTM2LTUzM2EtNDUxNC1hMzYwLTViMzc3NjA3ZmQ1NyIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL3RmYXRpa2V1cGt5ZGZlcmJjc2JjLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI1ZTJhMDc3ZC0xOTI2LTQ1NzgtOTczNS1hOTBhNzZmNGQ5ZTYiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzc0NjgyNDYzLCJpYXQiOjE3NzQ2Nzg4NjMsImVtYWlsIjoibWFydGluYmVqYXJhbm8xMkBvdXRsb29rLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiJtYXJ0aW5iZWphcmFubzEyQG91dGxvb2suY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiNWUyYTA3N2QtMTkyNi00NTc4LTk3MzUtYTkwYTc2ZjRkOWU2In0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NzQ2Nzg4NjN9XSwic2Vzc2lvbl9pZCI6IjM5NmFmYzQxLWM3NmItNDUxOS04ODQ1LThhMzU2MDhiODkxZCIsImlzX2Fub255bW91cyI6ZmFsc2V9.2PcWtA2-Yge0ANpdEk0cWBMozGkFpzCkuok0YxJJnGITLL5rsPyrSwGs0Touofjp2tpGX2m3d_R1wfRZlSGiZg
 
 ### Health check
 GET {{baseUrl}}/health
@@ -40,6 +42,13 @@ Content-Type: application/json
   "email": "{{email}}",
   "password": "password-incorrecto"
 }
+
+### Me — sesión actual (401 si @accessToken vacío o expirado)
+GET {{baseUrl}}/api/auth/me
+Authorization: Bearer {{accessToken}}
+
+### Me — sin token (401)
+GET {{baseUrl}}/api/auth/me
 
 ### Validación — falta email
 POST {{baseUrl}}/api/auth/register
