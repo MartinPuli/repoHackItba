@@ -1,48 +1,37 @@
-# API HTTP — Smart Wallet (backend `api/`)
+# API HTTP — StrongBox (backend `api/`)
 
-Referencia para integrar el **frontend** con el servidor Express que vive en el paquete `api/`. La API es **JSON-only** (CORS habilitado, cuerpo `application/json`).
+Referencia para integrar el **frontend** con el servidor Express. La API es **JSON-only** (CORS habilitado).
 
 ## Base URL
 
-| Entorno   | Ejemplo                          |
-| --------- | -------------------------------- |
-| Local     | `http://localhost:3000`        |
-| Producción | Definir según deploy (`PORT`) |
-
-El prefijo de auth es **`/api/auth`**. No hay versión en URL (`/v1`) por ahora.
+| Entorno    | URL                        |
+| ---------- | -------------------------- |
+| Local      | `http://localhost:3000`    |
+| Produccion | Definir segun deploy       |
 
 ## Convenciones
 
 ### Cabeceras
 
 - **`Content-Type: application/json`** en `POST` con cuerpo.
-- **`Authorization: Bearer <access_token>`** en rutas protegidas (el `session.access_token` del cliente Supabase tras login Web3).
+- **`Authorization: Bearer <access_token>`** en rutas protegidas (JWT de Supabase tras login Web3).
 
 ### Respuestas de error
-
-Errores controlados devuelven JSON:
 
 ```json
 {
   "error": "mensaje legible",
-  "code": "opcional (ej. código Postgres u otro)"
+  "code": "opcional"
 }
 ```
 
-Los códigos HTTP habituales: **400** (validación), **401** (token ausente, JWT inválido o expirado), **404** (recurso no encontrado), **409** (conflicto, p. ej. caja fuerte ya configurada o wallet duplicada), **422** (sesión sin metadata Web3), **500** (interno o Supabase no configurado).
+Codigos HTTP: **400** (validacion), **401** (token ausente/invalido), **404** (recurso no encontrado), **409** (conflicto), **500** (interno).
 
-### Rutas protegidas (JWT)
+### Auth (MetaMask + Supabase)
 
-1. En el **frontend**, iniciar sesión con **MetaMask** vía **`supabase.auth.signInWithWeb3({ chain: 'ethereum' })`** (u otro flujo Web3 de Supabase) y guardá **`session.access_token`**.
-2. En peticiones a esta API, enviá **`Authorization: Bearer <access_token>`**.
-3. Si el token expiró o es inválido, la API responde **401** con cuerpo `{ "error": "..." }`.
-
-### Auth y Supabase (contexto para frontend)
-
-- **No** hay `POST /api/auth/register` ni `POST /api/auth/login` en el backend: el auth lo resuelve el cliente con Supabase.
-- El backend usa la **service role** solo para validar el JWT en rutas protegidas y para leer/escribir `public.*` con el cliente admin. El frontend **no** expone la service role.
-- Tras el login Web3, **`GET /api/auth/me`** hace **upsert** de **`public.users`** (`id` = `auth.users.id`, `wallet_address` desde `user_metadata`, p. ej. `ethereum_address`).
-- El email opcional del titular en **`public.users`** se puede cargar con **`POST /api/strongbox/setup`** (`own_email`).
+1. Frontend: login con MetaMask via `supabase.auth.signInWithWeb3()`
+2. Enviar `Authorization: Bearer <access_token>` en cada request
+3. Si el token expiro → **401**
 
 ---
 
@@ -52,28 +41,15 @@ Los códigos HTTP habituales: **400** (validación), **401** (token ausente, JWT
 
 Comprueba que el servidor responde.
 
-**Respuesta 200**
-
-```json
-{
-  "ok": true
-}
-```
+**Respuesta 200**: `{ "ok": true }`
 
 ---
 
 ### `GET /api/auth/me`
 
-Asegura fila en **`public.users`** (upsert por `id` con `wallet_address` leída del JWT / metadata Web3) y devuelve si ya existe **`caja_fuerte`** para el usuario.
+Upsert de `users` con wallet desde JWT. Devuelve si ya tiene StrongBox.
 
-**Cabeceras**
-
-| Cabecera        | Valor                                   |
-| --------------- | --------------------------------------- |
-| `Authorization` | `Bearer <access_token>` (obligatorio) |
-
-**Respuesta 200**
-
+**Respuesta 200**:
 ```json
 {
   "profile": {
@@ -81,187 +57,102 @@ Asegura fila en **`public.users`** (upsert por `id` con `wallet_address` leída 
     "wallet_address": "0x...",
     "display_name": null,
     "email": null,
-    "autonomy_level": "asistente",
-    "created_at": "2026-03-28T04:44:39.690308+00:00",
-    "updated_at": "2026-03-28T04:44:39.690308+00:00",
-    "last_active_at": "2026-03-28T04:44:39.690308+00:00"
+    "created_at": "...",
+    "last_active_at": "..."
   },
   "has_strongbox": false
 }
 ```
 
-**Errores frecuentes**
-
-- **401** — sin `Bearer`, token inválido o expirado.
-- **409** — conflicto de unicidad en `users.wallet_address` (misma wallet, otro usuario).
-- **422** — token válido pero sin dirección EVM en metadata (`ethereum_address` / `wallet_address`).
-- **500** — Supabase no configurado u otro error de servidor.
-
----
-
-### `GET /api/wallet/balance`
-
-Devuelve balances **simulados** (BNB + USDT) para la smart wallet del usuario autenticado. La dirección se resuelve en este orden: última fila en **`wallets.contract_address`** para el `user_id`; si no existe, **`users.wallet_address`** (wallet Web3 del usuario). Los valores on-chain reales se integrarán vía RPC/ethers sustituyendo la capa mock.
-
-**Cabeceras:** `Authorization: Bearer <access_token>` (obligatorio).
-
-**Respuesta 200 (ejemplo)**
-
-```json
-{
-  "resolution": "users_fallback",
-  "balances": {
-    "chainId": 97,
-    "contractAddress": "0x...",
-    "native": { "symbol": "BNB", "wei": "...", "formatted": "0.012345" },
-    "usdt": { "symbol": "USDT", "raw": "...", "decimals": 6, "formatted": "1.23" },
-    "source": "mock"
-  },
-  "dbSnapshot": null
-}
-```
-
-Si hay fila `wallets`, `resolution` será `"wallets"` y `dbSnapshot` incluirá `balance_bnb`, `balance_usdt`, `is_deployed`.
-
-**Errores:** **401** token; **404** sin `users.wallet_address`; **500** Supabase no configurado.
-
----
-
-### `GET /api/caja-fuerte/balance`
-
-Requiere fila **`caja_fuerte`**.
-
-- Si **`is_deployed`** es **true** y hay **`contract_address`** válida: el backend lee el **BNB nativo real** del contrato vía **`RPC_URL`** (`provider.getBalance`). El objeto `balances` tiene **`source: "rpc"`**; USDT y RBTC se devuelven en **0** (el StrongBox on-chain solo gestiona nativo).
-- Si la caja aún **no** está deployada on-chain (`contract_address` null o `is_deployed` false): se usa balance **simulado** como antes (`source: "mock"`).
-
-**Cabeceras:** `Authorization: Bearer <access_token>`.
-
-**Errores:** **401**; **404** sin fila `caja_fuerte`; **500** sin `RPC_URL` al leer on-chain; **502** fallo del nodo RPC.
+**Errores**: 401 (token), 409 (wallet duplicada), 422 (sin wallet en metadata), 500.
 
 ---
 
 ### `POST /api/strongbox/setup`
 
-Crea la **caja fuerte lógica** en Supabase (**sin deploy on-chain**): una fila **`caja_fuerte`** (`wallet_id` y `contract_address` null, `is_deployed: false`) y **4** filas en **`herederos`** (2 guardianes + 2 herederos), cada una con **`wallet` + `email`**. Actualiza **`users.email`** del titular con **`own_email`**.
+Crea StrongBox logica en DB (sin deploy on-chain). Configura guardianes y recovery contacts.
 
-Solo se permite **una** configuración por usuario (**409** si ya existe `caja_fuerte`).
+**Body**:
 
-**Cabeceras:** `Authorization: Bearer <access_token>` (obligatorio).
+| Campo | Tipo | Obligatorio | Notas |
+|-------|------|-------------|-------|
+| `own_email` | string | si | Email del titular |
+| `guardians` | array | si | 2 objetos `{ "wallet", "email" }` |
+| `recovery_contacts` | array | si | 2 objetos `{ "wallet", "email" }` |
 
-**Body (JSON)**
+Las 4 wallets deben ser distintas entre si y distintas de la del titular.
 
-| Campo        | Tipo   | Obligatorio | Notas |
-| ------------ | ------ | ----------- | ----- |
-| `own_email`  | string | sí          | Email del titular (sin verificación). |
-| `guardians`  | array  | sí          | Exactamente **2** objetos `{ "wallet", "email" }`. |
-| `heirs`      | array  | sí          | Exactamente **2** objetos `{ "wallet", "email" }`. |
+**Respuesta 201**: `{ "ok": true }`
 
-Las cuatro wallets deben ser **distintas** entre sí y **distintas** de la `wallet_address` del titular en **`public.users`**.
+**Errores**: 400 (validacion), 401 (token), 409 (ya tiene strongbox), 500.
 
-**Respuesta 201**
+---
 
+### `GET /api/strongbox/balance`
+
+Balance de la StrongBox del usuario (mock → on-chain RPC).
+
+**Respuesta 200**:
 ```json
-{ "ok": true }
+{
+  "balances": {
+    "chainId": 97,
+    "contractAddress": "0x...",
+    "native": { "symbol": "BNB", "formatted": "0.5" },
+    "source": "mock"
+  }
+}
 ```
 
-**Errores frecuentes**
-
-- **400** — validación de body, formato EVM, emails vacíos, wallets duplicadas o iguales a la del titular.
-- **401** — token ausente o inválido.
-- **409** — el usuario ya tiene `caja_fuerte`.
-- **500** — fallo de Supabase.
+**Errores**: 401, 404 (sin strongbox).
 
 ---
 
-### `POST /api/strongbox/confirm-deploy`
+### `POST /api/strongbox/withdraw/request`
 
-Tras que el **frontend** ejecute on-chain **`Factory.createStrongBox(...)`** (MetaMask), el cliente envía la dirección del StrongBox y el hash del deploy. El backend **verifica** que exista bytecode en esa dirección (`getCode`), actualiza **`caja_fuerte`**: **`contract_address`**, **`is_deployed: true`**, **`deploy_tx_hash`**.
+Crea solicitud de retiro. Notifica a guardianes.
 
-**Cabeceras:** `Authorization: Bearer <access_token>`.
+**Body**:
 
-**Body (JSON)**
+| Campo | Tipo | Notas |
+|-------|------|-------|
+| `amount` | string | Monto en wei |
+| `to_address` | string | Direccion destino |
 
-| Campo                 | Tipo   | Obligatorio | Notas |
-| --------------------- | ------ | ----------- | ----- |
-| `contract_address`    | string | sí          | Dirección del contrato StrongBox (0x…40 hex). |
-| `deploy_tx_hash`      | string | sí          | Hash de la tx de creación (0x + 64 hex). |
-
-**Respuesta 200:** `{ "ok": true, "contract_address": "0x…" }`
-
-**Errores:** **400** (dirección sin contrato, hashes inválidos); **401**; **404** sin `caja_fuerte`; **409** si ya estaba `is_deployed`; **500** Supabase / sin `RPC_URL`.
+**Respuesta 201**: `{ "request_id": "uuid" }`
 
 ---
 
-### `POST /api/strongbox/confirm-deposit`
+### `POST /api/strongbox/withdraw/:id/approve`
 
-Tras **`StrongBox.deposit()`** firmado por el usuario, el cliente envía el hash de la tx y el monto en BNB. El backend **valida** receipt (`to` = StrongBox, `value` = `amount_bnb`, `from` = `users.wallet_address`) e inserta fila en **`transactions`**.
+Guardian aprueba solicitud de retiro.
 
-**Cabeceras:** `Authorization: Bearer <access_token>`.
-
-**Body (JSON)**
-
-| Campo         | Tipo   | Obligatorio | Notas |
-| ------------- | ------ | ----------- | ----- |
-| `tx_hash`     | string | sí          | Hash de la tx (0x + 64 hex). |
-| `amount_bnb`  | string | sí          | Debe coincidir con `msg.value` (ej. `"0.05"`). |
-
-**Respuesta 200:** `{ "ok": true }`
-
-**Errores:** **400** (validación, tx no al StrongBox, monto distinto, firmante distinto); **401**; **404** (sin `caja_fuerte`, tx no en cadena); **500** Supabase.
+**Respuesta 200**: `{ "ok": true, "fully_approved": false }`
 
 ---
 
-### Ejemplo cURL (`/me` con JWT)
+### `GET /api/strongbox/withdraw/pending`
 
-Sustituí `<ACCESS_TOKEN>` por `session.access_token` obtenido en el frontend tras Web3 login:
+Lista solicitudes de retiro pendientes para el usuario (como owner o guardian).
+
+---
+
+### `GET /api/strongbox/guardians`
+
+Lista guardianes y recovery contacts de la StrongBox del usuario.
+
+---
+
+## Ejemplo cURL
 
 ```bash
+# Auth
 curl -s http://localhost:3000/api/auth/me \
-  -H 'Authorization: Bearer <ACCESS_TOKEN>'
-```
+  -H 'Authorization: Bearer <TOKEN>'
 
-### Ejemplo cURL (balances con JWT)
-
-```bash
-curl -s http://localhost:3000/api/wallet/balance \
-  -H 'Authorization: Bearer <ACCESS_TOKEN>'
-
-curl -s http://localhost:3000/api/caja-fuerte/balance \
-  -H 'Authorization: Bearer <ACCESS_TOKEN>'
-```
-
-### Ejemplo cURL (strongbox setup)
-
-```bash
+# Setup
 curl -s -X POST http://localhost:3000/api/strongbox/setup \
-  -H 'Authorization: Bearer <ACCESS_TOKEN>' \
+  -H 'Authorization: Bearer <TOKEN>' \
   -H 'Content-Type: application/json' \
-  -d '{"own_email":"yo@dominio.com","guardians":[{"wallet":"0x1111111111111111111111111111111111111111","email":"g1@dominio.com"},{"wallet":"0x2222222222222222222222222222222222222222","email":"g2@dominio.com"}],"heirs":[{"wallet":"0x3333333333333333333333333333333333333333","email":"h1@dominio.com"},{"wallet":"0x4444444444444444444444444444444444444444","email":"h2@dominio.com"}]}'
+  -d '{"own_email":"yo@mail.com","guardians":[{"wallet":"0x111...","email":"g1@mail.com"},{"wallet":"0x222...","email":"g2@mail.com"}],"recovery_contacts":[{"wallet":"0x333...","email":"r1@mail.com"},{"wallet":"0x444...","email":"r2@mail.com"}]}'
 ```
-
-### Ejemplo cURL (strongbox confirm-deploy / confirm-deposit)
-
-```bash
-curl -s -X POST http://localhost:3000/api/strongbox/confirm-deploy \
-  -H 'Authorization: Bearer <ACCESS_TOKEN>' \
-  -H 'Content-Type: application/json' \
-  -d '{"contract_address":"0x…","deploy_tx_hash":"0x…"}'
-
-curl -s -X POST http://localhost:3000/api/strongbox/confirm-deposit \
-  -H 'Authorization: Bearer <ACCESS_TOKEN>' \
-  -H 'Content-Type: application/json' \
-  -d '{"tx_hash":"0x…","amount_bnb":"0.05"}'
-```
-
----
-
-## Pruebas desde el repo
-
-En `api/http/api.http` hay peticiones listas para **REST Client** (VS Code / Cursor).
-
-## Notas de alineación (contratos vs producto)
-
-- **`Wallet.sol`** expone `GetBalance()` nativo; no hay USDT en el contrato actual; el mock incluye USDT para la API objetivo del hackathon.
-- **`StrongBox.sol`** (`contracts/src/StrongBox.sol`): balance vía `getBalance()` nativo y modificador `OnlyOwner`; la lectura por backend vía RPC no depende del modificador. Documentación en `docs/INTEGRACION-CONTRATOS.md` describe `CajaFuerte` con más métodos que aún no coinciden 1:1 con el código en `contracts/src/`.
-
-Para el modelo de datos completo, ver la migración en `api/supabase/migrations/` y tipos en `api/src/types/database.types.ts`.

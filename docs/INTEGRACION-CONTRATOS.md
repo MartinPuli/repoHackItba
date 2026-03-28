@@ -1,144 +1,200 @@
 # Integracion Frontend/Backend ↔ Smart Contracts
 
-## Arquitectura de Contratos
+## Contratos deployados
+
+Cada vault son 3 contratos deployados por la Factory:
 
 ```
-Factory (wallet → strongbox)
-  └── createNewStrongBox(ownerAddress) → deploy StrongBox, mapea owner→strongbox
-
-Owner (abstract)
-  └── OnlyOwner modifier, getOwner()
-
-Guardian (abstract, hereda de Owner)
-  └── setGuardian1/2(), OnlyGuardians modifier
-  └── _validateGuardian: newGuardian != otherGuardian (sin excepcion address(0))
-
-StrongBox (hereda de Owner + Guardian)
-  ├── deposit() payable OnlyOwner                    → deposita en caja fuerte
-  ├── requestWithdrawal(amount, to) OnlyOwner        → solicita retiro
-  ├── approveWithdrawal(requestId) OnlyGuardians     → guardian aprueba retiro
-  ├── executeWithdrawal(requestId) OnlyOwner         → ejecuta retiro aprobado por ambos
-  ├── recover() OnlyRecoveryContacts onlyAfterTime   → recuperacion tras inactividad
-  ├── getBalance()                                   → consulta balance
-  ├── receive() payable                              → recibe BNB
-  └── (updateTime interno — se resetea con deposit/requestWithdrawal)
+Factory.createStrongBox(guardian1, guardian2, heir1, heir2, timeLimit)
+  │
+  ├── Guardian(guardian1, guardian2)     → contrato inmutable con 2 direcciones
+  ├── Heir(heir1, heir2)                → contrato inmutable con 2 direcciones
+  └── StrongBox(owner, guardian, heir, timeLimit) → vault principal
 ```
 
-## Interacciones por Contrato
+La Factory guarda `mapping(address => address)` de wallet → strongbox.
 
-### 1. Factory — Creacion de Vault
+## Contratos: API publica real
+
+### Factory.sol
 
 ```solidity
-// Crear StrongBox para un owner
-function createNewStrongBox(address ownerAddress) public;
-// → Emite NewStrongBoxCreated(ownerAddress, strongBoxAddress)
+// Crear vault (msg.sender = owner)
+function createStrongBox(
+    address guardian1, address guardian2,
+    address heir1, address heir2,
+    uint256 timeLimit
+) external returns (address strongBoxAddress);
 
-// Consulta
-function getStrongBox(address owner) public view returns(address);
+// Consultar vault de una wallet
+function getStrongBox(address wallet) external view returns (address);
+
+// Admin: asignar vault manualmente
+function setStrongBox(address wallet, address strongBox) external OnlyOwner;
 ```
 
-**Flujo desde frontend**:
-1. Usuario conecta MetaMask
-2. Backend hace setup en DB (guardianes + recovery contacts)
-3. Al primer deposito, frontend llama `Factory.createNewStrongBox(ownerAddress)`
-4. Se guarda `contract_address` en DB
+**Evento**: `StrongBoxCreated(wallet, strongBox, guardianContract, heirContract)`
 
-### 2. StrongBox — Operaciones del Owner
+### StrongBox.sol
 
 ```solidity
-// Depositar en caja fuerte (solo owner)
-function deposit() public payable OnlyOwner returns(bool);
-// → Actualiza lastTimeUsed (resetea timer de inactividad)
+// === OWNER ===
+function deposit() external payable OnlyOwner;
+// → resetea timer, emite DepositMade(from, amount, newBalance)
 
-// Solicitar retiro (solo owner, requiere aprobacion de guardianes)
-function requestWithdrawal(uint256 amount, address to) public OnlyOwner returns(uint256 requestId);
-// → Emite WithdrawalRequested(requestId, amount, to)
+function withdraw(uint256 amount, address to) external OnlyOwner;
+// → crea WithdrawalRequest, emite WithdrawalRequested(requestId, owner, to, amount)
+// → solo 1 solicitud activa a la vez (noActiveRequest modifier)
 
-// Ejecutar retiro aprobado (solo owner, despues de ambas aprobaciones)
-function executeWithdrawal(uint256 requestId) public OnlyOwner returns(bool);
-// → Emite WithdrawalExecuted(requestId, amount, to)
+function getBalance() external view OnlyOwner returns (uint256);
+
+// === GUARDIANS ===
+function approveWithdrawal(uint256 requestId) external onlyGuardian;
+// → si ambos aprueban, auto-ejecuta el retiro
+// → emite WithdrawalApproved(requestId, guardian)
+// → si auto-ejecuta, emite WithdrawalExecuted(requestId, to, amount)
+
+function rejectWithdrawal(uint256 requestId) external onlyGuardian;
+// → cancela la solicitud
+// → emite WithdrawalRejected(requestId, guardian)
+
+// === HEIRS (Recovery Contacts) ===
+function inherit() external onlyHeir onlyAfterTime;
+// → cada heir reclama 50% del balance (snapshot al primer reclamo)
+// → emite InheritanceClaimed(heir, amount)
+
+// === GETTERS (sin restriccion) ===
+function getWithdrawalRequestCount() external view returns (uint256);
+function getWithdrawalRequest(uint256 id) external view returns (WithdrawalRequest);
+function isWithdrawalRequestCancelled(uint256 id) external view returns (bool);
+function getLastTimeUsed() external view returns (uint256);
+function getTimeLimit() external view returns (uint256);
+function hasPendingWithdrawalRequest() external view returns (bool);
+function getActiveWithdrawalRequestId() external view returns (uint256);
+function getHeir1Claimed() external view returns (bool);
+function getHeir2Claimed() external view returns (bool);
+function getAddress() external view returns (address);
+function getOwner() public view returns (address);
 ```
 
-**Interaccion desde frontend (Owner Dashboard)**:
-
-| Accion UI | Contrato | Resultado |
-|-----------|----------|-----------|
-| "Depositar" | StrongBox.deposit() | msg.value depositado, timer reseteado |
-| "Solicitar retiro" | StrongBox.requestWithdrawal(amount, to) | Solicitud creada, espera guardianes |
-| "Ejecutar retiro" | StrongBox.executeWithdrawal(requestId) | Fondos transferidos |
-| "Ver balance" | StrongBox.getBalance() | view call |
-
-### 3. StrongBox — Operaciones de Guardianes
+### Guardian.sol
 
 ```solidity
-// Aprobar solicitud de retiro (solo guardianes)
-function approveWithdrawal(uint256 requestId) public OnlyGuardians;
-// → Emite WithdrawalApproved(requestId, msg.sender)
+function getGuardian1() external view returns (address);
+function getGuardian2() external view returns (address);
+function isGuardian(address account) external view returns (bool);
 ```
 
-**Interaccion desde frontend (Guardian Dashboard)**:
-
-| Accion UI | Contrato | Resultado |
-|-----------|----------|-----------|
-| "Aprobar retiro" | StrongBox.approveWithdrawal(requestId) | Aprobacion registrada |
-| "Rechazar retiro" | (cancelacion off-chain o timeout) | Solicitud expira |
-
-### 4. StrongBox — Recovery por Inactividad
+### Heir.sol
 
 ```solidity
-// Recuperar fondos tras inactividad (solo recovery contacts, solo despues de timeLimit)
-function recover() public OnlyRecoveryContacts onlyAfterTime;
-// → Reparte fondos entre recovery contacts
-// → Emite RecoveryExecuted(msg.sender, amount)
+function getHeir1() external view returns (address);
+function getHeir2() external view returns (address);
+function isHeir(address account) external view returns (bool);
 ```
 
-**Interaccion desde frontend (Recovery Dashboard)**:
+## Flujos Frontend → Contrato
 
-| Accion UI | Contrato | Resultado |
-|-----------|----------|-----------|
-| "Reclamar recovery" | StrongBox.recover() | Fondos transferidos a recovery contacts |
-| "Ver countdown" | StrongBox.getTimeRemaining() | Tiempo restante para recovery |
+### 1. Crear vault (primer uso)
 
-### 5. Configuracion de Guardianes y Recovery Contacts
-
-```solidity
-// Configurar guardianes (solo owner)
-function setGuardian1(address newGuardian) public OnlyOwner;
-function setGuardian2(address newGuardian) public OnlyOwner;
-
-// Configurar recovery contacts (solo owner)
-function setRecoveryContact1(address newContact) public OnlyOwner;
-function setRecoveryContact2(address newContact) public OnlyOwner;
-
-// Consultas
-function getGuardian1() public view returns(address);
-function getGuardian2() public view returns(address);
-function getRecoveryContact1() public view returns(address);
-function getRecoveryContact2() public view returns(address);
+```
+Frontend                          Backend                         Blockchain
+   │                                │                                │
+   ├─ POST /strongbox/setup ───────►│ Crea en DB:                    │
+   │   {guardians, recovery,        │  - strongboxes (is_deployed=false)
+   │    own_email}                   │  - guardians x2                │
+   │                                │  - recovery_contacts x2        │
+   │◄─ 201 OK ─────────────────────┤                                │
+   │                                │                                │
+   │  (cuando deposita por 1ra vez)  │                                │
+   ├─ wagmi: Factory.createStrongBox ────────────────────────────────►│
+   │   (g1, g2, h1, h2, timeLimit)  │                                │ deploy 3 contratos
+   │◄──── tx receipt ────────────────────────────────────────────────┤
+   │                                │                                │
+   ├─ PATCH /strongbox ────────────►│ Actualiza:                     │
+   │   {contract_address, tx_hash}  │  - strongboxes.contract_address│
+   │                                │  - strongboxes.is_deployed=true│
+   │                                │  - strongboxes.deploy_tx_hash  │
 ```
 
-## Timer de Inactividad (Dead Man's Switch)
+### 2. Depositar (Owner)
 
-```solidity
-uint256 private timeLimit; // configurable por owner
-uint256 private lastTimeUsed;
-
-// Se resetea automaticamente con:
-// - deposit()
-// - requestWithdrawal()
-
-// Recovery habilitado cuando:
-// block.timestamp - lastTimeUsed >= timeLimit
+```
+Frontend                                    Blockchain
+   │                                           │
+   ├─ wagmi: StrongBox.deposit{value: X} ─────►│
+   │                                           │ → acepta BNB
+   │◄─── tx receipt (DepositMade event) ───────┤ → resetea lastTimeUsed
+   │                                           │
+   ├─ (opcional) POST /transactions ──► Backend registra en DB
 ```
 
-El owner NO necesita hacer check-in manual — cualquier interaccion con la vault resetea el timer.
+### 3. Solicitar retiro (Owner)
 
-## Pendientes de Implementacion
+```
+Frontend                                    Blockchain
+   │                                           │
+   ├─ wagmi: StrongBox.withdraw(amount, to) ──►│
+   │                                           │ → crea WithdrawalRequest
+   │◄─── tx receipt (WithdrawalRequested) ─────┤ → requestId en evento
+   │                                           │
+   ├─ POST /strongbox/withdraw/request ──► Backend crea withdrawal_request en DB
+   │                                       y notifica guardians (alerts)
+```
 
-1. **Factory**: Adaptar para crear StrongBox directamente (sin Wallet intermedia)
-2. **StrongBox**: Implementar cola de solicitudes de retiro con aprobacion de guardianes
-3. **StrongBox**: Separar roles Guardian vs Recovery Contact (actualmente ambos son "HeirGuardians")
-4. **StrongBox**: Agregar `recover()` con logica de distribucion a recovery contacts
-5. **StrongBox**: Agregar `setRecoveryContact1/2()` separados de guardianes
-6. **Events**: Emitir eventos en deposit, requestWithdrawal, approveWithdrawal, executeWithdrawal, recover
-7. **Import paths**: Verificar que matcheen con Hardhat remappings
+### 4. Aprobar retiro (Guardian)
+
+```
+Frontend (Guardian Dashboard)               Blockchain
+   │                                           │
+   ├─ GET /strongbox/withdraw/pending ──► Backend lista pendientes
+   │◄─── [{id, amount, to, status}] ──────────┤
+   │                                           │
+   ├─ wagmi: StrongBox.approveWithdrawal(id) ─►│
+   │                                           │ → registra aprobacion
+   │◄─── tx receipt ──────────────────────────┤ → si ambos: auto-ejecuta
+   │                                           │   WithdrawalExecuted event
+   │
+   ├─ (o rechazar)
+   ├─ wagmi: StrongBox.rejectWithdrawal(id) ──►│
+   │                                           │ → cancela solicitud
+```
+
+### 5. Recovery por inactividad (Heir)
+
+```
+Frontend (Recovery Dashboard)               Blockchain
+   │                                           │
+   ├─ wagmi: StrongBox.getLastTimeUsed() ─────►│
+   ├─ wagmi: StrongBox.getTimeLimit() ────────►│
+   │◄─── lastTimeUsed, timeLimit ─────────────┤
+   │                                           │
+   │  (calcula: block.timestamp - lastTimeUsed >= timeLimit?)
+   │                                           │
+   ├─ wagmi: StrongBox.inherit() ─────────────►│
+   │                                           │ → transfiere 50% al heir
+   │◄─── tx receipt (InheritanceClaimed) ──────┤
+```
+
+## Mapeo Frontend Pages → Contratos
+
+| Pagina | Rol | Lecturas on-chain | Escrituras on-chain |
+|--------|-----|-------------------|---------------------|
+| `/caja-fuerte` | Owner | getBalance, getLastTimeUsed, getTimeLimit, hasPendingWithdrawalRequest | deposit, withdraw |
+| `/guardian` | Guardian | getWithdrawalRequest, getActiveWithdrawalRequestId | approveWithdrawal, rejectWithdrawal |
+| `/heir` | Heir | getLastTimeUsed, getTimeLimit, getHeir1Claimed, getHeir2Claimed | inherit |
+| `/safe/configure` | Owner | (pre-deploy) | Factory.createStrongBox |
+| `/connect` | Todos | Factory.getStrongBox | - |
+
+## Mapeo DB ↔ On-chain
+
+| Dato | DB (Supabase) | On-chain |
+|------|---------------|----------|
+| Balance | strongboxes.balance_native (cache) | StrongBox.getBalance() (source of truth) |
+| Timer | strongboxes.last_activity_at (cache) | StrongBox.getLastTimeUsed() (source of truth) |
+| Recovery state | strongboxes.recovery_state | Derivado de timestamps on-chain |
+| Withdrawal status | withdrawal_requests.status | StrongBox.getWithdrawalRequest(id) |
+| Guardian addresses | guardians.address | Guardian.getGuardian1/2() |
+| Recovery addresses | recovery_contacts.address | Heir.getHeir1/2() |
+
+**Regla**: On-chain es siempre source of truth. DB es cache + metadata (emails, nombres).

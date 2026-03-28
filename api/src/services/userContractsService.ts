@@ -4,8 +4,7 @@ import { supabaseAdmin } from '../config/supabase.js';
 import { HttpError } from '../middlewares/httpError.js';
 import type { Database } from '../types/database.types.js';
 
-type WalletRow = Database['public']['Tables']['wallets']['Row'];
-type CajaFuerteRow = Database['public']['Tables']['caja_fuerte']['Row'];
+type StrongboxRow = Database['public']['Tables']['strongboxes']['Row'];
 
 function assertAdmin() {
   if (!supabaseAdmin) {
@@ -18,53 +17,10 @@ function isLikelyEthereumAddress(addr: string): boolean {
   return /^0x[a-fA-F0-9]{40}$/.test(addr);
 }
 
-export type SmartWalletResolution =
-  | { kind: 'wallets'; row: WalletRow }
-  | { kind: 'users_fallback'; walletAddress: string };
-
-/**
- * Prioridad: fila `wallets` más reciente del usuario; si no hay, `users.wallet_address` (placeholder on-boarding).
- */
-export async function resolveSmartWalletForUser(userId: string): Promise<SmartWalletResolution> {
-  const admin = assertAdmin();
-  const { data: walletRow, error: walletErr } = await admin
-    .from('wallets')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (walletErr) {
-    throw new HttpError(500, walletErr.message, walletErr.code);
-  }
-  if (walletRow) {
-    return { kind: 'wallets', row: walletRow };
-  }
-
-  const { data: userRow, error: userErr } = await admin
-    .from('users')
-    .select('wallet_address')
-    .eq('id', userId)
-    .maybeSingle();
-
-  if (userErr) {
-    throw new HttpError(500, userErr.message, userErr.code);
-  }
-  if (!userRow?.wallet_address) {
-    throw new HttpError(404, 'No hay dirección de smart wallet para este usuario');
-  }
-  if (!isLikelyEthereumAddress(userRow.wallet_address)) {
-    throw new HttpError(500, 'wallet_address de usuario con formato inválido');
-  }
-
-  return { kind: 'users_fallback', walletAddress: userRow.wallet_address };
-}
-
-export async function getCajaFuerteRowForUser(userId: string): Promise<CajaFuerteRow> {
+export async function getStrongboxRowForUser(userId: string): Promise<StrongboxRow> {
   const admin = assertAdmin();
   const { data: row, error } = await admin
-    .from('caja_fuerte')
+    .from('strongboxes')
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
@@ -75,25 +31,39 @@ export async function getCajaFuerteRowForUser(userId: string): Promise<CajaFuert
     throw new HttpError(500, error.message, error.code);
   }
   if (!row) {
-    throw new HttpError(
-      404,
-      'Caja fuerte no configurada en base de datos; crear fila en caja_fuerte tras deploy'
-    );
+    throw new HttpError(404, 'StrongBox no configurada; usar POST /api/strongbox/setup primero');
   }
   if (
     row.contract_address != null &&
     row.contract_address !== '' &&
     !isLikelyEthereumAddress(row.contract_address)
   ) {
-    throw new HttpError(500, 'contract_address de caja fuerte con formato inválido');
+    throw new HttpError(500, 'contract_address de strongbox con formato inválido');
   }
   return row;
 }
 
-/** Dirección para mocks cuando aún no hay contrato on-chain (`contract_address` null). */
-export function resolveCajaFuerteMockAddress(row: CajaFuerteRow): string {
+/** Dirección para mocks cuando aún no hay contrato on-chain. */
+export function resolveStrongboxMockAddress(row: StrongboxRow): string {
   if (row.contract_address && isLikelyEthereumAddress(row.contract_address)) {
     return row.contract_address;
   }
   return `0x${createHash('sha256').update(row.id).digest('hex').slice(0, 40)}`;
+}
+
+export async function getUserWalletAddress(userId: string): Promise<string> {
+  const admin = assertAdmin();
+  const { data: userRow, error } = await admin
+    .from('users')
+    .select('wallet_address')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (error) {
+    throw new HttpError(500, error.message, error.code);
+  }
+  if (!userRow?.wallet_address) {
+    throw new HttpError(404, 'No hay wallet_address para este usuario');
+  }
+  return userRow.wallet_address;
 }

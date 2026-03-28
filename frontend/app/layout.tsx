@@ -3,9 +3,9 @@ import "./globals.css";
 import Web3Root from "./web3-root";
 
 export const metadata: Metadata = {
-  title: "Smart Wallet — Agent-First",
+  title: "StrongBox — Smart Recovery Vault",
   description:
-    "Gestor patrimonial autonomo con Account Abstraction, DeFi cross-chain y Agente AI",
+    "Caja fuerte cripto no custodial con guardianes y recuperacion inteligente",
 };
 
 export default function RootLayout({
@@ -28,7 +28,7 @@ export default function RootLayout({
               color: "#0f1712",
             }}
           >
-            Necesitás tener JavaScript activado para usar esta aplicación.
+            Necesitas tener JavaScript activado para usar esta aplicacion.
           </div>
         </noscript>
         <Web3Root>{children}</Web3Root>

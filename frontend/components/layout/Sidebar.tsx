@@ -3,24 +3,22 @@
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
-  Wallet,
   Shield,
-  Bot,
-  Settings,
+  Users,
+  Clock,
   ArrowRightLeft,
-  TrendingUp,
+  Settings,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const navItems = [
   { href: "/", icon: LayoutDashboard, label: "Inicio" },
-  { href: "/wallet", icon: Wallet, label: "Wallet" },
-  { href: "/caja-fuerte", icon: Shield, label: "Caja fuerte" },
-  { href: "/yield", icon: TrendingUp, label: "Rendimientos" },
+  { href: "/caja-fuerte", icon: Shield, label: "Mi Vault" },
+  { href: "/guardian", icon: Users, label: "Guardian" },
+  { href: "/heir", icon: Clock, label: "Recovery" },
   { href: "/transactions", icon: ArrowRightLeft, label: "Movimientos" },
-  { href: "/agent", icon: Bot, label: "Asistente" },
-  { href: "/settings", icon: Settings, label: "Configuración" },
+  { href: "/settings", icon: Settings, label: "Configuracion" },
 ];
 
 export function Sidebar() {
@@ -39,10 +37,10 @@ export function Sidebar() {
         </div>
         <div className="hidden min-w-0 lg:block">
           <p className="text-[15px] font-semibold leading-tight tracking-tight text-ink">
-            Smart Wallet
+            StrongBox
           </p>
           <p className="text-[11px] font-medium text-ink-faint">
-            Gestión patrimonial
+            Smart Recovery Vault
           </p>
         </div>
       </div>
@@ -78,7 +76,7 @@ export function Sidebar() {
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 shrink-0 rounded-full bg-brand" />
             <span className="hidden text-[11px] font-medium text-ink-muted lg:block">
-              Agente disponible
+              BSC Testnet
             </span>
           </div>
         </div>

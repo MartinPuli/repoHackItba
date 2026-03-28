@@ -7,7 +7,7 @@ type PersonInput = { wallet: string; email: string };
 export type StrongboxSetupBody = {
   own_email: string;
   guardians: PersonInput[];
-  heirs: PersonInput[];
+  recovery_contacts: PersonInput[];
 };
 
 function assertAdmin() {
@@ -37,7 +37,7 @@ function assertEmail(email: string, label: string): string {
   return e;
 }
 
-function assertTwoPeople(arr: PersonInput[], kind: 'guardians' | 'heirs'): void {
+function assertTwoPeople(arr: PersonInput[], kind: string): void {
   if (!Array.isArray(arr) || arr.length !== 2) {
     throw new HttpError(400, `Se requieren exactamente 2 ${kind}`);
   }
@@ -46,7 +46,7 @@ function assertTwoPeople(arr: PersonInput[], kind: 'guardians' | 'heirs'): void 
 export async function setupStrongbox(userId: string, body: StrongboxSetupBody): Promise<void> {
   const ownEmail = assertEmail(body.own_email, 'own_email');
   assertTwoPeople(body.guardians, 'guardians');
-  assertTwoPeople(body.heirs, 'heirs');
+  assertTwoPeople(body.recovery_contacts, 'recovery_contacts');
 
   const g1 = {
     wallet: assertEvmAddress(body.guardians[0]!.wallet, 'guardians[0].wallet'),
@@ -56,16 +56,16 @@ export async function setupStrongbox(userId: string, body: StrongboxSetupBody): 
     wallet: assertEvmAddress(body.guardians[1]!.wallet, 'guardians[1].wallet'),
     email: assertEmail(body.guardians[1]!.email, 'guardians[1].email'),
   };
-  const h1 = {
-    wallet: assertEvmAddress(body.heirs[0]!.wallet, 'heirs[0].wallet'),
-    email: assertEmail(body.heirs[0]!.email, 'heirs[0].email'),
+  const r1 = {
+    wallet: assertEvmAddress(body.recovery_contacts[0]!.wallet, 'recovery_contacts[0].wallet'),
+    email: assertEmail(body.recovery_contacts[0]!.email, 'recovery_contacts[0].email'),
   };
-  const h2 = {
-    wallet: assertEvmAddress(body.heirs[1]!.wallet, 'heirs[1].wallet'),
-    email: assertEmail(body.heirs[1]!.email, 'heirs[1].email'),
+  const r2 = {
+    wallet: assertEvmAddress(body.recovery_contacts[1]!.wallet, 'recovery_contacts[1].wallet'),
+    email: assertEmail(body.recovery_contacts[1]!.email, 'recovery_contacts[1].email'),
   };
 
-  const addresses = [g1.wallet, g2.wallet, h1.wallet, h2.wallet];
+  const addresses = [g1.wallet, g2.wallet, r1.wallet, r2.wallet];
   const set = new Set(addresses);
   if (set.size !== addresses.length) {
     throw new HttpError(400, 'Las cuatro wallets deben ser distintas entre sí');
@@ -73,6 +73,7 @@ export async function setupStrongbox(userId: string, body: StrongboxSetupBody): 
 
   const admin = assertAdmin();
 
+  // Check owner wallet
   const { data: userRow, error: userErr } = await admin
     .from('users')
     .select('wallet_address')
@@ -83,23 +84,25 @@ export async function setupStrongbox(userId: string, body: StrongboxSetupBody): 
   }
   const ownerWallet = userRow?.wallet_address?.toLowerCase();
   if (ownerWallet && addresses.some((a) => a === ownerWallet)) {
-    throw new HttpError(400, 'Guardianes/herederos no pueden usar la wallet del titular');
+    throw new HttpError(400, 'Guardianes/recovery contacts no pueden usar la wallet del titular');
   }
 
-  const { data: existingCf, error: cfCheckErr } = await admin
-    .from('caja_fuerte')
+  // Check existing strongbox
+  const { data: existingSb, error: sbCheckErr } = await admin
+    .from('strongboxes')
     .select('id')
     .eq('user_id', userId)
     .limit(1)
     .maybeSingle();
 
-  if (cfCheckErr) {
-    throw new HttpError(500, cfCheckErr.message, cfCheckErr.code);
+  if (sbCheckErr) {
+    throw new HttpError(500, sbCheckErr.message, sbCheckErr.code);
   }
-  if (existingCf) {
+  if (existingSb) {
     throw new HttpError(409, 'El usuario ya tiene una caja fuerte configurada');
   }
 
+  // Update user email
   const { error: userUpdateErr } = await admin
     .from('users')
     .update({ email: ownEmail })
@@ -108,56 +111,46 @@ export async function setupStrongbox(userId: string, body: StrongboxSetupBody): 
     throw new HttpError(500, userUpdateErr.message, userUpdateErr.code);
   }
 
-  const cajaInsert: Database['public']['Tables']['caja_fuerte']['Insert'] = {
+  // Create strongbox
+  const sbInsert: Database['public']['Tables']['strongboxes']['Insert'] = {
     user_id: userId,
     is_deployed: false,
   };
 
-  const { data: cajaRow, error: cajaErr } = await admin
-    .from('caja_fuerte')
-    .insert(cajaInsert)
+  const { data: sbRow, error: sbErr } = await admin
+    .from('strongboxes')
+    .insert(sbInsert)
     .select('id')
     .single();
 
-  if (cajaErr || !cajaRow) {
-    throw new HttpError(500, cajaErr?.message ?? 'Error insertando caja_fuerte', cajaErr?.code);
+  if (sbErr || !sbRow) {
+    throw new HttpError(500, sbErr?.message ?? 'Error insertando strongbox', sbErr?.code);
   }
 
-  const cajaId = cajaRow.id;
-  const rows: Database['public']['Tables']['herederos']['Insert'][] = [
-    {
-      caja_fuerte_id: cajaId,
-      rol: 'guardian',
-      slot: 1,
-      address: g1.wallet,
-      email: g1.email,
-    },
-    {
-      caja_fuerte_id: cajaId,
-      rol: 'guardian',
-      slot: 2,
-      address: g2.wallet,
-      email: g2.email,
-    },
-    {
-      caja_fuerte_id: cajaId,
-      rol: 'heir',
-      slot: 1,
-      address: h1.wallet,
-      email: h1.email,
-    },
-    {
-      caja_fuerte_id: cajaId,
-      rol: 'heir',
-      slot: 2,
-      address: h2.wallet,
-      email: h2.email,
-    },
+  const sbId = sbRow.id;
+
+  // Insert guardians
+  const guardianRows: Database['public']['Tables']['guardians']['Insert'][] = [
+    { strongbox_id: sbId, slot: 1, address: g1.wallet, email: g1.email },
+    { strongbox_id: sbId, slot: 2, address: g2.wallet, email: g2.email },
   ];
 
-  const { error: herErr } = await admin.from('herederos').insert(rows);
-  if (herErr) {
-    await admin.from('caja_fuerte').delete().eq('id', cajaId);
-    throw new HttpError(500, herErr.message, herErr.code);
+  const { error: gErr } = await admin.from('guardians').insert(guardianRows);
+  if (gErr) {
+    await admin.from('strongboxes').delete().eq('id', sbId);
+    throw new HttpError(500, gErr.message, gErr.code);
+  }
+
+  // Insert recovery contacts
+  const rcRows: Database['public']['Tables']['recovery_contacts']['Insert'][] = [
+    { strongbox_id: sbId, slot: 1, address: r1.wallet, email: r1.email },
+    { strongbox_id: sbId, slot: 2, address: r2.wallet, email: r2.email },
+  ];
+
+  const { error: rcErr } = await admin.from('recovery_contacts').insert(rcRows);
+  if (rcErr) {
+    await admin.from('guardians').delete().eq('strongbox_id', sbId);
+    await admin.from('strongboxes').delete().eq('id', sbId);
+    throw new HttpError(500, rcErr.message, rcErr.code);
   }
 }

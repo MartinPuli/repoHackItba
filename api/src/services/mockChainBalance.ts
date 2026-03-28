@@ -1,6 +1,6 @@
 import { createHash } from 'crypto';
 
-export type BalanceSource = 'mock' | 'rpc';
+export type BalanceSource = 'mock';
 
 export interface NativeBalance {
   symbol: 'BNB';
@@ -8,27 +8,10 @@ export interface NativeBalance {
   formatted: string;
 }
 
-export interface Erc20LikeBalance {
-  symbol: string;
-  raw: string;
-  decimals: number;
-  formatted: string;
-}
-
-export interface WalletBalancesMock {
+export interface StrongboxBalanceMock {
   chainId: number;
   contractAddress: string;
   native: NativeBalance;
-  usdt: Erc20LikeBalance;
-  source: BalanceSource;
-}
-
-export interface CajaFuerteBalancesMock {
-  chainId: number;
-  contractAddress: string;
-  native: NativeBalance;
-  usdt: Erc20LikeBalance;
-  rbtc: Erc20LikeBalance;
   source: BalanceSource;
 }
 
@@ -37,13 +20,12 @@ function u32FromHash(seed: string, salt: string): number {
   return h.readUInt32BE(0);
 }
 
-export function readSmartWalletBalancesMock(
+export function readStrongboxBalanceMock(
   contractAddress: string,
   chainId: number
-): WalletBalancesMock {
+): StrongboxBalanceMock {
   const addr = contractAddress.toLowerCase();
   const nativeWei = BigInt(u32FromHash(addr, 'native')) * 10n ** 12n;
-  const usdtRaw = BigInt(u32FromHash(addr, 'usdt')) * 10n ** 3n;
 
   return {
     chainId,
@@ -52,76 +34,6 @@ export function readSmartWalletBalancesMock(
       symbol: 'BNB',
       wei: nativeWei.toString(),
       formatted: formatFixed(nativeWei, 18, 6),
-    },
-    usdt: {
-      symbol: 'USDT',
-      raw: usdtRaw.toString(),
-      decimals: 6,
-      formatted: formatFixed(usdtRaw, 6, 2),
-    },
-    source: 'mock',
-  };
-}
-
-/** BNB real desde el nodo; USDT/RBTC en 0 (no hay en el contrato StrongBox actual). */
-export function buildCajaFuerteBalancesFromRpc(
-  contractAddress: string,
-  chainId: number,
-  nativeWei: bigint
-): CajaFuerteBalancesMock {
-  const addr = contractAddress.toLowerCase();
-  return {
-    chainId,
-    contractAddress: addr,
-    native: {
-      symbol: 'BNB',
-      wei: nativeWei.toString(),
-      formatted: formatFixed(nativeWei, 18, 6),
-    },
-    usdt: {
-      symbol: 'USDT',
-      raw: '0',
-      decimals: 6,
-      formatted: formatFixed(0n, 6, 2),
-    },
-    rbtc: {
-      symbol: 'RBTC',
-      raw: '0',
-      decimals: 18,
-      formatted: formatFixed(0n, 18, 6),
-    },
-    source: 'rpc',
-  };
-}
-
-export function readCajaFuerteBalancesMock(
-  contractAddress: string,
-  chainId: number
-): CajaFuerteBalancesMock {
-  const addr = contractAddress.toLowerCase();
-  const nativeWei = BigInt(u32FromHash(addr, 'cf-native')) * 10n ** 11n;
-  const usdtRaw = BigInt(u32FromHash(addr, 'cf-usdt')) * 10n ** 2n;
-  const rbtcRaw = BigInt(u32FromHash(addr, 'cf-rbtc')) * 10n ** 4n;
-
-  return {
-    chainId,
-    contractAddress,
-    native: {
-      symbol: 'BNB',
-      wei: nativeWei.toString(),
-      formatted: formatFixed(nativeWei, 18, 6),
-    },
-    usdt: {
-      symbol: 'USDT',
-      raw: usdtRaw.toString(),
-      decimals: 6,
-      formatted: formatFixed(usdtRaw, 6, 2),
-    },
-    rbtc: {
-      symbol: 'RBTC',
-      raw: rbtcRaw.toString(),
-      decimals: 18,
-      formatted: formatFixed(rbtcRaw, 18, 6),
     },
     source: 'mock',
   };

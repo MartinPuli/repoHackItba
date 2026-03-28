@@ -19,16 +19,12 @@ function toPublicProfile(row: Database['public']['Tables']['users']['Row']): Pub
     wallet_address: row.wallet_address,
     display_name: row.display_name,
     email: row.email,
-    autonomy_level: row.autonomy_level,
     created_at: row.created_at,
     updated_at: row.updated_at,
     last_active_at: row.last_active_at,
   };
 }
 
-/**
- * Metadata que suele setear Supabase Auth tras Web3 (MetaMask).
- */
 function walletFromAuthUser(authUser: User): string {
   const meta = authUser.user_metadata as Record<string, unknown> | undefined;
   const raw = meta?.ethereum_address ?? meta?.wallet_address ?? meta?.address;
@@ -41,9 +37,6 @@ function walletFromAuthUser(authUser: User): string {
   return raw.toLowerCase();
 }
 
-/**
- * Asegura fila en `public.users` alineada al JWT y reporta si ya existe caja fuerte lógica.
- */
 export async function getMeForAuthUser(authUser: User): Promise<{
   profile: PublicProfile;
   has_strongbox: boolean;
@@ -74,19 +67,19 @@ export async function getMeForAuthUser(authUser: User): Promise<{
     throw new HttpError(500, 'Upsert de usuario no devolvió fila');
   }
 
-  const { data: cfRow, error: cfErr } = await admin
-    .from('caja_fuerte')
+  const { data: sbRow, error: sbErr } = await admin
+    .from('strongboxes')
     .select('id')
     .eq('user_id', id)
     .limit(1)
     .maybeSingle();
 
-  if (cfErr) {
-    throw new HttpError(500, cfErr.message, cfErr.code);
+  if (sbErr) {
+    throw new HttpError(500, sbErr.message, sbErr.code);
   }
 
   return {
     profile: toPublicProfile(profileRow),
-    has_strongbox: cfRow != null,
+    has_strongbox: sbRow != null,
   };
 }

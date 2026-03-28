@@ -8,13 +8,13 @@ function readSetupBody(req: Request): StrongboxSetupBody {
   if (typeof b?.own_email !== 'string') {
     throw new HttpError(400, 'own_email es requerido (string)');
   }
-  if (!Array.isArray(b.guardians) || !Array.isArray(b.heirs)) {
-    throw new HttpError(400, 'guardians y heirs deben ser arrays');
+  if (!Array.isArray(b.guardians) || !Array.isArray(b.recovery_contacts)) {
+    throw new HttpError(400, 'guardians y recovery_contacts deben ser arrays');
   }
   return {
     own_email: b.own_email,
     guardians: b.guardians as StrongboxSetupBody['guardians'],
-    heirs: b.heirs as StrongboxSetupBody['heirs'],
+    recovery_contacts: b.recovery_contacts as StrongboxSetupBody['recovery_contacts'],
   };
 }
 
