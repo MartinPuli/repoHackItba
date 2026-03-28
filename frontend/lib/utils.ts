@@ -18,6 +18,10 @@ export function formatUSD(amount: number): string {
   }).format(amount);
 }
 
+export function formatEth(amount: number, decimals = 2): string {
+  return `${amount.toFixed(decimals)} ETH`;
+}
+
 export function formatCrypto(amount: number, decimals = 4): string {
   return amount.toFixed(decimals);
 }

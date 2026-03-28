@@ -186,6 +186,19 @@ interface MutationResult {
 // ── Demo user constant ────────────────────────────────────────────────
 export const DEMO_USER_ID = "00000000-0000-0000-0000-000000000001";
 
+/** Si Supabase o la red cuelgan, evita loading infinito en el dashboard. */
+function startQueryWatchdog(
+  isCancelled: () => boolean,
+  onTimeout: () => void,
+  ms = 12_000
+): () => void {
+  if (typeof window === "undefined") return () => {};
+  const id = window.setTimeout(() => {
+    if (!isCancelled()) onTimeout();
+  }, ms);
+  return () => window.clearTimeout(id);
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────
 
 
@@ -231,16 +244,27 @@ export function useUserProfile(userId: string | undefined): QueryResult<UserProf
     async function fetch() {
       setLoading(true);
       setError(null);
-      const { data: row, error: err } = await db
-        .from("users")
-        .select("*")
-        .eq("id", userId!)
-        .single();
+      const stopWatch = startQueryWatchdog(
+        () => cancelled,
+        () => {
+          setError("Tiempo de espera al cargar el perfil. Revisá Supabase o la red.");
+          setLoading(false);
+        }
+      );
+      try {
+        const { data: row, error: err } = await db
+          .from("users")
+          .select("*")
+          .eq("id", userId!)
+          .single();
 
-      if (cancelled) return;
-      if (err) setError(err.message);
-      else setData(row as UserProfile);
-      setLoading(false);
+        if (cancelled) return;
+        if (err) setError(err.message);
+        else setData(row as UserProfile);
+      } finally {
+        stopWatch();
+        if (!cancelled) setLoading(false);
+      }
     }
 
     fetch();
@@ -275,15 +299,26 @@ export function useWalletData(userId: string | undefined): QueryResult<Wallet[]>
     async function fetch() {
       setLoading(true);
       setError(null);
-      const { data: rows, error: err } = await db
-        .from("wallets")
-        .select("*")
-        .eq("user_id", userId!);
+      const stopWatch = startQueryWatchdog(
+        () => cancelled,
+        () => {
+          setError("Tiempo de espera al cargar wallets.");
+          setLoading(false);
+        }
+      );
+      try {
+        const { data: rows, error: err } = await db
+          .from("wallets")
+          .select("*")
+          .eq("user_id", userId!);
 
-      if (cancelled) return;
-      if (err) setError(err.message);
-      else setData(rows as Wallet[]);
-      setLoading(false);
+        if (cancelled) return;
+        if (err) setError(err.message);
+        else setData(rows as Wallet[]);
+      } finally {
+        stopWatch();
+        if (!cancelled) setLoading(false);
+      }
     }
 
     fetch();
@@ -318,40 +353,48 @@ export function useCajaFuerteData(userId: string | undefined): QueryResult<CajaF
     async function fetch() {
       setLoading(true);
       setError(null);
+      const stopWatch = startQueryWatchdog(
+        () => cancelled,
+        () => {
+          setError("Tiempo de espera al cargar la caja fuerte.");
+          setLoading(false);
+        }
+      );
+      try {
+        // Fetch the caja fuerte row
+        const { data: row, error: err } = await db
+          .from("caja_fuerte")
+          .select("*")
+          .eq("user_id", userId!)
+          .single();
 
-      // Fetch the caja fuerte row
-      const { data: row, error: err } = await db
-        .from("caja_fuerte")
-        .select("*")
-        .eq("user_id", userId!)
-        .single();
+        if (cancelled) return;
+        if (err) {
+          setError(err.message);
+          return;
+        }
 
-      if (cancelled) return;
-      if (err) {
-        setError(err.message);
-        setLoading(false);
-        return;
+        const cajaFuerte = row as CajaFuerte;
+
+        // Fetch herederos separately by caja_fuerte_id
+        const { data: herederos, error: herErr } = await db
+          .from("herederos")
+          .select("*")
+          .eq("caja_fuerte_id", cajaFuerte.id)
+          .order("slot", { ascending: true });
+
+        if (cancelled) return;
+        if (herErr) {
+          cajaFuerte.herederos = [];
+        } else {
+          cajaFuerte.herederos = herederos as Heredero[];
+        }
+
+        setData(cajaFuerte);
+      } finally {
+        stopWatch();
+        if (!cancelled) setLoading(false);
       }
-
-      const cajaFuerte = row as CajaFuerte;
-
-      // Fetch herederos separately by caja_fuerte_id
-      const { data: herederos, error: herErr } = await db
-        .from("herederos")
-        .select("*")
-        .eq("caja_fuerte_id", cajaFuerte.id)
-        .order("slot", { ascending: true });
-
-      if (cancelled) return;
-      if (herErr) {
-        // Non-fatal: attach empty array and log
-        cajaFuerte.herederos = [];
-      } else {
-        cajaFuerte.herederos = herederos as Heredero[];
-      }
-
-      setData(cajaFuerte);
-      setLoading(false);
     }
 
     fetch();
@@ -437,20 +480,32 @@ export function useAgentDecisions(
     async function fetchInitial() {
       setLoading(true);
       setError(null);
-      const { data: rows, error: err } = await db
-        .from("agent_decisions")
-        .select("*")
-        .eq("user_id", userId!)
-        .order("created_at", { ascending: false })
-        .limit(limit);
+      let done = false;
+      const stopWatch = startQueryWatchdog(
+        () => done,
+        () => {
+          setError("Tiempo de espera al cargar actividad del agente.");
+          setLoading(false);
+        }
+      );
+      try {
+        const { data: rows, error: err } = await db
+          .from("agent_decisions")
+          .select("*")
+          .eq("user_id", userId!)
+          .order("created_at", { ascending: false })
+          .limit(limit);
 
-      if (err) {
-        setError(err.message);
+        if (err) {
+          setError(err.message);
+          return;
+        }
+        setData(rows as AgentDecision[]);
+      } finally {
+        done = true;
+        stopWatch();
         setLoading(false);
-        return;
       }
-      setData(rows as AgentDecision[]);
-      setLoading(false);
     }
 
     fetchInitial();
@@ -674,26 +729,35 @@ export function useAlerts(userId: string | undefined): QueryResult<{ alerts: Ale
     async function fetch() {
       setLoading(true);
       setError(null);
+      const stopWatch = startQueryWatchdog(
+        () => cancelled,
+        () => {
+          setError("Tiempo de espera al cargar alertas.");
+          setLoading(false);
+        }
+      );
+      try {
+        const { data: rows, error: err } = await db
+          .from("alerts")
+          .select("*")
+          .eq("user_id", userId!)
+          .order("created_at", { ascending: false })
+          .limit(50);
 
-      const { data: rows, error: err } = await db
-        .from("alerts")
-        .select("*")
-        .eq("user_id", userId!)
-        .order("created_at", { ascending: false })
-        .limit(50);
+        if (cancelled) return;
 
-      if (cancelled) return;
+        if (err) {
+          setError(err.message);
+          return;
+        }
 
-      if (err) {
-        setError(err.message);
-        setLoading(false);
-        return;
+        const alerts = rows as Alert[];
+        const unreadCount = alerts.filter((a) => !a.is_read).length;
+        setData({ alerts, unreadCount });
+      } finally {
+        stopWatch();
+        if (!cancelled) setLoading(false);
       }
-
-      const alerts = rows as Alert[];
-      const unreadCount = alerts.filter((a) => !a.is_read).length;
-      setData({ alerts, unreadCount });
-      setLoading(false);
     }
 
     fetch();
