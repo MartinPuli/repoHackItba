@@ -8,8 +8,8 @@ const Web3Root = dynamic(() => import("./web3-root"), {
     <div
       style={{
         minHeight: "100vh",
-        backgroundColor: "#08090c",
-        color: "#8b909c",
+        backgroundColor: "#FFFFFF",
+        color: "#5a7d64",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -34,10 +34,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" className="dark" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning>
       <body
         className="min-h-screen antialiased"
-        style={{ backgroundColor: "#08090c", color: "#f0f1f4" }}
+        style={{ backgroundColor: "#FFFFFF", color: "#1a2e1f" }}
       >
         <Web3Root>{children}</Web3Root>
       </body>

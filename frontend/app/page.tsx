@@ -8,8 +8,9 @@ import { KillSwitch } from "@/components/dashboard/KillSwitch";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { DeadManStatus } from "@/components/dashboard/DeadManStatus";
 import { YieldBreakdown } from "@/components/dashboard/YieldBreakdown";
-import { AgentChat } from "@/components/dashboard/AgentChat";
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { AgentChat } from "@/components/dashboard/AgentChat";
 
 import {
   DEMO_USER_ID,
@@ -170,13 +171,11 @@ export default function DashboardPage() {
         <main className="flex-1 pl-[72px] lg:pl-[240px]">
           <TopBar unreadAlerts={0} />
           <div className="p-6 space-y-6">
-            {/* Balance cards skeleton */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <Skeleton className="h-28" />
               <Skeleton className="h-28" />
               <Skeleton className="h-28" />
             </div>
-            {/* Main grid skeleton */}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
               <div className="space-y-6">
                 <Skeleton className="h-56" />
@@ -198,42 +197,58 @@ export default function DashboardPage() {
       <main className="flex-1 pl-[72px] lg:pl-[240px]">
         <TopBar unreadAlerts={unreadAlerts} />
 
-        <div className="p-6 space-y-6">
-          {/* Balance Cards */}
-          <BalanceCards
-            walletBalance={walletBalance}
-            cajaFuerteBalance={cajaFuerteBalance}
-            yieldEarned={yieldEarned}
-          />
+        <div className="p-5 md:p-8 lg:p-10">
+          <div className="mx-auto max-w-6xl space-y-8">
+            {/* Welcome header */}
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+            >
+              <h1 className="text-2xl font-semibold tracking-tight text-ink md:text-[1.65rem]">
+                Dashboard
+              </h1>
+              <p className="mt-1 text-sm text-ink-muted">
+                Resumen de tu patrimonio, actividad del agente y controles de autonomía.
+              </p>
+            </motion.div>
 
-          {/* Main Grid: Autonomy + Activity + Yield + DeadMan */}
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            {/* Left column: Autonomy + Yield */}
-            <div className="space-y-6">
-              <AutonomySlider
-                value={autonomyLevel}
-                onChange={handleAutonomyChange}
-              />
-              <YieldBreakdown totalDeposited={totalDeposited} />
-            </div>
+            {/* Balance Cards */}
+            <BalanceCards
+              walletBalance={walletBalance}
+              cajaFuerteBalance={cajaFuerteBalance}
+              yieldEarned={yieldEarned}
+            />
 
-            {/* Center: Activity Feed */}
-            <div className="lg:col-span-1">
-              <ActivityFeed
-                items={activityItems}
-                loading={decisionsLoading}
-              />
-            </div>
+            {/* Main Grid: Autonomy + Activity + Yield + DeadMan + AgentChat */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+              {/* Left column: Autonomy + Yield */}
+              <div className="space-y-6">
+                <AutonomySlider
+                  value={autonomyLevel}
+                  onChange={handleAutonomyChange}
+                />
+                <YieldBreakdown totalDeposited={totalDeposited} />
+              </div>
 
-            {/* Right: Dead Man's Switch + Agent Chat */}
-            <div className="space-y-6">
-              <DeadManStatus
-                lastActivityAt={cajaFuerte?.last_activity_at}
-                timeoutDays={timeRemainingDays}
-                heredero1={cajaFuerte?.herederos?.[0]?.address ?? undefined}
-                heredero2={cajaFuerte?.herederos?.[1]?.address ?? undefined}
-              />
-              <AgentChat walletAddress={walletAddress} />
+              {/* Center: Activity Feed */}
+              <div className="lg:col-span-1">
+                <ActivityFeed
+                  items={activityItems}
+                  loading={decisionsLoading}
+                />
+              </div>
+
+              {/* Right: Dead Man's Switch + Agent Chat */}
+              <div className="space-y-6">
+                <DeadManStatus
+                  lastActivityAt={cajaFuerte?.last_activity_at}
+                  timeoutDays={timeRemainingDays}
+                  heredero1={cajaFuerte?.herederos?.[0]?.address ?? undefined}
+                  heredero2={cajaFuerte?.herederos?.[1]?.address ?? undefined}
+                />
+                <AgentChat walletAddress={walletAddress} />
+              </div>
             </div>
           </div>
         </div>

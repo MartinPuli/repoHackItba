@@ -6,38 +6,68 @@ const config: Config = {
     "./components/**/*.{ts,tsx}",
     "./lib/**/*.{ts,tsx}",
   ],
-  darkMode: "class",
   theme: {
     extend: {
       colors: {
-        background: "#0a0a0a",
-        card: "rgba(255, 255, 255, 0.05)",
-        "card-border": "rgba(255, 255, 255, 0.1)",
+        background: "#FFFFFF",
+        card: "#FFFEF1",
+        "card-border": "#D9EEDB",
+        canvas: {
+          DEFAULT: "#FFFFFF",
+          elevated: "#F9FCF7",
+        },
+        surface: {
+          DEFAULT: "#FFFEF1",
+          hover: "rgba(150, 204, 168, 0.08)",
+          muted: "#F9FCF7",
+          raised: "#FFFEF1",
+        },
         primary: {
-          DEFAULT: "#6366f1",
-          foreground: "#ffffff",
+          DEFAULT: "#96CCA8",
+          foreground: "#FFFFFF",
+        },
+        pistachio: {
+          DEFAULT: "#96CCA8",
+          light: "#C5EDC8",
+          muted: "#D9EEDB",
+        },
+        cream: {
+          DEFAULT: "#FFFEF1",
+          warm: "#FFF9E6",
+          green: "#F9FCF7",
+        },
+        brand: "#96CCA8",
+        growth: "#5a9e6e",
+        vault: "#78b896",
+        agent: "#5a9e6e",
+        ink: {
+          DEFAULT: "#1a2e1f",
+          muted: "#5a7d64",
+          faint: "#8fa898",
+        },
+        line: {
+          DEFAULT: "#D9EEDB",
+          strong: "#C5EDC8",
         },
         accent: {
-          green: "#00ff88",
-          cyan: "#00e5ff",
-          magenta: "#ff00aa",
-          orange: "#ff6b35",
-          red: "#ff4444",
-          yellow: "#ffe600",
+          green: "#5a9e6e",
+          cyan: "#6bb5a0",
+          red: "#d46b6b",
+          orange: "#d49a6b",
+          yellow: "#c4a84d",
         },
+        alert: "#d46b6b",
         muted: {
-          DEFAULT: "#888888",
-          foreground: "#a1a1a1",
+          DEFAULT: "#8fa898",
+          foreground: "#5a7d64",
         },
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
         mono: ["JetBrains Mono", "Fira Code", "monospace"],
       },
-      backdropBlur: {
-        glass: "12px",
-      },
       borderRadius: {
+        card: "16px",
         glass: "16px",
       },
       animation: {
