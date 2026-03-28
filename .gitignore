@@ -14,6 +14,7 @@ out/
 .claude/
 *.log
 
+api/supabase/.temp/
 # Repos de terceros (referencia, no nuestros)
 smart-wallet/
 goat/
