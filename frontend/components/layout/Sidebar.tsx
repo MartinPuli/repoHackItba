@@ -14,13 +14,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const navItems = [
-  { href: "/", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/", icon: LayoutDashboard, label: "Inicio" },
   { href: "/wallet", icon: Wallet, label: "Wallet" },
-  { href: "/caja-fuerte", icon: Shield, label: "Caja Fuerte" },
-  { href: "/yield", icon: TrendingUp, label: "Yield" },
-  { href: "/transactions", icon: ArrowRightLeft, label: "Transacciones" },
-  { href: "/agent", icon: Bot, label: "Agente AI" },
-  { href: "/settings", icon: Settings, label: "Config" },
+  { href: "/caja-fuerte", icon: Shield, label: "Caja fuerte" },
+  { href: "/yield", icon: TrendingUp, label: "Rendimientos" },
+  { href: "/transactions", icon: ArrowRightLeft, label: "Movimientos" },
+  { href: "/agent", icon: Bot, label: "Asistente" },
+  { href: "/settings", icon: Settings, label: "Configuración" },
 ];
 
 export function Sidebar() {
@@ -32,19 +32,19 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="fixed left-0 top-0 z-40 flex h-screen w-[72px] flex-col border-r border-pistachio-muted bg-cream-green py-6 lg:w-[238px]">
-      <div className="mb-8 flex items-center gap-3 px-4">
-        <div
-          className="flex h-10 w-10 items-center justify-center rounded-xl border border-pistachio-light bg-white"
-          style={{
-            boxShadow: "0 0 0 1px rgba(150, 204, 168, 0.15) inset",
-          }}
-        >
-          <Shield className="h-[18px] w-[18px] text-pistachio" strokeWidth={1.75} />
+    <aside className="fixed left-0 top-0 z-40 flex h-screen w-[72px] flex-col border-r border-line bg-white py-5 lg:w-[240px]">
+      <div className="mb-6 flex items-center gap-3 px-3 lg:px-4">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-line bg-surface-muted">
+          <Shield className="h-[18px] w-[18px] text-brand" strokeWidth={2} />
         </div>
-        <span className="hidden text-[15px] font-semibold tracking-tight gradient-text lg:block">
-          SmartWallet
-        </span>
+        <div className="hidden min-w-0 lg:block">
+          <p className="text-[15px] font-semibold leading-tight tracking-tight text-ink">
+            Smart Wallet
+          </p>
+          <p className="text-[11px] font-medium text-ink-faint">
+            Gestión patrimonial
+          </p>
+        </div>
       </div>
 
       <nav className="flex flex-1 flex-col gap-0.5 px-2 lg:px-3">
@@ -55,36 +55,30 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-colors",
+                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] transition-colors",
                 active
-                  ? "bg-pistachio-muted text-pistachio"
-                  : "text-ink-muted hover:bg-pistachio-muted/40 hover:text-ink"
+                  ? "bg-surface-muted font-semibold text-ink"
+                  : "font-medium text-ink-muted hover:bg-surface-muted/70 hover:text-ink"
               )}
             >
               <item.icon
                 className={cn(
                   "h-[18px] w-[18px] shrink-0 stroke-[1.75]",
-                  active && "text-pistachio"
+                  active ? "text-brand" : "text-ink-faint"
                 )}
               />
               <span className="hidden lg:block">{item.label}</span>
-              {active && (
-                <span className="ml-auto hidden h-1.5 w-1.5 rounded-full bg-pistachio lg:block" />
-              )}
             </Link>
           );
         })}
       </nav>
 
       <div className="mt-auto px-2 lg:px-3">
-        <div className="surface-card rounded-[14px] px-3 py-3">
+        <div className="rounded-lg border border-line bg-surface-muted/50 px-3 py-2.5">
           <div className="flex items-center gap-2">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-pistachio/40 opacity-60" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-pistachio" />
-            </span>
+            <span className="h-2 w-2 shrink-0 rounded-full bg-brand" />
             <span className="hidden text-[11px] font-medium text-ink-muted lg:block">
-              Agente listo
+              Agente disponible
             </span>
           </div>
         </div>

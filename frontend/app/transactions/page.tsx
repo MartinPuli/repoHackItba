@@ -35,7 +35,8 @@ function txIcon(tx: Transaction) {
 }
 
 function txIconColor(tx: Transaction) {
-  if (tx.status === "failed" || tx.status === "reverted") return "bg-red-500/10 text-red-400";
+  if (tx.status === "failed" || tx.status === "reverted")
+    return "bg-red-50 text-red-700 ring-1 ring-red-100";
   if (tx.status === "pending") return "bg-surface-muted text-ink-muted";
   if (["deposit", "yield_withdraw"].includes(tx.tx_type)) return "bg-growth/10 text-growth";
   return "bg-vault/10 text-vault";
@@ -83,10 +84,11 @@ export default function TransactionsPage() {
   });
 
   return (
-    <AppShell topTitle="Movimientos y auditoría" unreadAlerts={unreadAlerts}>
+    <AppShell topTitle="Historial de operaciones" unreadAlerts={unreadAlerts}>
       <PageHeader
+        eyebrow="Movimientos"
         title="Transacciones"
-        description="Historial real desde Supabase — cada movimiento tuyo y del agente según tu nivel de autonomía."
+        description="Listado desde tu base de datos cuando Supabase está activo. Incluye operaciones iniciadas por vos y acciones preparadas o ejecutadas por el asistente."
       />
 
       {/* Filters */}
@@ -98,8 +100,8 @@ export default function TransactionsPage() {
             className={cn(
               "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
               filter === f
-                ? "bg-pistachio text-white"
-                : "bg-surface-muted text-ink-muted ring-1 ring-line hover:bg-pistachio-muted/40 hover:text-ink"
+                ? "bg-brand text-white"
+                : "border border-line bg-white text-ink-muted hover:border-line-strong hover:text-ink"
             )}
           >
             {f === "all" ? "Todas" : f === "done" ? "Completadas" : "Pendientes"}

@@ -25,10 +25,11 @@ export default function WalletPage() {
   const available = 1250.32;
 
   return (
-    <AppShell topTitle="Liquidez diaria" unreadAlerts={0}>
+    <AppShell topTitle="Cuenta de gastos" unreadAlerts={0}>
       <PageHeader
+        eyebrow="Pagos"
         title="Wallet"
-        description="Gastos del día a día y envíos. Desde acá movés fondos hacia comercios, contactos o la Caja fuerte."
+        description="Operá tu liquidez diaria: envíos on-chain, comercios y traslados hacia la caja fuerte cuando corresponda."
       />
 
       <div className="grid gap-4 sm:grid-cols-3">

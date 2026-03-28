@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { createClient } from "@/lib/supabase/client";
-import type { RealtimeChannel } from "@supabase/supabase-js";
+import { getSupabaseBrowser } from "@/lib/supabase/client";
+import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -188,9 +188,6 @@ export const DEMO_USER_ID = "00000000-0000-0000-0000-000000000001";
 
 // ── Helpers ────────────────────────────────────────────────────────────
 
-function getSupabase() {
-  return createClient();
-}
 
 /** Compute total USD balance from wallet token balances. */
 export function totalBalanceUsd(
@@ -223,12 +220,18 @@ export function useUserProfile(userId: string | undefined): QueryResult<UserProf
     }
 
     let cancelled = false;
-    const supabase = getSupabase();
+    const supabase = getSupabaseBrowser();
+    if (!supabase) {
+      setData(null);
+      setLoading(false);
+      return;
+    }
+    const db: SupabaseClient = supabase;
 
     async function fetch() {
       setLoading(true);
       setError(null);
-      const { data: row, error: err } = await supabase
+      const { data: row, error: err } = await db
         .from("users")
         .select("*")
         .eq("id", userId!)
@@ -261,12 +264,18 @@ export function useWalletData(userId: string | undefined): QueryResult<Wallet[]>
     }
 
     let cancelled = false;
-    const supabase = getSupabase();
+    const supabase = getSupabaseBrowser();
+    if (!supabase) {
+      setData(null);
+      setLoading(false);
+      return;
+    }
+    const db: SupabaseClient = supabase;
 
     async function fetch() {
       setLoading(true);
       setError(null);
-      const { data: rows, error: err } = await supabase
+      const { data: rows, error: err } = await db
         .from("wallets")
         .select("*")
         .eq("user_id", userId!);
@@ -298,14 +307,20 @@ export function useCajaFuerteData(userId: string | undefined): QueryResult<CajaF
     }
 
     let cancelled = false;
-    const supabase = getSupabase();
+    const supabase = getSupabaseBrowser();
+    if (!supabase) {
+      setData(null);
+      setLoading(false);
+      return;
+    }
+    const db: SupabaseClient = supabase;
 
     async function fetch() {
       setLoading(true);
       setError(null);
 
       // Fetch the caja fuerte row
-      const { data: row, error: err } = await supabase
+      const { data: row, error: err } = await db
         .from("caja_fuerte")
         .select("*")
         .eq("user_id", userId!)
@@ -321,7 +336,7 @@ export function useCajaFuerteData(userId: string | undefined): QueryResult<CajaF
       const cajaFuerte = row as CajaFuerte;
 
       // Fetch herederos separately by caja_fuerte_id
-      const { data: herederos, error: herErr } = await supabase
+      const { data: herederos, error: herErr } = await db
         .from("herederos")
         .select("*")
         .eq("caja_fuerte_id", cajaFuerte.id)
@@ -363,12 +378,18 @@ export function useTransactions(
     }
 
     let cancelled = false;
-    const supabase = getSupabase();
+    const supabase = getSupabaseBrowser();
+    if (!supabase) {
+      setData(null);
+      setLoading(false);
+      return;
+    }
+    const db: SupabaseClient = supabase;
 
     async function fetch() {
       setLoading(true);
       setError(null);
-      const { data: rows, error: err } = await supabase
+      const { data: rows, error: err } = await db
         .from("transactions")
         .select("*")
         .eq("wallet_id", walletId!)
@@ -405,12 +426,18 @@ export function useAgentDecisions(
     }
 
     let channel: RealtimeChannel | null = null;
-    const supabase = getSupabase();
+    const supabase = getSupabaseBrowser();
+    if (!supabase) {
+      setData(null);
+      setLoading(false);
+      return;
+    }
+    const db: SupabaseClient = supabase;
 
     async function fetchInitial() {
       setLoading(true);
       setError(null);
-      const { data: rows, error: err } = await supabase
+      const { data: rows, error: err } = await db
         .from("agent_decisions")
         .select("*")
         .eq("user_id", userId!)
@@ -429,7 +456,7 @@ export function useAgentDecisions(
     fetchInitial();
 
     // Subscribe to realtime inserts and updates for this user
-    channel = supabase
+    channel = db
       .channel(`agent_decisions:${userId}`)
       .on(
         "postgres_changes",
@@ -458,7 +485,7 @@ export function useAgentDecisions(
       .subscribe();
 
     return () => {
-      if (channel) supabase.removeChannel(channel);
+      if (channel) db.removeChannel(channel);
     };
   }, [userId, limit]);
 
@@ -481,12 +508,18 @@ export function useYieldPositions(
     }
 
     let cancelled = false;
-    const supabase = getSupabase();
+    const supabase = getSupabaseBrowser();
+    if (!supabase) {
+      setData(null);
+      setLoading(false);
+      return;
+    }
+    const db: SupabaseClient = supabase;
 
     async function fetch() {
       setLoading(true);
       setError(null);
-      const { data: rows, error: err } = await supabase
+      const { data: rows, error: err } = await db
         .from("yield_positions")
         .select("*")
         .eq("user_id", userId!)
@@ -521,7 +554,11 @@ export function useUpdateAutonomy(userId: string | undefined) {
 
       setLoading(true);
       setError(null);
-      const supabase = getSupabase();
+      const supabase = getSupabaseBrowser();
+      if (!supabase) {
+        setLoading(false);
+        return true;
+      }
 
       const { error: err } = await supabase
         .from("users")
@@ -557,7 +594,11 @@ export function useKillSwitch(userId: string | undefined) {
 
     setLoading(true);
     setError(null);
-    const supabase = getSupabase();
+    const supabase = getSupabaseBrowser();
+    if (!supabase) {
+      setLoading(false);
+      return true;
+    }
     const now = new Date().toISOString();
 
     try {
@@ -622,13 +663,19 @@ export function useAlerts(userId: string | undefined): QueryResult<{ alerts: Ale
     }
 
     let cancelled = false;
-    const supabase = getSupabase();
+    const supabase = getSupabaseBrowser();
+    if (!supabase) {
+      setData(null);
+      setLoading(false);
+      return;
+    }
+    const db: SupabaseClient = supabase;
 
     async function fetch() {
       setLoading(true);
       setError(null);
 
-      const { data: rows, error: err } = await supabase
+      const { data: rows, error: err } = await db
         .from("alerts")
         .select("*")
         .eq("user_id", userId!)

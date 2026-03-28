@@ -86,7 +86,7 @@ function mapDecisionsToActivityItems(decisions: AgentDecision[]): ActivityItem[]
 function Skeleton({ className = "" }: { className?: string }) {
   return (
     <div
-      className={`animate-pulse rounded-xl bg-white/5 ${className}`}
+      className={`animate-pulse rounded-lg bg-surface-muted ${className}`}
     />
   );
 }
@@ -161,12 +161,19 @@ export default function DashboardPage() {
     await activateKillSwitch();
   }
 
-  // -- Loading skeleton --
-  const isLoading = profileLoading || walletsLoading || cajaLoading;
+  // Evita quedar colgado si Supabase o la red no responden (skeleton infinito).
+  const [loadTimedOut, setLoadTimedOut] = useState(false);
+  useEffect(() => {
+    const id = window.setTimeout(() => setLoadTimedOut(true), 14_000);
+    return () => window.clearTimeout(id);
+  }, []);
+
+  const isLoading =
+    (profileLoading || walletsLoading || cajaLoading) && !loadTimedOut;
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen">
+      <div className="app-bg flex min-h-screen">
         <Sidebar />
         <main className="flex-1 pl-[72px] lg:pl-[240px]">
           <TopBar unreadAlerts={0} />
@@ -191,25 +198,28 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="app-bg flex min-h-screen">
       <Sidebar />
 
       <main className="flex-1 pl-[72px] lg:pl-[240px]">
         <TopBar unreadAlerts={unreadAlerts} />
 
-        <div className="p-5 md:p-8 lg:p-10">
-          <div className="mx-auto max-w-6xl space-y-8">
-            {/* Welcome header */}
+        <div className="p-5 md:px-8 md:pb-10 md:pt-8 lg:px-10">
+          <div className="mx-auto max-w-6xl space-y-10">
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.2 }}
+              className="border-b border-line pb-8"
             >
-              <h1 className="text-2xl font-semibold tracking-tight text-ink md:text-[1.65rem]">
-                Dashboard
+              <p className="section-label">Panel principal</p>
+              <h1 className="mt-2 text-display font-semibold tracking-tight text-ink">
+                Inicio
               </h1>
-              <p className="mt-1 text-sm text-ink-muted">
-                Resumen de tu patrimonio, actividad del agente y controles de autonomía.
+              <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-ink-muted">
+                Visualizá tu posición consolidada, el trabajo del asistente y los
+                límites de autonomía. Los montos reflejan datos conectados a tu
+                cuenta cuando hay backend activo.
               </p>
             </motion.div>
 

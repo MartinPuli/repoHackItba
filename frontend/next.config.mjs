@@ -1,7 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
+  // Strict mode duplica efectos en dev; con wallets + HMR suele generar estados raros.
+  reactStrictMode: false,
   transpilePackages: [
+    "@rainbow-me/rainbowkit",
     "@reown/appkit",
     "@reown/appkit-scaffold-ui",
     "@reown/appkit-common",

@@ -55,8 +55,9 @@ export default function YieldPage() {
   return (
     <AppShell topTitle="Estrategia de rendimiento" unreadAlerts={unreadAlerts}>
       <PageHeader
-        title="Yield"
-        description="Flujo BSC → Rootstock explicado sin ruido. Datos en tiempo real desde Supabase."
+        eyebrow="Inversiones"
+        title="Rendimientos"
+        description="Estrategia BSC → Rootstock con datos de posiciones cuando Supabase está configurado. Sin garantía de retorno: uso educativo y demo."
       />
 
       {loading ? (
@@ -90,9 +91,7 @@ export default function YieldPage() {
           {/* Active positions from Supabase */}
           {hasActivePositions && (
             <div className="mt-8 space-y-4">
-              <h2 className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-faint">
-                Posiciones activas
-              </h2>
+              <h2 className="section-label">Posiciones activas</h2>
               <div className="grid gap-3">
                 {positions!.map((pos) => (
                   <motion.div 
@@ -124,9 +123,7 @@ export default function YieldPage() {
       )}
 
       <div className="mt-8 space-y-6">
-        <h2 className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-faint">
-          Pipeline de la estrategia
-        </h2>
+        <h2 className="section-label">Cómo funciona la estrategia</h2>
 
         {/* Pipeline steps */}
         <div className="grid gap-4 md:grid-cols-3">
@@ -136,7 +133,7 @@ export default function YieldPage() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1, duration: 0.4 }}
-              className="glass-card group relative overflow-hidden p-5 hover:scale-[1.02]"
+              className="glass-card relative overflow-hidden p-5"
             >
               <div className="mb-3 flex items-center gap-2">
                 <div

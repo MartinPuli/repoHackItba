@@ -2,23 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap");
 
 :root {
-  /* Pistachio Icecream (referencia de paleta) */
-  --bg: #f9fcf7;
-  --bg-subtle: #f9fcf7;
-  --card-bg: #fffff1;
-  --card-border: #d9eed8;
+  /* Base neutra (referencia home banking / fintech AR) */
+  --bg: #eef1ef;
+  --bg-subtle: #f6f8f7;
+  --card-bg: #ffffff;
+  --card-border: #dce3de;
+  --line-ui: #e2e8e4;
   --pistachio: #96cca8;
   --pistachio-light: #c5edc8;
   --pistachio-muted: #d9eed8;
   --cream: #fffff1;
   --cream-warm: #fff9e6;
-  --cream-green: #f9fcf7;
-  --text-primary: #1a2e1f;
-  --text-secondary: #5a7d64;
-  --text-muted: #8fa898;
+  --cream-green: #f6f8f7;
+  --text-primary: #0f1712;
+  --text-secondary: #3d4f45;
+  --text-muted: #6b7f73;
 }
 
 * {
@@ -32,92 +33,94 @@ html {
 body {
   background: var(--bg);
   color: var(--text-primary);
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-feature-settings: "kern" 1, "liga" 1;
+  -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
 
-/* ── Card Styles ────────────────────────────────── */
+/* Paneles: blanco, borde fino, sombra mínima (sin “glass” ni glow) */
 .glass-card {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
-  border-radius: 16px;
-  transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 18, 0.04);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .glass-card:hover {
-  border-color: var(--pistachio-light);
-  box-shadow: 0 4px 24px rgba(150, 204, 168, 0.10);
+  border-color: #c5d0c8;
+  box-shadow: 0 4px 14px rgba(15, 23, 18, 0.06);
 }
 
 .surface-card {
-  background: var(--cream-green);
+  background: var(--card-bg);
   border: 1px solid var(--card-border);
-  border-radius: 14px;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 18, 0.03);
+}
+
+.surface-card:hover {
+  border-color: #c5d0c8;
 }
 
 /* ── Scrollbar ──────────────────────────────────── */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--pistachio-light);
-  border-radius: 3px;
+  background: #c5cdc7;
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--pistachio);
+  background: #9aa89e;
 }
 
-/* ── Tabular nums ───────────────────────────────── */
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }
 
-/* ── Gradient text ──────────────────────────────── */
+/* Marca: texto sólido, sin gradiente “startup” */
 .gradient-text {
-  background: linear-gradient(135deg, #78b896, #5a9e6e, #96CCA8);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--text-primary);
+  background: none;
+  -webkit-text-fill-color: currentColor;
 }
 
-/* ── Glow effects ───────────────────────────────── */
-.glow-green {
-  box-shadow: 0 0 20px rgba(150, 204, 168, 0.12);
-}
-.glow-red {
-  box-shadow: 0 0 20px rgba(212, 107, 107, 0.10);
-}
+.glow-green,
+.glow-red,
 .glow-brand {
-  box-shadow: 0 0 20px rgba(150, 204, 168, 0.12);
+  box-shadow: 0 1px 2px rgba(15, 23, 18, 0.05);
 }
 
-/* ── App background ─────────────────────────────── */
 .app-bg {
   background-color: var(--bg);
-  background-image:
-    radial-gradient(ellipse 90% 55% at 50% -18%, rgba(150, 204, 168, 0.28), transparent 55%),
-    radial-gradient(ellipse 50% 42% at 100% 0%, rgba(197, 237, 200, 0.35), transparent 52%),
-    radial-gradient(ellipse 45% 36% at 0% 100%, rgba(255, 249, 230, 0.65), transparent 48%);
 }
 
-/* ── Subtle dot pattern for sections ────────────── */
 .dot-pattern {
-  background-image: radial-gradient(circle, var(--pistachio-muted) 1px, transparent 1px);
-  background-size: 24px 24px;
+  background-image: radial-gradient(circle, var(--line-ui) 1px, transparent 1px);
+  background-size: 20px 20px;
 }
 
-/* ── Smooth focus rings ─────────────────────────── */
 *:focus-visible {
   outline: 2px solid var(--pistachio);
   outline-offset: 2px;
-  border-radius: 8px;
 }
 
-/* ── Selection ──────────────────────────────────── */
 ::selection {
   background: var(--pistachio-light);
   color: var(--text-primary);
+}
+
+/* Etiquetas de sección tipo producto financiero */
+.section-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }

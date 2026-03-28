@@ -36,9 +36,14 @@ async function fetchPrices(): Promise<TokenPrices> {
 
   _inflight = (async () => {
     try {
+      const signal =
+        typeof AbortSignal !== "undefined" &&
+        typeof AbortSignal.timeout === "function"
+          ? AbortSignal.timeout(8000)
+          : undefined;
       const res = await fetch(
         `https://api.coingecko.com/api/v3/simple/price?ids=${COINGECKO_IDS}&vs_currencies=usd`,
-        { signal: AbortSignal.timeout(5000) }
+        signal ? { signal } : {}
       );
       if (!res.ok) throw new Error(`CoinGecko ${res.status}`);
       const data = await res.json();
