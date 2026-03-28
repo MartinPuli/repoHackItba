@@ -37,7 +37,9 @@ interface Heredero {
   id: string;
   caja_fuerte_id: string;
   slot: number; // 1 or 2
+  rol: "guardian" | "heir";
   address: string;
+  email: string | null;
   display_name: string | null;
   share_percentage: number;
   nonce: number;
@@ -48,7 +50,7 @@ interface Heredero {
 interface CajaFuerte {
   id: string;
   user_id: string;
-  wallet_id: string;
+  wallet_id: string | null;
   contract_address: string | null;
   chain_id: number;
   balance_usdt: number;
@@ -330,10 +332,15 @@ export function useWalletData(userId: string | undefined): QueryResult<Wallet[]>
 
 // ── 3. useCajaFuerteData ──────────────────────────────────────────────
 
-export function useCajaFuerteData(userId: string | undefined): QueryResult<CajaFuerte> {
+export function useCajaFuerteData(
+  userId: string | undefined,
+): QueryResult<CajaFuerte> & { refetch: () => void } {
   const [data, setData] = useState<CajaFuerte | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshNonce, setRefreshNonce] = useState(0);
+
+  const refetch = useCallback(() => setRefreshNonce((n) => n + 1), []);
 
   useEffect(() => {
     if (!userId) {
@@ -350,7 +357,7 @@ export function useCajaFuerteData(userId: string | undefined): QueryResult<CajaF
     }
     const db: SupabaseClient = supabase;
 
-    async function fetch() {
+    async function fetchCaja() {
       setLoading(true);
       setError(null);
       const stopWatch = startQueryWatchdog(
@@ -358,29 +365,33 @@ export function useCajaFuerteData(userId: string | undefined): QueryResult<CajaF
         () => {
           setError("Tiempo de espera al cargar la caja fuerte.");
           setLoading(false);
-        }
+        },
       );
       try {
-        // Fetch the caja fuerte row
         const { data: row, error: err } = await db
           .from("caja_fuerte")
           .select("*")
           .eq("user_id", userId!)
-          .single();
+          .maybeSingle();
 
         if (cancelled) return;
         if (err) {
           setError(err.message);
+          setData(null);
+          return;
+        }
+        if (!row) {
+          setData(null);
           return;
         }
 
         const cajaFuerte = row as CajaFuerte;
 
-        // Fetch herederos separately by caja_fuerte_id
         const { data: herederos, error: herErr } = await db
           .from("herederos")
           .select("*")
           .eq("caja_fuerte_id", cajaFuerte.id)
+          .order("rol", { ascending: true })
           .order("slot", { ascending: true });
 
         if (cancelled) return;
@@ -397,11 +408,13 @@ export function useCajaFuerteData(userId: string | undefined): QueryResult<CajaF
       }
     }
 
-    fetch();
-    return () => { cancelled = true; };
-  }, [userId]);
+    fetchCaja();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, refreshNonce]);
 
-  return { data, loading, error };
+  return { data, loading, error, refetch };
 }
 
 // ── 4. useTransactions ─────────────────────────────────────────────────
