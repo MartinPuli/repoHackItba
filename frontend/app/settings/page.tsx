@@ -4,8 +4,14 @@ import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { cn } from "@/lib/utils";
 import { Bell, Globe, Shield, Sparkles, Sliders, Users } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import {
+  DEMO_USER_ID,
+  useAlerts,
+  useUserProfile,
+} from "@/hooks/useSupabase";
+import { createClient } from "@/lib/supabase/client";
 
 const toggles = [
   {
@@ -90,7 +96,7 @@ function ToggleRow({
 }
 
 export default function SettingsPage() {
-  const { data: profile, loading: profileLoading } = useUserProfile(DEMO_USER_ID);
+  const { data: profile } = useUserProfile(DEMO_USER_ID);
   const { data: alertsData } = useAlerts(DEMO_USER_ID);
   const unreadAlerts = alertsData?.unreadCount ?? 0;
 
@@ -156,7 +162,8 @@ export default function SettingsPage() {
               title={t.title}
               description={t.desc}
               on={flags[t.id] ?? false}
-              onToggle={() => setFlags((f) => ({ ...f, [t.id]: !f[t.id] }))}
+              saving={saving}
+              onToggle={() => handleToggle(t.id)}
             />
           ))}
         </motion.div>

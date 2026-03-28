@@ -16,7 +16,8 @@ export function PrimaryButton({
       type="button"
       className={cn(
         "inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-[13px] font-semibold transition-colors disabled:opacity-40",
-        variant === "solid" && "bg-pistachio text-white hover:bg-pistachio/85",
+        variant === "solid" &&
+          "bg-pistachio text-primary-foreground shadow-sm hover:bg-pistachio/88",
         variant === "ghost" &&
           "text-ink-muted hover:bg-pistachio-muted/40 hover:text-ink",
         variant === "outline" &&

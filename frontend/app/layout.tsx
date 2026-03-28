@@ -6,9 +6,9 @@ const Web3Root = dynamic(() => import("./web3-root"), {
   ssr: false,
   loading: () => (
     <div
-      style={{
+        style={{
         minHeight: "100vh",
-        backgroundColor: "#FFFFFF",
+        backgroundColor: "#F9FCF7",
         color: "#5a7d64",
         display: "flex",
         alignItems: "center",
@@ -37,7 +37,7 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <body
         className="min-h-screen antialiased"
-        style={{ backgroundColor: "#FFFFFF", color: "#1a2e1f" }}
+        style={{ backgroundColor: "#F9FCF7", color: "#1a2e1f" }}
       >
         <Web3Root>{children}</Web3Root>
       </body>

@@ -9,30 +9,30 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "#FFFFFF",
-        card: "#FFFEF1",
-        "card-border": "#D9EEDB",
+        background: "#F9FCF7",
+        card: "#FFFFF1",
+        "card-border": "#D9EED8",
         canvas: {
-          DEFAULT: "#FFFFFF",
-          elevated: "#F9FCF7",
+          DEFAULT: "#F9FCF7",
+          elevated: "#FFFFF1",
         },
         surface: {
-          DEFAULT: "#FFFEF1",
-          hover: "rgba(150, 204, 168, 0.08)",
-          muted: "#F9FCF7",
-          raised: "#FFFEF1",
+          DEFAULT: "#FFFFF1",
+          hover: "rgba(197, 237, 200, 0.45)",
+          muted: "#D9EED8",
+          raised: "#FFFFF1",
         },
         primary: {
           DEFAULT: "#96CCA8",
-          foreground: "#FFFFFF",
+          foreground: "#142822",
         },
         pistachio: {
           DEFAULT: "#96CCA8",
           light: "#C5EDC8",
-          muted: "#D9EEDB",
+          muted: "#D9EED8",
         },
         cream: {
-          DEFAULT: "#FFFEF1",
+          DEFAULT: "#FFFFF1",
           warm: "#FFF9E6",
           green: "#F9FCF7",
         },
@@ -46,8 +46,8 @@ const config: Config = {
           faint: "#8fa898",
         },
         line: {
-          DEFAULT: "#D9EEDB",
-          strong: "#C5EDC8",
+          DEFAULT: "rgba(30, 52, 44, 0.08)",
+          strong: "rgba(30, 52, 44, 0.14)",
         },
         accent: {
           green: "#5a9e6e",
