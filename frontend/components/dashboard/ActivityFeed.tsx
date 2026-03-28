@@ -33,35 +33,42 @@ export interface ActivityItem {
 
 const typeConfig: Record<
   ActionType,
-  { icon: React.ReactNode; color: string }
+  { icon: React.ReactNode; color: string; bgColor: string }
 > = {
   analysis: {
     icon: <Brain className="h-4 w-4" />,
-    color: "text-indigo-400",
+    color: "text-brand",
+    bgColor: "bg-brand/10",
   },
   suggestion: {
     icon: <TrendingUp className="h-4 w-4" />,
     color: "text-accent-cyan",
+    bgColor: "bg-accent-cyan/10",
   },
   compliance: {
     icon: <ShieldCheck className="h-4 w-4" />,
     color: "text-accent-green",
+    bgColor: "bg-accent-green/10",
   },
   execute: {
     icon: <ArrowRightLeft className="h-4 w-4" />,
     color: "text-accent-orange",
+    bgColor: "bg-accent-orange/10",
   },
   yield: {
     icon: <TrendingUp className="h-4 w-4" />,
-    color: "text-accent-green",
+    color: "text-growth",
+    bgColor: "bg-growth/10",
   },
   alert: {
     icon: <AlertTriangle className="h-4 w-4" />,
     color: "text-accent-yellow",
+    bgColor: "bg-accent-yellow/10",
   },
   deadman: {
     icon: <Clock className="h-4 w-4" />,
-    color: "text-accent-cyan",
+    color: "text-vault",
+    bgColor: "bg-vault/10",
   },
 };
 
@@ -70,6 +77,54 @@ interface ActivityFeedProps {
   maxItems?: number;
   loading?: boolean;
 }
+
+// Mock data for demo
+const mockItems: ActivityItem[] = [
+  {
+    id: "1",
+    type: "analysis",
+    message: "rBTC yield subió a 8.2% APY — evaluando rebalanceo",
+    timestamp: new Date(Date.now() - 120000).toISOString(),
+    status: "success",
+  },
+  {
+    id: "2",
+    type: "suggestion",
+    message: "Sugerencia: mover +5% a pool Rootstock",
+    timestamp: new Date(Date.now() - 300000).toISOString(),
+    status: "pending",
+    canRevert: false,
+  },
+  {
+    id: "3",
+    type: "compliance",
+    message: "Tx aprobada — compliance UIF verificado",
+    timestamp: new Date(Date.now() - 480000).toISOString(),
+    status: "success",
+  },
+  {
+    id: "4",
+    type: "deadman",
+    message: "resetTime() ejecutado — Dead Man's Switch activo",
+    timestamp: new Date(Date.now() - 900000).toISOString(),
+    status: "success",
+  },
+  {
+    id: "5",
+    type: "yield",
+    message: "Colateral Venus OK — LTV 68.2%",
+    timestamp: new Date(Date.now() - 1200000).toISOString(),
+    status: "success",
+  },
+  {
+    id: "6",
+    type: "execute",
+    message: "Depósito 100 USDT en Venus Protocol",
+    timestamp: new Date(Date.now() - 1800000).toISOString(),
+    status: "success",
+    canRevert: true,
+  },
+];
 
 export function ActivityFeed({
   items = [],
@@ -81,11 +136,14 @@ export function ActivityFeed({
   return (
     <div className="glass-card flex flex-col p-5" style={{ maxHeight: "420px" }}>
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-sm font-medium uppercase tracking-wider text-white/40">
+        <h3 className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-faint">
           Actividad del Agente
         </h3>
         <div className="flex items-center gap-2">
-          <div className="h-2 w-2 rounded-full bg-accent-green animate-pulse-glow" />
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent-green/40 opacity-60" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-accent-green" />
+          </span>
           <span className="text-xs font-medium text-accent-green">LIVE</span>
         </div>
       </div>
@@ -121,26 +179,27 @@ export function ActivityFeed({
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 10 }}
                 transition={{ delay: index * 0.05 }}
-                className="group flex items-start gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-white/5"
+                className="group flex items-start gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-surface-hover"
               >
                 <div
                   className={cn(
-                    "mt-0.5 rounded-md bg-white/5 p-1.5",
+                    "mt-0.5 rounded-lg p-1.5",
+                    config.bgColor,
                     config.color
                   )}
                 >
                   {config.icon}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-white/80 leading-tight">
+                  <p className="text-sm text-ink leading-tight">
                     {item.message}
                   </p>
-                  <span className="text-xs text-white/30">
+                  <span className="text-xs text-ink-faint">
                     {timeAgo(item.timestamp)}
                   </span>
                 </div>
                 {item.canRevert && (
-                  <button className="shrink-0 rounded-md p-1 text-white/20 opacity-0 transition-all hover:bg-white/5 hover:text-white/50 group-hover:opacity-100">
+                  <button className="shrink-0 rounded-md p-1 text-ink-faint opacity-0 transition-all hover:bg-surface-muted hover:text-ink-muted group-hover:opacity-100">
                     <Undo2 className="h-3.5 w-3.5" />
                   </button>
                 )}

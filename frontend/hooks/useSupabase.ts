@@ -193,13 +193,20 @@ function getSupabase() {
 }
 
 /** Compute total USD balance from wallet token balances. */
-export function totalBalanceUsd(wallet: Wallet): number {
-  return wallet.balance_bnb * 600 + wallet.balance_usdt + wallet.balance_btcb * 85000;
+export function totalBalanceUsd(
+  wallet: Wallet,
+  prices?: { BNB: number; USDT: number; USDC: number; BUSD: number; rBTC: number }
+): number {
+  const p = prices ?? { BNB: 600, USDT: 1, USDC: 1, BUSD: 1, rBTC: 85000 };
+  return wallet.balance_bnb * p.BNB + wallet.balance_usdt * p.USDT + wallet.balance_btcb * p.rBTC;
 }
 
 /** Compute total USD balance across multiple wallets. */
-export function totalBalanceUsdAll(wallets: Wallet[]): number {
-  return wallets.reduce((sum, w) => sum + totalBalanceUsd(w), 0);
+export function totalBalanceUsdAll(
+  wallets: Wallet[],
+  prices?: { BNB: number; USDT: number; USDC: number; BUSD: number; rBTC: number }
+): number {
+  return wallets.reduce((sum, w) => sum + totalBalanceUsd(w, prices), 0);
 }
 
 // ── 1. useUserProfile ──────────────────────────────────────────────────

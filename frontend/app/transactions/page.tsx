@@ -10,7 +10,11 @@ import {
   Clock,
   Loader2,
   XCircle,
+  Filter,
+  Search,
 } from "lucide-react";
+import { motion } from "framer-motion";
+import { useState } from "react";
 import {
   DEMO_USER_ID,
   useWalletData,
@@ -69,6 +73,14 @@ export default function TransactionsPage() {
   const { data: transactions, loading: txLoading } = useTransactions(walletId, 30);
 
   const loading = walletsLoading || txLoading;
+  const [filter, setFilter] = useState<"all" | "done" | "pending">("all");
+
+  const filtered = (transactions ?? []).filter((tx) => {
+    if (filter === "all") return true;
+    if (filter === "done") return tx.status === "confirmed";
+    if (filter === "pending") return tx.status === "pending";
+    return true;
+  });
 
   return (
     <AppShell topTitle="Movimientos y auditoría" unreadAlerts={unreadAlerts}>
@@ -77,30 +89,56 @@ export default function TransactionsPage() {
         description="Historial real desde Supabase — cada movimiento tuyo y del agente según tu nivel de autonomía."
       />
 
-      <div className="glass-card overflow-hidden">
-        <div className="border-b border-line px-5 py-4">
-          <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-faint">
-            Recientes
-          </p>
-        </div>
+      {/* Filters */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        {(["all", "done", "pending"] as const).map((f) => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={cn(
+              "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+              filter === f
+                ? "bg-pistachio text-white"
+                : "bg-surface-muted text-ink-muted ring-1 ring-line hover:bg-pistachio-muted/40 hover:text-ink"
+            )}
+          >
+            {f === "all" ? "Todas" : f === "done" ? "Completadas" : "Pendientes"}
+          </button>
+        ))}
+      </div>
 
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="glass-card overflow-hidden"
+      >
+        <div className="border-b border-line px-5 py-4">
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-faint">
+              {filtered.length} transacciones
+            </p>
+          </div>
+        </div>
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-6 w-6 animate-spin text-ink-muted" />
           </div>
-        ) : !transactions || transactions.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div className="px-5 py-10 text-center text-sm text-ink-muted">
-            Sin transacciones todavía. Depositá fondos para arrancar.
+            Sin transacciones todavía o con estos filtros.
           </div>
         ) : (
           <ul className="divide-y divide-line">
-            {transactions.map((tx) => {
+            {filtered.map((tx, i) => {
               const isIncoming = ["deposit", "yield_withdraw"].includes(tx.tx_type);
               const displayAmount = tx.amount_usd ?? tx.amount ?? 0;
 
               return (
-                <li
+                <motion.li
                   key={tx.id}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: i * 0.02 }}
                   className="flex flex-col gap-3 px-5 py-4 transition-colors hover:bg-surface-hover/40 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="flex min-w-0 items-start gap-3">
@@ -142,12 +180,12 @@ export default function TransactionsPage() {
                         : `${isIncoming ? "+" : "-"}${formatUSD(displayAmount)}`}
                     </span>
                   </div>
-                </li>
+                </motion.li>
               );
             })}
           </ul>
         )}
-      </div>
+      </motion.div>
     </AppShell>
   );
 }

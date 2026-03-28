@@ -32,15 +32,15 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="fixed left-0 top-0 z-40 flex h-screen w-[72px] flex-col border-r border-line bg-canvas-elevated/90 py-6 backdrop-blur-xl lg:w-[238px]">
+    <aside className="fixed left-0 top-0 z-40 flex h-screen w-[72px] flex-col border-r border-pistachio-muted bg-cream-green py-6 lg:w-[238px]">
       <div className="mb-8 flex items-center gap-3 px-4">
         <div
-          className="flex h-10 w-10 items-center justify-center rounded-xl border border-line-strong bg-surface-raised"
+          className="flex h-10 w-10 items-center justify-center rounded-xl border border-pistachio-light bg-white"
           style={{
-            boxShadow: "0 0 0 1px rgba(143, 180, 201, 0.12) inset",
+            boxShadow: "0 0 0 1px rgba(150, 204, 168, 0.15) inset",
           }}
         >
-          <Shield className="h-[18px] w-[18px] text-brand" strokeWidth={1.75} />
+          <Shield className="h-[18px] w-[18px] text-pistachio" strokeWidth={1.75} />
         </div>
         <span className="hidden text-[15px] font-semibold tracking-tight gradient-text lg:block">
           SmartWallet
@@ -57,19 +57,19 @@ export function Sidebar() {
               className={cn(
                 "flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-colors",
                 active
-                  ? "bg-brand/10 text-brand"
-                  : "text-ink-muted hover:bg-surface-hover hover:text-ink"
+                  ? "bg-pistachio-muted text-pistachio"
+                  : "text-ink-muted hover:bg-pistachio-muted/40 hover:text-ink"
               )}
             >
               <item.icon
                 className={cn(
                   "h-[18px] w-[18px] shrink-0 stroke-[1.75]",
-                  active && "text-brand"
+                  active && "text-pistachio"
                 )}
               />
               <span className="hidden lg:block">{item.label}</span>
               {active && (
-                <span className="ml-auto hidden h-1.5 w-1.5 rounded-full bg-brand lg:block" />
+                <span className="ml-auto hidden h-1.5 w-1.5 rounded-full bg-pistachio lg:block" />
               )}
             </Link>
           );
@@ -77,11 +77,11 @@ export function Sidebar() {
       </nav>
 
       <div className="mt-auto px-2 lg:px-3">
-        <div className="surface-card rounded-card px-3 py-3">
+        <div className="surface-card rounded-[14px] px-3 py-3">
           <div className="flex items-center gap-2">
             <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-growth/40 opacity-60" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-growth" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-pistachio/40 opacity-60" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-pistachio" />
             </span>
             <span className="hidden text-[11px] font-medium text-ink-muted lg:block">
               Agente listo

@@ -43,15 +43,15 @@ export function DeadManStatus({
   return (
     <div className="glass-card p-5">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-sm font-medium uppercase tracking-wider text-white/40">
-          Dead Man's Switch
+        <h3 className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-faint">
+          Dead Man&apos;s Switch
         </h3>
         <div className="flex items-center gap-2">
           <HeartPulse
             className={cn(
               "h-4 w-4",
               recoveryState === "inactive"
-                ? "text-accent-green animate-pulse-glow"
+                ? "text-accent-green animate-pulse"
                 : "text-accent-red"
             )}
           />
@@ -59,7 +59,7 @@ export function DeadManStatus({
             {recoveryState === "inactive"
               ? "Activo"
               : recoveryState === "pending"
-                ? "Recuperacion Pendiente"
+                ? "Recuperación Pendiente"
                 : "Ejecutado"}
           </span>
         </div>
@@ -67,13 +67,16 @@ export function DeadManStatus({
 
       {/* Progress bar */}
       <div className="mb-3">
-        <div className="mb-1.5 flex justify-between text-xs text-white/40">
-          <span>Ultima actividad: {daysSince}d</span>
+        <div className="mb-1.5 flex justify-between text-xs text-ink-faint">
+          <span>Última actividad: {daysSince}d</span>
           <span>{daysRemaining}d restantes</span>
         </div>
-        <div className="h-2 overflow-hidden rounded-full bg-white/5">
+        <div className="h-2 overflow-hidden rounded-full bg-surface-muted ring-1 ring-line">
           <div
-            className={cn("h-full rounded-full transition-all duration-500", barColor)}
+            className={cn(
+              "h-full rounded-full transition-all duration-500",
+              barColor
+            )}
             style={{ width: `${progress * 100}%` }}
           />
         </div>
@@ -81,7 +84,7 @@ export function DeadManStatus({
 
       {/* Herederos */}
       <div className="mt-4 space-y-2">
-        <div className="flex items-center gap-2 text-xs text-white/40">
+        <div className="flex items-center gap-2 text-xs text-ink-faint">
           <Users className="h-3.5 w-3.5" />
           <span>Herederos designados</span>
         </div>
@@ -89,12 +92,12 @@ export function DeadManStatus({
           {[heredero1, heredero2].map((addr, i) => (
             <div
               key={i}
-              className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2"
+              className="flex items-center justify-between rounded-xl bg-surface-muted px-3 py-2 ring-1 ring-line"
             >
-              <span className="text-xs text-white/60">
+              <span className="text-xs text-ink-muted">
                 Heredero {i + 1}
               </span>
-              <span className="font-mono text-xs text-white/40">
+              <span className="font-mono text-xs text-ink-faint">
                 {addr
                   ? `${addr.slice(0, 6)}...${addr.slice(-4)}`
                   : "No asignado"}

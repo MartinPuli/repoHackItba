@@ -4,7 +4,8 @@ import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatBlock } from "@/components/ui/StatBlock";
 import { formatPercent, formatUSD } from "@/lib/utils";
-import { ArrowRight, Layers, Loader2 } from "lucide-react";
+import { ArrowRight, Layers, Loader2, Shield, Zap, Globe } from "lucide-react";
+import { motion } from "framer-motion";
 import {
   DEMO_USER_ID,
   useYieldPositions,
@@ -14,21 +15,27 @@ import {
 const steps = [
   {
     title: "Colateral en Venus (BSC)",
-    body: "USDT como colateral para liquidez barata y estable.",
+    body: "Depositás USDT como colateral en Venus Protocol. Esto genera liquidez barata y estable para la estrategia cross-chain.",
+    detail: "APY colateral: ~4.0%",
     tone: "text-brand",
     bg: "bg-brand/10",
+    icon: <Shield className="h-4 w-4" />,
   },
   {
     title: "Puente hacia Rootstock",
-    body: "Exposición a rBTC y rendimientos del ecosistema Bitcoin.",
+    body: "Los fondos se puentean a Rootstock para obtener exposición a rBTC y rendimientos del ecosistema Bitcoin.",
+    detail: "APY Rootstock: ~10.0%",
     tone: "text-growth",
     bg: "bg-growth/10",
+    icon: <Globe className="h-4 w-4" />,
   },
   {
     title: "Fee del agente",
-    body: "Un slice acotado premia la orquestación automática.",
+    body: "Un slice acotado del spread premia la orquestación automática. El usuario se queda con el 80% del rendimiento neto.",
+    detail: "Fee agente: 5% del neto",
     tone: "text-agent",
     bg: "bg-agent/10",
+    icon: <Zap className="h-4 w-4" />,
   },
 ] as const;
 
@@ -88,7 +95,12 @@ export default function YieldPage() {
               </h2>
               <div className="grid gap-3">
                 {positions!.map((pos) => (
-                  <div key={pos.id} className="glass-card flex items-center justify-between p-4">
+                  <motion.div 
+                    key={pos.id} 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="glass-card flex items-center justify-between p-4"
+                  >
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-ink">{pos.protocol}</p>
                       <p className="text-xs text-ink-muted">
@@ -103,7 +115,7 @@ export default function YieldPage() {
                         {formatUSD(pos.amount_usd ?? 0)}
                       </p>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             </div>
@@ -111,44 +123,62 @@ export default function YieldPage() {
         </>
       )}
 
-      <div className="mt-8 space-y-4">
+      <div className="mt-8 space-y-6">
         <h2 className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-faint">
-          Pipeline
+          Pipeline de la estrategia
         </h2>
+
+        {/* Pipeline steps */}
         <div className="grid gap-4 md:grid-cols-3">
           {steps.map((s, i) => (
-            <div
+            <motion.div
               key={s.title}
-              className="glass-card relative overflow-hidden p-5"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.1, duration: 0.4 }}
+              className="glass-card group relative overflow-hidden p-5 hover:scale-[1.02]"
             >
-              <div
-                className={`mb-3 inline-flex rounded-lg px-2 py-1 text-[11px] font-semibold ${s.bg} ${s.tone}`}
-              >
-                Paso {i + 1}
+              <div className="mb-3 flex items-center gap-2">
+                <div
+                  className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-semibold ${s.bg} ${s.tone}`}
+                >
+                  {s.icon}
+                  Paso {i + 1}
+                </div>
               </div>
               <h3 className="text-sm font-semibold text-ink">{s.title}</h3>
               <p className="mt-2 text-xs text-ink-muted leading-relaxed">
                 {s.body}
               </p>
+              <p className={`mt-3 text-[11px] font-semibold ${s.tone}`}>
+                {s.detail}
+              </p>
               {i < steps.length - 1 && (
                 <ArrowRight className="absolute right-4 top-1/2 hidden h-4 w-4 -translate-y-1/2 text-ink-faint md:block" />
               )}
-            </div>
+            </motion.div>
           ))}
         </div>
 
-        <div className="glass-card flex items-start gap-4 p-5">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-muted ring-1 ring-line">
-            <Layers className="h-5 w-5 text-ink-muted" strokeWidth={2} />
+        {/* Risk card */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="glass-card flex items-start gap-4 p-5"
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-yellow/10 ring-1 ring-accent-yellow/20">
+            <Layers className="h-5 w-5 text-accent-yellow" strokeWidth={2} />
           </div>
           <div>
             <p className="text-sm font-medium text-ink">Riesgos y límites</p>
             <p className="mt-1 text-xs text-ink-muted leading-relaxed">
               Smart contracts en testnet, sin garantía de retorno. El agente
-              respeta topes de autonomía y puede cortarse con el Kill Switch.
+              respeta topes de autonomía y puede cortarse con el Kill Switch
+              en cualquier momento.
             </p>
           </div>
-        </div>
+        </motion.div>
       </div>
     </AppShell>
   );
