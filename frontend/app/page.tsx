@@ -23,6 +23,7 @@ import {
   useAlerts,
   totalBalanceUsd,
 } from "@/hooks/useSupabase";
+import { useTokenPrices } from "@/hooks/useTokenPrices";
 import type { AutonomyLevel, AgentDecision } from "@/hooks/useSupabase";
 
 // ---------------------------------------------------------------------------
@@ -102,6 +103,9 @@ export default function DashboardPage() {
   const { updateAutonomy } = useUpdateAutonomy(DEMO_USER_ID);
   const { activate: activateKillSwitch } = useKillSwitch(DEMO_USER_ID);
 
+  // -- Live token prices from CoinGecko --
+  const { prices } = useTokenPrices();
+
   // Derive primary wallet for queries
   const primaryWallet = wallets?.[0];
   const walletAddress = primaryWallet?.contract_address;
@@ -117,7 +121,7 @@ export default function DashboardPage() {
   }, [profile?.autonomy_level]);
 
   // -- Derived values (fallback to 0 / empty when Supabase has no data) --
-  const walletBalance = primaryWallet ? totalBalanceUsd(primaryWallet) : 0;
+  const walletBalance = primaryWallet ? totalBalanceUsd(primaryWallet, prices) : 0;
   const cajaFuerteBalance = cajaFuerte?.balance_usdt ?? 0;
 
   // Sum yield earned across active positions

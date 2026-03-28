@@ -3,8 +3,14 @@
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { cn } from "@/lib/utils";
-import { Bell, Globe, Shield, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { Bell, Globe, Shield, Sparkles, Loader2 } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import {
+  DEMO_USER_ID,
+  useUserProfile,
+  useAlerts,
+} from "@/hooks/useSupabase";
+import { createClient } from "@/lib/supabase/client";
 
 const toggles = [
   {
@@ -33,18 +39,27 @@ const toggles = [
   },
 ] as const;
 
+const DEFAULT_FLAGS: Record<string, boolean> = {
+  notif: true,
+  chain: true,
+  sec: false,
+  exp: false,
+};
+
 function ToggleRow({
   title,
   description,
   icon: Icon,
   on,
   onToggle,
+  saving,
 }: {
   title: string;
   description: string;
   icon: typeof Bell;
   on: boolean;
   onToggle: () => void;
+  saving: boolean;
 }) {
   return (
     <div className="flex items-start gap-4 py-4">
@@ -62,9 +77,11 @@ function ToggleRow({
         role="switch"
         aria-checked={on}
         onClick={onToggle}
+        disabled={saving}
         className={cn(
           "relative mt-1 h-7 w-12 shrink-0 rounded-full transition-colors",
-          on ? "bg-brand/40" : "bg-surface-muted ring-1 ring-line"
+          on ? "bg-brand/40" : "bg-surface-muted ring-1 ring-line",
+          saving && "opacity-50 cursor-not-allowed"
         )}
       >
         <span
@@ -79,32 +96,105 @@ function ToggleRow({
 }
 
 export default function SettingsPage() {
-  const [flags, setFlags] = useState<Record<string, boolean>>({
-    notif: true,
-    chain: true,
-    sec: false,
-    exp: false,
-  });
+  const { data: profile, loading: profileLoading } = useUserProfile(DEMO_USER_ID);
+  const { data: alertsData } = useAlerts(DEMO_USER_ID);
+  const unreadAlerts = alertsData?.unreadCount ?? 0;
+
+  const [flags, setFlags] = useState<Record<string, boolean>>(DEFAULT_FLAGS);
+  const [saving, setSaving] = useState(false);
+
+  // Load preferences from Supabase user profile
+  useEffect(() => {
+    if (profile) {
+      const stored = (profile as unknown as Record<string, unknown>).preferences as
+        | Record<string, boolean>
+        | undefined;
+      if (stored && typeof stored === "object") {
+        setFlags((prev) => ({ ...prev, ...stored }));
+      }
+    }
+  }, [profile]);
+
+  // Persist toggle change to Supabase
+  const handleToggle = useCallback(
+    async (id: string) => {
+      const newFlags = { ...flags, [id]: !flags[id] };
+      setFlags(newFlags);
+      setSaving(true);
+
+      try {
+        const supabase = createClient();
+        await supabase
+          .from("users")
+          .update({
+            preferences: newFlags,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", DEMO_USER_ID);
+      } catch {
+        // Revert on error
+        setFlags(flags);
+      } finally {
+        setSaving(false);
+      }
+    },
+    [flags]
+  );
 
   return (
-    <AppShell topTitle="Preferencias" unreadAlerts={0}>
+    <AppShell topTitle="Preferencias" unreadAlerts={unreadAlerts}>
       <PageHeader
         title="Configuración"
-        description="Ajustes esenciales sin laberintos de menús."
+        description="Ajustes persistidos en Supabase — tus preferencias se guardan automáticamente."
       />
 
-      <div className="glass-card divide-y divide-line px-5">
-        {toggles.map((t) => (
-          <ToggleRow
-            key={t.id}
-            icon={t.icon}
-            title={t.title}
-            description={t.desc}
-            on={flags[t.id] ?? false}
-            onToggle={() => setFlags((f) => ({ ...f, [t.id]: !f[t.id] }))}
-          />
-        ))}
-      </div>
+      {profileLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-ink-muted" />
+        </div>
+      ) : (
+        <div className="glass-card divide-y divide-line px-5">
+          {toggles.map((t) => (
+            <ToggleRow
+              key={t.id}
+              icon={t.icon}
+              title={t.title}
+              description={t.desc}
+              on={flags[t.id] ?? false}
+              onToggle={() => handleToggle(t.id)}
+              saving={saving}
+            />
+          ))}
+        </div>
+      )}
+
+      {profile && (
+        <div className="glass-card mt-6 px-5 py-4 space-y-2">
+          <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-faint">
+            Cuenta
+          </p>
+          <div className="flex justify-between text-sm">
+            <span className="text-ink-muted">Nombre</span>
+            <span className="text-ink font-medium">{profile.display_name ?? "—"}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-ink-muted">Email</span>
+            <span className="text-ink font-medium">{profile.email ?? "—"}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-ink-muted">Autonomía</span>
+            <span className="text-ink font-medium capitalize">{profile.autonomy_level}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-ink-muted">Wallet</span>
+            <span className="text-ink font-mono text-xs">
+              {profile.wallet_address
+                ? `${profile.wallet_address.slice(0, 6)}…${profile.wallet_address.slice(-4)}`
+                : "—"}
+            </span>
+          </div>
+        </div>
+      )}
 
       <p className="mt-6 text-center text-[11px] text-ink-faint">
         Smart Wallet Agent-First · Hackathon ITBA

@@ -17,7 +17,7 @@ import { TelegramBot } from "./channels/telegram-bot.js";
 import { WhatsAppBot } from "./channels/whatsapp-bot.js";
 import { HttpServer } from "./channels/http-server.js";
 import { db } from "./db/database.js";
-
+import { refreshPrices } from "./constants.js";
 const server = new McpServer({
   name: "smartwallet",
   version: "0.1.0",
@@ -648,6 +648,10 @@ server.tool(
 const transport = new StdioServerTransport();
 await server.connect(transport);
 console.error("Smart Wallet MCP Server running on stdio");
+
+// Refresh token prices from CoinGecko every 60s
+refreshPrices();
+setInterval(() => refreshPrices().catch(() => {}), 60_000);
 
 // Start HTTP API server for frontend + webhooks
 const httpServer = new HttpServer({
