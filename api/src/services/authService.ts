@@ -143,3 +143,24 @@ export async function signInUser(
     profile: toPublicProfile(profileRow),
   };
 }
+
+export async function getMeForAuthUserId(authUserId: string): Promise<PublicProfile> {
+  const admin = assertAdmin();
+  const { data: profileRow, error: profileError } = await admin
+    .from('users')
+    .select('*')
+    .eq('id', authUserId)
+    .maybeSingle();
+
+  if (profileError) {
+    throw new HttpError(500, profileError.message);
+  }
+  if (!profileRow) {
+    throw new HttpError(
+      404,
+      'Perfil de aplicación no encontrado; completá el registro o contactá soporte.'
+    );
+  }
+
+  return toPublicProfile(profileRow);
+}
