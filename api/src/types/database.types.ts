@@ -29,6 +29,7 @@ export type AgentActionType =
 export type AlertPriority = 'low' | 'medium' | 'high' | 'critical';
 export type RecoveryState = 'inactive' | 'pending' | 'executed';
 export type SessionKeyStatus = 'active' | 'expired' | 'revoked';
+export type HerederoRol = 'guardian' | 'heir';
 
 export interface Database {
   public: {
@@ -112,8 +113,8 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
-          wallet_id: string;
-          contract_address: string;
+          wallet_id: string | null;
+          contract_address: string | null;
           chain_id: number;
           balance_usdt: string | null;
           balance_btcb: string | null;
@@ -130,8 +131,8 @@ export interface Database {
         Insert: {
           id?: string;
           user_id: string;
-          wallet_id: string;
-          contract_address: string;
+          wallet_id?: string | null;
+          contract_address?: string | null;
           chain_id?: number;
           balance_usdt?: string | null;
           balance_btcb?: string | null;
@@ -148,8 +149,8 @@ export interface Database {
         Update: {
           id?: string;
           user_id?: string;
-          wallet_id?: string;
-          contract_address?: string;
+          wallet_id?: string | null;
+          contract_address?: string | null;
           chain_id?: number;
           balance_usdt?: string | null;
           balance_btcb?: string | null;
@@ -170,7 +171,9 @@ export interface Database {
           id: string;
           caja_fuerte_id: string;
           slot: number;
+          rol: HerederoRol;
           address: string;
+          email: string | null;
           display_name: string | null;
           share_percentage: string;
           nonce: number;
@@ -181,7 +184,9 @@ export interface Database {
           id?: string;
           caja_fuerte_id: string;
           slot: number;
+          rol: HerederoRol;
           address: string;
+          email?: string | null;
           display_name?: string | null;
           share_percentage?: string;
           nonce?: number;
@@ -192,7 +197,9 @@ export interface Database {
           id?: string;
           caja_fuerte_id?: string;
           slot?: number;
+          rol?: HerederoRol;
           address?: string;
+          email?: string | null;
           display_name?: string | null;
           share_percentage?: string;
           nonce?: number;

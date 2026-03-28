@@ -1,61 +1,32 @@
 @baseUrl = http://localhost:3000
-@email = martinbejarano12@outlook.com
-@password = martinbejarano12!
-### Pegar aquí el access_token devuelto por login/register (sin "Bearer ")
-@accessToken = yJhbGciOiJFUzI1NiIsImtpZCI6ImNhNTEzOTM2LTUzM2EtNDUxNC1hMzYwLTViMzc3NjA3ZmQ1NyIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL3RmYXRpa2V1cGt5ZGZlcmJjc2JjLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI1ZTJhMDc3ZC0xOTI2LTQ1NzgtOTczNS1hOTBhNzZmNGQ5ZTYiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzc0NjgyNDYzLCJpYXQiOjE3NzQ2Nzg4NjMsImVtYWlsIjoibWFydGluYmVqYXJhbm8xMkBvdXRsb29rLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiJtYXJ0aW5iZWphcmFubzEyQG91dGxvb2suY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiNWUyYTA3N2QtMTkyNi00NTc4LTk3MzUtYTkwYTc2ZjRkOWU2In0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NzQ2Nzg4NjN9XSwic2Vzc2lvbl9pZCI6IjM5NmFmYzQxLWM3NmItNDUxOS04ODQ1LThhMzU2MDhiODkxZCIsImlzX2Fub255bW91cyI6ZmFsc2V9.2PcWtA2-Yge0ANpdEk0cWBMozGkFpzCkuok0YxJJnGITLL5rsPyrSwGs0Touofjp2tpGX2m3d_R1wfRZlSGiZg
+### Obtener access_token en el frontend tras signInWithWeb3 y pegarlo aquí (sin "Bearer ")
+@accessToken = 
 
 ### Health check
 GET {{baseUrl}}/health
 
-### Registro (primera vez con este email)
-POST {{baseUrl}}/api/auth/register
-Content-Type: application/json
-
-{
-  "email": "{{email}}",
-  "password": "{{password}}"
-}
-
-### Registro duplicado (mismo email — debe fallar con 400/422)
-POST {{baseUrl}}/api/auth/register
-Content-Type: application/json
-
-{
-  "email": "{{email}}",
-  "password": "{{password}}"
-}
-
-### Login
-POST {{baseUrl}}/api/auth/login
-Content-Type: application/json
-
-{
-  "email": "{{email}}",
-  "password": "{{password}}"
-}
-
-### Login — credenciales inválidas (ajustá el password si querés probar 401)
-POST {{baseUrl}}/api/auth/login
-Content-Type: application/json
-
-{
-  "email": "{{email}}",
-  "password": "password-incorrecto"
-}
-
-### Me — sesión actual (401 si @accessToken vacío o expirado)
+### Me — perfil + has_strongbox (JWT Web3 Supabase)
 GET {{baseUrl}}/api/auth/me
 Authorization: Bearer {{accessToken}}
 
 ### Me — sin token (401)
 GET {{baseUrl}}/api/auth/me
 
-### Validación — falta email
-POST {{baseUrl}}/api/auth/register
+### Caja fuerte — setup lógico (guardianes + herederos; una sola vez por usuario)
+POST {{baseUrl}}/api/strongbox/setup
+Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
-  "password": "{{password}}"
+  "own_email": "titular@ejemplo.com",
+  "guardians": [
+    { "wallet": "0x1111111111111111111111111111111111111111", "email": "g1@ejemplo.com" },
+    { "wallet": "0x2222222222222222222222222222222222222222", "email": "g2@ejemplo.com" }
+  ],
+  "heirs": [
+    { "wallet": "0x3333333333333333333333333333333333333333", "email": "h1@ejemplo.com" },
+    { "wallet": "0x4444444444444444444444444444444444444444", "email": "h2@ejemplo.com" }
+  ]
 }
 
 ### Balance smart wallet (mock chain; JWT obligatorio)
@@ -65,19 +36,3 @@ Authorization: Bearer {{accessToken}}
 ### Balance caja fuerte (mock; requiere fila caja_fuerte en DB)
 GET {{baseUrl}}/api/caja-fuerte/balance
 Authorization: Bearer {{accessToken}}
-
-### Herederos — listar (requiere fila caja_fuerte y JWT)
-GET {{baseUrl}}/api/herederos
-Authorization: Bearer {{accessToken}}
-
-### Herederos — crear/actualizar en DB (emails deben existir en users; máx. 2)
-POST {{baseUrl}}/api/herederos
-Authorization: Bearer {{accessToken}}
-Content-Type: application/json
-
-{
-  "herederos": [
-    { "email": "otro-usuario@dominio.com", "display_name": "Heredero 1" }
-  ]
-}
-

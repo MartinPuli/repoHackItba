@@ -16,7 +16,7 @@ El prefijo de auth es **`/api/auth`**. No hay versión en URL (`/v1`) por ahora.
 ### Cabeceras
 
 - **`Content-Type: application/json`** en `POST` con cuerpo.
-- **`Authorization: Bearer <access_token>`** en rutas protegidas (el mismo `access_token` que devuelve `session` en login o register).
+- **`Authorization: Bearer <access_token>`** en rutas protegidas (el `session.access_token` del cliente Supabase tras login Web3).
 
 ### Respuestas de error
 
@@ -29,29 +29,20 @@ Errores controlados devuelven JSON:
 }
 ```
 
-Los códigos HTTP habituales: **400** (validación), **401** (login inválido, token ausente, JWT inválido o expirado), **404** (perfil de app inexistente), **409** (conflicto, p. ej. perfil duplicado), **422** (Auth / reglas de Supabase), **500** (interno o Supabase no configurado).
+Los códigos HTTP habituales: **400** (validación), **401** (token ausente, JWT inválido o expirado), **404** (recurso no encontrado), **409** (conflicto, p. ej. caja fuerte ya configurada o wallet duplicada), **422** (sesión sin metadata Web3), **500** (interno o Supabase no configurado).
 
 ### Rutas protegidas (JWT)
 
-1. Llamá a **`POST /api/auth/login`** (o register con sesión) y guardá **`session.access_token`**.
-2. En siguientes peticiones, enviá **`Authorization: Bearer <access_token>`**.
+1. En el **frontend**, iniciar sesión con **MetaMask** vía **`supabase.auth.signInWithWeb3({ chain: 'ethereum' })`** (u otro flujo Web3 de Supabase) y guardá **`session.access_token`**.
+2. En peticiones a esta API, enviá **`Authorization: Bearer <access_token>`**.
 3. Si el token expiró o es inválido, la API responde **401** con cuerpo `{ "error": "..." }`.
 
 ### Auth y Supabase (contexto para frontend)
 
-- El registro y login usan **Supabase Auth** en el servidor (clave **service role**). El frontend **no** debe usar la service role.
-- En **login** y **register** la respuesta incluye solo **`session`** (objeto Supabase, con `access_token`, `refresh_token`, `session.user`, etc.) y **`profile`** (fila `public.users`). No se repite un `user` suelto en la raíz: para `id` / `email` de Auth usá **`session.user`**; para datos de app usá **`profile`**.
-- El front puede persistir **`session`** y usar **`access_token`** en cabeceras `Authorization: Bearer` o con el cliente Supabase si llamás a la DB con RLS.
-- En **`public.users`** el `id` coincide con `session.user.id`; el campo **`wallet_address`** suele ser un **placeholder** hasta el deploy del smart wallet (CREATE2).
-
-### Email: sin verificación por mail (recomendado para el hackathon)
-
-Para evitar `session: null` en el registro y no depender de enlaces al mail:
-
-1. Dashboard Supabase → **Authentication → Providers → Email**.
-2. Desactivar **Confirm email** (nombre exacto puede variar según la UI).
-
-Así el **register** suele devolver sesión al instante. Coordinar con quien administra el proyecto si el entorno es compartido.
+- **No** hay `POST /api/auth/register` ni `POST /api/auth/login` en el backend: el auth lo resuelve el cliente con Supabase.
+- El backend usa la **service role** solo para validar el JWT en rutas protegidas y para leer/escribir `public.*` con el cliente admin. El frontend **no** expone la service role.
+- Tras el login Web3, **`GET /api/auth/me`** hace **upsert** de **`public.users`** (`id` = `auth.users.id`, `wallet_address` desde `user_metadata`, p. ej. `ethereum_address`).
+- El email opcional del titular en **`public.users`** se puede cargar con **`POST /api/strongbox/setup`** (`own_email`).
 
 ---
 
@@ -71,84 +62,15 @@ Comprueba que el servidor responde.
 
 ---
 
-### `POST /api/auth/register`
-
-Crea usuario en **Supabase Auth** y fila en **`public.users`** (mismo `id` que Auth, `wallet_address` placeholder).
-
-**Body**
-
-| Campo      | Tipo   | Obligatorio |
-| ---------- | ------ | ----------- |
-| `email`    | string | sí          |
-| `password` | string | sí          |
-
-**Respuesta 201**
-
-```json
-{
-  "session": {
-    "access_token": "...",
-    "refresh_token": "...",
-    "expires_in": 3600,
-    "token_type": "bearer",
-    "user": {
-      "id": "uuid",
-      "email": "usuario@dominio.com"
-    }
-  },
-  "profile": {
-    "id": "uuid",
-    "wallet_address": "0x...",
-    "display_name": null,
-    "email": "usuario@dominio.com",
-    "autonomy_level": "asistente",
-    "created_at": "2026-03-28T04:44:39.690308+00:00",
-    "updated_at": "2026-03-28T04:44:39.690308+00:00",
-    "last_active_at": "2026-03-28T04:44:39.690308+00:00"
-  }
-}
-```
-
-- Si la confirmación por email sigue activa, **`session` puede ser `null`** hasta confirmar; con confirmación desactivada, suele ir populado.
-- `autonomy_level` viene del schema (`asistente` | `copiloto` | `autonomo`).
-
-**Errores frecuentes**
-
-- **400** — email inválido según Supabase, o cuerpo incompleto.
-- **400/422** — email ya registrado (mensaje de Supabase en `error`).
-- **500** — variables de entorno faltantes, tabla `public.users` inexistente en el proyecto, u otro fallo de servidor.
-
----
-
-### `POST /api/auth/login`
-
-Autentica con email y password; exige sesión y perfil en **`public.users`**.
-
-**Body**
-
-Misma forma que register.
-
-**Respuesta 200**
-
-Misma forma que register (201), pero status **200** y **`session`** debe existir si el login fue exitoso.
-
-**Errores frecuentes**
-
-- **401** — credenciales incorrectas o usuario sin confirmar (si la confirmación sigue activa).
-- **404** — usuario en Auth pero sin fila en `public.users` (registro a medias o borrado de perfil).
-- **400** — body inválido.
-
----
-
 ### `GET /api/auth/me`
 
-Devuelve el perfil en **`public.users`** (`id`, `email`, `wallet_address`, etc.). Los datos de sesión Auth (`session.user`) ya los tenés del login o podés inspeccionar el JWT. Requiere JWT válido.
+Asegura fila en **`public.users`** (upsert por `id` con `wallet_address` leída del JWT / metadata Web3) y devuelve si ya existe **`caja_fuerte`** para el usuario.
 
 **Cabeceras**
 
-| Cabecera        | Valor                                      |
-| --------------- | ------------------------------------------ |
-| `Authorization` | `Bearer <access_token>` (obligatorio)   |
+| Cabecera        | Valor                                   |
+| --------------- | --------------------------------------- |
+| `Authorization` | `Bearer <access_token>` (obligatorio) |
 
 **Respuesta 200**
 
@@ -158,26 +80,28 @@ Devuelve el perfil en **`public.users`** (`id`, `email`, `wallet_address`, etc.)
     "id": "uuid",
     "wallet_address": "0x...",
     "display_name": null,
-    "email": "usuario@dominio.com",
+    "email": null,
     "autonomy_level": "asistente",
     "created_at": "2026-03-28T04:44:39.690308+00:00",
     "updated_at": "2026-03-28T04:44:39.690308+00:00",
     "last_active_at": "2026-03-28T04:44:39.690308+00:00"
-  }
+  },
+  "has_strongbox": false
 }
 ```
 
 **Errores frecuentes**
 
-- **401** — sin cabecera `Authorization`, no es `Bearer`, token inválido o expirado.
-- **404** — usuario de Auth válido pero sin fila en `public.users`.
+- **401** — sin `Bearer`, token inválido o expirado.
+- **409** — conflicto de unicidad en `users.wallet_address` (misma wallet, otro usuario).
+- **422** — token válido pero sin dirección EVM en metadata (`ethereum_address` / `wallet_address`).
 - **500** — Supabase no configurado u otro error de servidor.
 
 ---
 
 ### `GET /api/wallet/balance`
 
-Devuelve balances **simulados** (BNB + USDT) para la smart wallet del usuario autenticado. La dirección se resuelve en este orden: última fila en **`wallets.contract_address`** para el `user_id`; si no existe, **`users.wallet_address`** (placeholder de registro). Los valores on-chain reales se integrarán vía RPC/ethers sustituyendo la capa mock.
+Devuelve balances **simulados** (BNB + USDT) para la smart wallet del usuario autenticado. La dirección se resuelve en este orden: última fila en **`wallets.contract_address`** para el `user_id`; si no existe, **`users.wallet_address`** (wallet Web3 del usuario). Los valores on-chain reales se integrarán vía RPC/ethers sustituyendo la capa mock.
 
 **Cabeceras:** `Authorization: Bearer <access_token>` (obligatorio).
 
@@ -205,7 +129,7 @@ Si hay fila `wallets`, `resolution` será `"wallets"` y `dbSnapshot` incluirá `
 
 ### `GET /api/caja-fuerte/balance`
 
-Balances **simulados** para la caja fuerte: BNB nativo, USDT y RBTC (alineado al schema y a la visión producto; el contrato actual `StrongBox.sol` solo expone balance nativo — ver notas abajo). Requiere una fila en **`caja_fuerte`** con `contract_address` del usuario.
+Balances **simulados** para la caja fuerte: BNB nativo, USDT y RBTC. Requiere una fila en **`caja_fuerte`**. Si **`contract_address`** aún es `null` (caja solo en DB, sin deploy), el mock usa una dirección derivada del `id` de la fila.
 
 **Cabeceras:** `Authorization: Bearer <access_token>`.
 
@@ -215,95 +139,42 @@ Balances **simulados** para la caja fuerte: BNB nativo, USDT y RBTC (alineado al
 
 ---
 
-### `POST /api/herederos`
+### `POST /api/strongbox/setup`
 
-Registra herederos en **`public.herederos`** vinculados a la **`caja_fuerte`** del usuario autenticado. Cada entrada usa el **email** de un usuario que **ya debe existir** en `public.users` (misma lógica que en producto: primero se registran). La API toma **`users.wallet_address`** de cada heredero y valida formato `0x` de 42 caracteres.
+Crea la **caja fuerte lógica** en Supabase (**sin deploy on-chain**): una fila **`caja_fuerte`** (`wallet_id` y `contract_address` null, `is_deployed: false`) y **4** filas en **`herederos`** (2 guardianes + 2 herederos), cada una con **`wallet` + `email`**. Actualiza **`users.email`** del titular con **`own_email`**.
 
-Después de un **201**, el cliente debe **firmar on-chain** `setHeirGuardian1` / `setHeirGuardian2` en el contrato StrongBox (el usuario puede hacerlo con su EOA si el deploy usó `userEOA` en el constructor; ver `contracts/src/StrongBox.sol`).
+Solo se permite **una** configuración por usuario (**409** si ya existe `caja_fuerte`).
 
 **Cabeceras:** `Authorization: Bearer <access_token>` (obligatorio).
 
-**Body**
+**Body (JSON)**
 
-| Campo          | Tipo   | Obligatorio | Notas                                      |
-| -------------- | ------ | ----------- | ------------------------------------------ |
-| `herederos`    | array  | sí          | Entre **1** y **2** elementos (límite del contrato). |
+| Campo        | Tipo   | Obligatorio | Notas |
+| ------------ | ------ | ----------- | ----- |
+| `own_email`  | string | sí          | Email del titular (sin verificación). |
+| `guardians`  | array  | sí          | Exactamente **2** objetos `{ "wallet", "email" }`. |
+| `heirs`      | array  | sí          | Exactamente **2** objetos `{ "wallet", "email" }`. |
 
-Cada elemento de `herederos`:
+Las cuatro wallets deben ser **distintas** entre sí y **distintas** de la `wallet_address` del titular en **`public.users`**.
 
-| Campo          | Tipo   | Obligatorio |
-| -------------- | ------ | ----------- |
-| `email`        | string | sí          |
-| `display_name` | string | no          |
-
-**Respuesta 201 (ejemplo)**
+**Respuesta 201**
 
 ```json
-{
-  "herederos": [
-    {
-      "slot": 1,
-      "email": "heredero1@dominio.com",
-      "address": "0x...",
-      "display_name": "Juan"
-    }
-  ],
-  "caja_fuerte_id": "uuid",
-  "message": "Herederos asignados en base de datos. Firmá la transacción on-chain para confirmar en el contrato."
-}
+{ "ok": true }
 ```
 
 **Errores frecuentes**
 
-- **400** — array vacío, más de 2 herederos, emails duplicados, heredero sin cuenta, wallet inválida, mismo email que el titular, misma dirección que la smart wallet del titular.
+- **400** — validación de body, formato EVM, emails vacíos, wallets duplicadas o iguales a la del titular.
 - **401** — token ausente o inválido.
-- **404** — sin fila `caja_fuerte` para el usuario (crear en DB tras deploy).
+- **409** — el usuario ya tiene `caja_fuerte`.
+- **500** — fallo de Supabase.
 
 ---
-
-### `GET /api/herederos`
-
-Lista las filas de **`herederos`** de la caja fuerte del usuario autenticado, ordenadas por `slot`. Incluye `email` cuando se puede resolver desde `users.wallet_address`.
-
-**Cabeceras:** `Authorization: Bearer <access_token>`.
-
-**Respuesta 200**
-
-```json
-{
-  "herederos": [
-    {
-      "id": "uuid",
-      "caja_fuerte_id": "uuid",
-      "slot": 1,
-      "address": "0x...",
-      "display_name": "Juan",
-      "share_percentage": "50.00",
-      "nonce": 0,
-      "created_at": "...",
-      "updated_at": "...",
-      "email": "hermano@dominio.com"
-    }
-  ],
-  "caja_fuerte_id": "uuid"
-}
-```
-
-**Errores:** **401**; **404** sin `caja_fuerte`.
-
----
-
-## Ejemplo cURL (login)
-
-```bash
-curl -s -X POST http://localhost:3000/api/auth/login \
-  -H 'Content-Type: application/json' \
-  -d '{"email":"usuario@dominio.com","password":"TuPasswordSeguro"}'
-```
 
 ### Ejemplo cURL (`/me` con JWT)
 
-Sustituí `<ACCESS_TOKEN>` por el valor de `session.access_token` del login:
+Sustituí `<ACCESS_TOKEN>` por `session.access_token` obtenido en el frontend tras Web3 login:
 
 ```bash
 curl -s http://localhost:3000/api/auth/me \
@@ -320,16 +191,13 @@ curl -s http://localhost:3000/api/caja-fuerte/balance \
   -H 'Authorization: Bearer <ACCESS_TOKEN>'
 ```
 
-### Ejemplo cURL (herederos)
+### Ejemplo cURL (strongbox setup)
 
 ```bash
-curl -s -X POST http://localhost:3000/api/herederos \
+curl -s -X POST http://localhost:3000/api/strongbox/setup \
   -H 'Authorization: Bearer <ACCESS_TOKEN>' \
   -H 'Content-Type: application/json' \
-  -d '{"herederos":[{"email":"heredero@dominio.com","display_name":"María"}]}'
-
-curl -s http://localhost:3000/api/herederos \
-  -H 'Authorization: Bearer <ACCESS_TOKEN>'
+  -d '{"own_email":"yo@dominio.com","guardians":[{"wallet":"0x1111111111111111111111111111111111111111","email":"g1@dominio.com"},{"wallet":"0x2222222222222222222222222222222222222222","email":"g2@dominio.com"}],"heirs":[{"wallet":"0x3333333333333333333333333333333333333333","email":"h1@dominio.com"},{"wallet":"0x4444444444444444444444444444444444444444","email":"h2@dominio.com"}]}'
 ```
 
 ---

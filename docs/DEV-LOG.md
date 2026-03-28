@@ -16,7 +16,7 @@
 | `users` | Usuarios vinculados a wallet address, nivel de autonomia |
 | `wallets` | Contratos Wallet deployados, balances on-chain |
 | `caja_fuerte` | Contratos CajaFuerte, Dead Man's Switch state |
-| `herederos` | Herederos (slots 1 y 2) por cada CajaFuerte |
+| `herederos` | Guardianes/herederos por caja (ver migración 002: `rol` + `slot`; setup con 4 filas) |
 | `transactions` | Historial completo de transacciones (deposit, withdraw, send, swap, yield, bridge, off_ramp) |
 | `session_keys` | Session Keys activas/expiradas/revocadas con limites |
 | `yield_positions` | Posiciones DeFi activas (Venus colateral, prestamo, Rootstock yield) |
@@ -71,3 +71,23 @@
 - [ ] Construir componentes UI (AutonomySlider, KillSwitch, Dashboard, ActivityFeed)
 - [ ] Deploy a Vercel
 - [ ] Tests con Playwright
+
+---
+
+## 2026-03-28 — API: auth Web3 y StrongBox lógico
+
+### Cambios en `api/`
+
+- **Auth HTTP**: eliminados `POST /api/auth/register` y `POST /api/auth/login`. Login con **MetaMask + Supabase** en el frontend; el backend solo valida **JWT** (`requireAuth`).
+- **`GET /api/auth/me`**: upsert de `public.users` con wallet desde metadata del JWT; respuesta incluye **`has_strongbox`**.
+- **StrongBox setup**: `POST /api/strongbox/setup` crea **`caja_fuerte`** lógica (`wallet_id` / `contract_address` null, `is_deployed: false`) y **4** filas en **`herederos`** (2× `guardian`, 2× `heir`), con `wallet` + `email`; actualiza `users.email` con `own_email`.
+- **Herederos (rutas viejas)**: eliminados `POST/GET /api/herederos` — ver `api/docs/HEREDEROS-BACKEND.md`.
+
+### Migración `002_web3_strongbox.sql`
+
+- `caja_fuerte`: `wallet_id` y `contract_address` **nullable** (caja antes del deploy on-chain).
+- `herederos`: columnas **`email`**, **`rol`** (`guardian` | `heir`); `UNIQUE (caja_fuerte_id, rol, slot)`.
+
+### Documentación
+
+- `docs/API.md`, `docs/SUPABASE-SCHEMA.md`, `api/docs/HEREDEROS-BACKEND.md`, `api/http/api.http` alineados al flujo nuevo.

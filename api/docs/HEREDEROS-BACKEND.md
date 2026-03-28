@@ -1,79 +1,100 @@
-# Herederos: implementación en la API (`api/`)
+# Guardianes, herederos y caja fuerte lógica (API `api/`)
 
-Este documento resume **qué se agregó en el backend**, **por qué** se diseñó así y **qué debe revisar** alguien con foco en contratos y blockchain. La referencia de contratos HTTP (schemas, ejemplos) sigue en [`../../docs/API.md`](../../docs/API.md).
+Documento de **implementación actual** del backend: cómo se guardan guardianes y herederos en Supabase, cómo se relaciona con el auth Web3 y qué queda para chain. La referencia HTTP detallada está en [`../../docs/API.md`](../../docs/API.md).
 
 ---
 
 ## 1. Contexto del problema
 
-- En chain, **StrongBox** tiene como `owner` el contrato **Wallet**, no el EOA del usuario. Las funciones `setHeirGuardian1/2` históricamente solo permitían `OnlyOwner`, y **Wallet no reenvía** llamadas a StrongBox.
-- Para el hackathon se adoptó en **contratos** la solución `userEOA` + override en StrongBox (ver `contracts/src/StrongBox.sol`, `HeirGuardians.sol`, `Factory.sol`): el EOA que despliega la caja puede llamar a `setHeirGuardian1/2` además del owner contrato.
-- La **API no firma transacciones on-chain**. Su rol es **validar identidad** (JWT), **resolver emails → direcciones** desde Supabase, **exigir que exista `caja_fuerte`** para el usuario y **persistir** filas en `public.herederos` para producto / UI / auditoría off-chain. La **fuente de verdad on-chain** sigue siendo el contrato tras las txs firmadas por el cliente.
-
-
-## 2. Dependencias en Supabase
-
-- **`users`**: el solicitante debe existir; cada heredero se busca por **email** (match case-insensitive con `.ilike`) y debe tener **`wallet_address`** no vacía y con formato `0x` + 40 hex.
-- **`caja_fuerte`**: debe existir al menos una fila para `user_id` = usuario del JWT (la más reciente por `created_at`). Si no hay caja en DB, la API responde **404** con mensaje orientado a “crear fila tras deploy”.
-- **`herederos`**: persistencia por `(caja_fuerte_id, slot)` mediante **upsert** (`onConflict: 'caja_fuerte_id,slot'`).
-
-### Elección de dirección del solicitante para “no autofirma como heredero”
-
-Se usa `resolveSmartWalletForUser`:
-
-1. Prioridad a la fila más reciente en **`wallets`** (`contract_address`).
-2. Si no hay fila en `wallets`, fallback a **`users.wallet_address`**.
-
-La dirección del heredero (**contrato wallet** o EOA según lo que esté en `users.wallet_address`) se compara en minúsculas con esa dirección “primaria” del solicitante. Objetivo: evitar designar como heredero la **misma** cuenta que la app considera wallet del titular (ajustable si el modelo de negocio distingue explícitamente EOA vs contrato en todos los flujos).
+- **On-chain**, StrongBox expone `setHeirGuardian1/2` (dos direcciones). En el **producto / DB** distinguimos **2 guardianes** y **2 herederos** (4 personas con `wallet` + `email` cada una), alineados al flujo de UI y a la lógica ampliable fuera del contrato.
+- La **API no firma transacciones**. Valida **JWT** (Supabase Auth), persiste intención en **`public.caja_fuerte`** + **`public.herederos`**, y la **verdad on-chain** sigue siendo lo que el cliente firma contra el contrato cuando corresponda (p. ej. tras el primer depósito y deploy).
 
 ---
 
-## 3. Endpoints
+## 2. Autenticación
 
-Ambas rutas exigen **`Authorization: Bearer <access_token>`** (mismo flujo que el resto de la API; ver `requireAuth`).
-
-### `POST /api/herederos`
-
-- **Body**: `{ "herederos": [ { "email": string, "display_name"?: string | null }, ... ] }`
-- **Reglas**:
-  - Entre **1 y 2** elementos (alineado con `setHeirGuardian1` y `setHeirGuardian2` on-chain).
-  - Emails normalizados (`trim` + `lowerCase`); **sin duplicados** en el payload.
-  - El solicitante **no** puede figurar como heredero por **mismo email** que su perfil.
-  - Cada email debe existir en `users` con **`wallet_address`** válida; si no, **400** con mensaje explícito (“debe registrarse primero”) — **no** hay flujo de invitación por mail en MVP.
-  - **No** repetir la misma **address** entre herederos del mismo request.
-  - La address del heredero **no** puede ser la misma que la resuelta para el titular (`resolveSmartWalletForUser`).
-- **Persistencia**:
-  - Slots **1** y **2** según orden del array.
-  - **`share_percentage`**: `100.00` si hay un solo heredero; `50.00` si hay dos (convención solo off-chain; el contrato no modela porcentajes en esta versión).
-  - Si solo hay **un** heredero, se **elimina** explícitamente la fila con `slot = 2` para esa `caja_fuerte_id`, para no dejar un heredero viejo en el segundo slot.
-- **Respuesta 201**: lista de `{ slot, email, address, display_name }`, `caja_fuerte_id` (UUID) y un **`message`** que instruye firmar on-chain.
-
-### `GET /api/herederos`
-
-- Devuelve las filas de **`herederos`** de la caja del usuario, ordenadas por `slot`.
-- Enriquece cada fila con **`email`** buscando en `users` por `wallet_address` (puede quedar `null` si nadie coincide — útil para revisión de integridad).
+- **No** existen `POST /api/auth/register` ni `POST /api/auth/login` con email/password.
+- El **frontend** inicia sesión con **MetaMask** vía cliente Supabase (p. ej. `signInWithWeb3` / flujo Ethereum).
+- El backend recibe **`Authorization: Bearer <access_token>`** y usa `requireAuth` como el resto de rutas protegidas.
 
 ---
 
-## 4. Por qué no se envía la transacción desde el servidor
+## 3. ¿Cuándo falta “caja fuerte en app”?
 
-- La API usa **service role** de Supabase; guardar claves de firma del usuario en el backend sería un antipatrón de seguridad.
-- El flujo acordado: **backend valida y escribe DB** → **frontend/wallet firma** `setHeirGuardian1` / `setHeirGuardian2` hacia la dirección `caja_fuerte.contract_address` (StrongBox), desde el **EOA** registrado como `userEOA` en el contrato (ver deploy por Factory).
+Tras el login Web3, **`GET /api/auth/me`**:
 
-**Implicación para revisión:** pueden existir **divergencias** DB vs chain si el usuario nunca firma o si firma direcciones distintas a las guardadas. Mitigar en producto (estado “pendiente on-chain”, reconciliación, o firma obligatoria tras POST) es trabajo futuro; fuera del alcance actual del service.
+1. Hace **upsert** en **`public.users`** (`id` = usuario de Auth, `wallet_address` desde metadata del JWT, p. ej. `ethereum_address`).
+2. Devuelve **`has_strongbox`**: `true` si ya existe al menos una fila en **`caja_fuerte`** para ese `user_id`.
 
----
-
-## 5. Puntos de revisión sugeridos (para perfil “contratos / blockchain”)
-
-1. **¿`users.wallet_address` del heredero es la dirección correcta** para `setHeirGuardian*`? Si el heredero debe ser **EOA** pero en DB solo está el contrato Wallet (o al revés), hay que alinear schema + política de la API.
-2. **¿Un heredero debería poder ser únicamente otra cuenta con Wallet desplegada?** Hoy cualquier usuario con fila en `users` y address válida entra.
-3. **Atomicidad DB + chain:** no hay transacción distribuida; conviene documentar el estado esperado en UI.
-4. **Eventos / indexación:** si más adelante se indexan logs del contrato, el listado `GET` podría contrastarse con el subgraph o el explorer.
-5. **RLS:** estas rutas usan **admin**; el frontend que lea `herederos` directamente por Supabase cliente debe respetar políticas RLS acordes (no duplicar permisos peligrosos).
+Si **`has_strongbox === false`**, el frontend puede mostrar el flujo para cargar guardianes/herederos y llamar a **`POST /api/strongbox/setup`**.
 
 ---
 
-## 6. Resumen en una frase
+## 4. Schema en Supabase (estado actual)
 
-La API **centraliza validaciones sensibles a identidad y datos de app**, **persiste** la intención de designación en **`herederos`**, y deja la **autoridad on-chain** en manos del **cliente que firma** contra **StrongBox**, coherente con el cambio **`userEOA`** en contratos.
+Migraciones en `api/supabase/migrations/`:
+
+- **`001_initial_schema`**: tablas base.
+- **`002_web3_strongbox`**: ajustes para caja fuerte **sin deploy todavía** y herederos con rol.
+
+### `caja_fuerte`
+
+- Puede existir una fila **solo en DB**: **`wallet_id`** y **`contract_address`** pueden ser **`NULL`** hasta que haya smart wallet desplegada y/o primer depósito.
+- **`is_deployed`**: `false` hasta que el producto marque deploy on-chain (fuera de este doc).
+
+### `herederos`
+
+- **`caja_fuerte_id`**: FK a la caja del usuario.
+- **`rol`**: `'guardian'` | `'heir'` (`CHECK` en DB).
+- **`slot`**: `1` o `2` (dentro de cada rol: guardián 1/2, heredero 1/2).
+- **`address`**: wallet EVM (`0x` + 40 hex).
+- **`email`**: texto guardado tal cual (sin verificación de correo).
+- **Unicidad**: `UNIQUE (caja_fuerte_id, rol, slot)` (cuatro filas por caja en el setup estándar).
+- Otros campos del `001` (`share_percentage`, `nonce`, etc.) siguen existiendo; el setup actual no los personaliza (valores por defecto del schema).
+
+Referencia ampliada del modelo: [`../../docs/SUPABASE-SCHEMA.md`](../../docs/SUPABASE-SCHEMA.md).
+
+---
+
+## 5. Endpoint de setup
+
+### `POST /api/strongbox/setup`
+
+- **Auth**: JWT obligatorio.
+- **Cuerpo**: ver ejemplos en [`../../docs/API.md`](../../docs/API.md): `own_email`, `guardians` (2), `heirs` (2); cada elemento `{ "wallet", "email" }`.
+- **Reglas principales**:
+  - Exactamente **2** guardianes y **2** herederos.
+  - Las **cuatro** wallets deben ser **distintas** entre sí.
+  - Ninguna puede coincidir con **`users.wallet_address`** del titular.
+  - **409** si el usuario **ya** tiene una **`caja_fuerte`** (un solo setup lógico por usuario).
+- **Efecto**:
+  1. `UPDATE users SET email = own_email` para el `user_id` del JWT.
+  2. `INSERT` en **`caja_fuerte`** (sin `wallet_id` ni `contract_address`, `is_deployed: false`).
+  3. `INSERT` de **4** filas en **`herederos`**.
+- **Respuesta**: `{ "ok": true }` (201).
+
+### Rutas eliminadas (no usar)
+
+- **`POST /api/herederos`** y **`GET /api/herederos`** fueron reemplazadas por este flujo. Cualquier doc o cliente que aún las cite está desactualizado.
+
+---
+
+## 6. Por qué no se envía la transacción desde el servidor
+
+Igual que antes: **service role** y custodia de claves de usuario en backend serían un antipatrón. El flujo acordado: **API escribe DB** → **cliente firma** cuando toque (`setHeirGuardian*`, deploy, etc.).
+
+Pueden existir **divergencias** DB vs chain si no se sincroniza tras las txs; mitigar en producto (estados “pendiente on-chain”) es trabajo futuro.
+
+---
+
+## 7. Puntos de revisión (contratos / producto)
+
+1. **Contrato** solo tiene **dos** slots `setHeirGuardian*`: mapear en cliente qué combinación de guardianes/herederos de las **cuatro** filas DB se escribe on-chain (o evolucionar el contrato).
+2. **`users.wallet_address`** tras Web3 es la EOA MetaMask: alinear con **Wallet** contrato vs EOA en deploy de StrongBox.
+3. **RLS**: rutas usan cliente **admin**; acceso directo del front a `herederos` por Supabase cliente debe ir con políticas acordes.
+
+---
+
+## 8. Resumen
+
+El backend **centraliza validación con JWT**, **crea la caja fuerte en DB antes del deploy**, y **persiste 2 guardianes + 2 herederos** (`wallet` + `email`) en **`herederos`** con **`rol`**. La **firma on-chain** queda en el cliente.
