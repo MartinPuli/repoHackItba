@@ -43,15 +43,13 @@ export function DeadManStatus({
   return (
     <div className="glass-card p-5">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-faint">
-          Dead Man&apos;s Switch
-        </h3>
+        <h3 className="section-label">Herencia · temporizador</h3>
         <div className="flex items-center gap-2">
           <HeartPulse
             className={cn(
               "h-4 w-4",
               recoveryState === "inactive"
-                ? "text-accent-green animate-pulse"
+                ? "text-growth"
                 : "text-accent-red"
             )}
           />

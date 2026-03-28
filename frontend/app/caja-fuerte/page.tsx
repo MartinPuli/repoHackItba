@@ -10,10 +10,11 @@ import { motion } from "framer-motion";
 
 export default function CajaFuertePage() {
   return (
-    <AppShell topTitle="Bóveda de ahorro" unreadAlerts={0}>
+    <AppShell topTitle="Reservas y herencia" unreadAlerts={0}>
       <PageHeader
+        eyebrow="Ahorro"
         title="Caja fuerte"
-        description="Ahorros a largo plazo, estrategia de yield y capa de herencia. Solo tu wallet de gastos puede mover fondos."
+        description="Capa de reservas, exposición a estrategias de rendimiento y reglas de herencia. Los movimientos salen desde tu wallet de gastos."
       />
 
       <div className="grid gap-4 sm:grid-cols-3">

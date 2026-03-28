@@ -102,9 +102,7 @@ export function AutonomySlider({
   return (
     <div className="glass-card p-5">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-faint">
-          Nivel de Autonomía
-        </h3>
+        <h3 className="section-label">Autonomía del asistente</h3>
         <div className={cn("flex items-center gap-2", activeLevel.textColor)}>
           {activeLevel.icon}
           <span className="text-sm font-semibold">{activeLevel.label}</span>
@@ -113,7 +111,7 @@ export function AutonomySlider({
 
       {/* Slider Track */}
       <div className="relative mb-6">
-        <div className="flex h-12 items-center rounded-xl bg-surface-muted p-1 ring-1 ring-line">
+        <div className="flex h-12 items-center rounded-lg border border-line bg-surface-muted p-1">
           {levels.map((level) => (
             <button
               key={level.key}

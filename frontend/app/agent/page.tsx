@@ -25,7 +25,7 @@ export default function AgentPage() {
     {
       id: "welcome",
       role: "agent",
-      text: "Hola 👋 Soy tu asistente patrimonial. Estoy listo para ayudarte con yield, compliance y envíos. Escribí abajo o elegí una sugerencia.",
+      text: "Hola. Soy tu asistente patrimonial. Podés consultar por rendimientos, cumplimiento o envíos. Escribí tu consulta o elegí una sugerencia.",
     },
   ]);
 
@@ -46,10 +46,11 @@ export default function AgentPage() {
   }
 
   return (
-    <AppShell topTitle="Asistente patrimonial" unreadAlerts={0}>
+    <AppShell topTitle="Asistente" unreadAlerts={0}>
       <PageHeader
-        title="Agente AI"
-        description="Modo asistente: el agente analiza y sugiere; vos firmás las acciones on-chain."
+        eyebrow="Soporte"
+        title="Asistente patrimonial"
+        description="En modo asistente el sistema propone y explica; las operaciones sensibles requieren tu firma en la wallet."
       />
 
       <div className="grid gap-6 lg:grid-cols-3">

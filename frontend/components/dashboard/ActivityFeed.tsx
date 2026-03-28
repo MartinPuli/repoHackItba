@@ -136,15 +136,12 @@ export function ActivityFeed({
   return (
     <div className="glass-card flex flex-col p-5" style={{ maxHeight: "420px" }}>
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-faint">
-          Actividad del Agente
-        </h3>
+        <h3 className="section-label">Actividad del asistente</h3>
         <div className="flex items-center gap-2">
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent-green/40 opacity-60" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-accent-green" />
+          <span className="h-2 w-2 rounded-full bg-brand" />
+          <span className="text-xs font-medium text-ink-muted">
+            Actualizando
           </span>
-          <span className="text-xs font-medium text-accent-green">LIVE</span>
         </div>
       </div>
 
@@ -152,11 +149,11 @@ export function ActivityFeed({
         {loading && displayItems.length === 0 && (
           <div className="space-y-2">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="flex items-start gap-3 rounded-lg px-3 py-2.5">
-                <div className="h-7 w-7 animate-pulse rounded-md bg-white/5" />
+                <div key={i} className="flex items-start gap-3 rounded-lg px-3 py-2.5">
+                <div className="h-7 w-7 animate-pulse rounded-md bg-surface-muted" />
                 <div className="flex-1 space-y-1.5">
-                  <div className="h-3 w-3/4 animate-pulse rounded bg-white/5" />
-                  <div className="h-2 w-1/4 animate-pulse rounded bg-white/5" />
+                  <div className="h-3 w-3/4 animate-pulse rounded bg-surface-muted" />
+                  <div className="h-2 w-1/4 animate-pulse rounded bg-surface-muted" />
                 </div>
               </div>
             ))}
@@ -165,7 +162,9 @@ export function ActivityFeed({
 
         {!loading && displayItems.length === 0 && (
           <div className="flex flex-1 items-center justify-center py-12">
-            <p className="text-sm text-white/30">Sin actividad reciente</p>
+            <p className="text-center text-sm text-ink-muted">
+              Sin movimientos recientes del asistente.
+            </p>
           </div>
         )}
 
@@ -179,7 +178,7 @@ export function ActivityFeed({
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 10 }}
                 transition={{ delay: index * 0.05 }}
-                className="group flex items-start gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-surface-hover"
+                className="group flex items-start gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-surface-muted/80"
               >
                 <div
                   className={cn(

@@ -1,26 +1,6 @@
 import type { Metadata } from "next";
-import dynamic from "next/dynamic";
 import "./globals.css";
-
-const Web3Root = dynamic(() => import("./web3-root"), {
-  ssr: false,
-  loading: () => (
-    <div
-        style={{
-        minHeight: "100vh",
-        backgroundColor: "#F9FCF7",
-        color: "#5a7d64",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontFamily: "system-ui, sans-serif",
-        fontSize: 14,
-      }}
-    >
-      Cargando…
-    </div>
-  ),
-});
+import Web3Root from "./web3-root";
 
 export const metadata: Metadata = {
   title: "Smart Wallet — Agent-First",
@@ -37,8 +17,20 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <body
         className="min-h-screen antialiased"
-        style={{ backgroundColor: "#F9FCF7", color: "#1a2e1f" }}
+        style={{ backgroundColor: "#eef1ef", color: "#0f1712" }}
       >
+        <noscript>
+          <div
+            style={{
+              padding: 24,
+              fontFamily: "system-ui, sans-serif",
+              background: "#eef1ef",
+              color: "#0f1712",
+            }}
+          >
+            Necesitás tener JavaScript activado para usar esta aplicación.
+          </div>
+        </noscript>
         <Web3Root>{children}</Web3Root>
       </body>
     </html>

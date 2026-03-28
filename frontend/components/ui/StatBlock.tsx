@@ -11,18 +11,16 @@ export function StatBlock({ label, value, hint, className }: StatBlockProps) {
   return (
     <div
       className={cn(
-        "rounded-[14px] border border-pistachio-muted bg-cream px-4 py-4 transition-colors hover:border-pistachio-light",
+        "rounded-lg border border-line bg-white px-4 py-4 shadow-panel transition-colors hover:border-line-strong",
         className
       )}
     >
-      <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-faint">
-        {label}
-      </p>
-      <p className="mt-1.5 text-lg font-semibold tabular-nums tracking-tight text-ink">
+      <p className="text-xs font-medium text-ink-muted">{label}</p>
+      <p className="mt-2 text-xl font-semibold tabular-nums tracking-tight text-ink">
         {value}
       </p>
       {hint ? (
-        <p className="mt-1 text-xs text-ink-muted leading-snug">{hint}</p>
+        <p className="mt-1.5 text-xs leading-snug text-ink-faint">{hint}</p>
       ) : null}
     </div>
   );

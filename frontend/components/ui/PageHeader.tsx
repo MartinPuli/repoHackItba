@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 interface PageHeaderProps {
   title: string;
   description?: string;
+  eyebrow?: string;
   className?: string;
   children?: React.ReactNode;
 }
@@ -10,22 +11,26 @@ interface PageHeaderProps {
 export function PageHeader({
   title,
   description,
+  eyebrow,
   className,
   children,
 }: PageHeaderProps) {
   return (
     <header
       className={cn(
-        "mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between",
+        "mb-10 flex flex-col gap-4 border-b border-line pb-8 sm:flex-row sm:items-end sm:justify-between",
         className
       )}
     >
-      <div className="space-y-1.5">
-        <h1 className="text-2xl font-semibold tracking-tight text-ink md:text-[1.65rem]">
+      <div className="space-y-2">
+        {eyebrow ? (
+          <p className="section-label">{eyebrow}</p>
+        ) : null}
+        <h1 className="text-display font-semibold tracking-tight text-ink">
           {title}
         </h1>
         {description ? (
-          <p className="max-w-xl text-sm leading-relaxed text-ink-muted">
+          <p className="max-w-2xl text-[15px] leading-relaxed text-ink-muted">
             {description}
           </p>
         ) : null}

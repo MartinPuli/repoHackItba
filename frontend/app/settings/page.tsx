@@ -11,7 +11,7 @@ import {
   useAlerts,
   useUserProfile,
 } from "@/hooks/useSupabase";
-import { createClient } from "@/lib/supabase/client";
+import { getSupabaseBrowser } from "@/lib/supabase/client";
 
 const toggles = [
   {
@@ -81,7 +81,7 @@ function ToggleRow({
         disabled={saving}
         className={cn(
           "relative mt-1 h-7 w-12 shrink-0 rounded-full transition-colors",
-          on ? "bg-pistachio" : "bg-surface-muted ring-1 ring-line"
+          on ? "bg-brand" : "bg-surface-muted ring-1 ring-line"
         )}
       >
         <span
@@ -123,14 +123,19 @@ export default function SettingsPage() {
       setSaving(true);
 
       try {
-        const supabase = createClient();
-        await supabase
+        const supabase = getSupabaseBrowser();
+        if (!supabase) {
+          // Modo local: preferencias solo en memoria
+          return;
+        }
+        const { error: upErr } = await supabase
           .from("users")
           .update({
             preferences: newFlags,
             updated_at: new Date().toISOString(),
           })
           .eq("id", DEMO_USER_ID);
+        if (upErr) throw upErr;
       } catch {
         // Revert on error
         setFlags(flags);
@@ -142,10 +147,11 @@ export default function SettingsPage() {
   );
 
   return (
-    <AppShell topTitle="Preferencias" unreadAlerts={unreadAlerts}>
+    <AppShell topTitle="Preferencias de cuenta" unreadAlerts={unreadAlerts}>
       <PageHeader
+        eyebrow="Cuenta"
         title="Configuración"
-        description="Ajustes persistidos en Supabase — tus preferencias se guardan automáticamente."
+        description="Preferencias de la aplicación. Con Supabase configurado, los cambios se sincronizan con tu perfil."
       />
 
       <div className="grid gap-6 lg:grid-cols-3">

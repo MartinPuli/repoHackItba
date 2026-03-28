@@ -27,9 +27,7 @@ export function YieldBreakdown({
 
   return (
     <div className="glass-card p-5">
-      <h3 className="mb-4 text-[11px] font-medium uppercase tracking-[0.12em] text-ink-faint">
-        Yield Breakdown
-      </h3>
+      <h3 className="section-label mb-4">Desglose de rendimiento (estimado)</h3>
 
       <div className="space-y-3">
         {/* Rootstock Yield */}
