@@ -1,0 +1,50 @@
+@baseUrl = http://localhost:3000
+@email = jmartinbejaranoa@gmail.com
+@password = jmartinbejaranoa123!
+
+### Health check
+GET {{baseUrl}}/health
+
+### Registro (primera vez con este email)
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+### Registro duplicado (mismo email — debe fallar con 400/422)
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+### Login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+### Login — credenciales inválidas (ajustá el password si querés probar 401)
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "password-incorrecto"
+}
+
+### Validación — falta email
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "password": "{{password}}"
+}
