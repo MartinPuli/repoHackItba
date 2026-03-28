@@ -21,6 +21,7 @@ import {
   useUpdateAutonomy,
   useKillSwitch,
   useAlerts,
+  totalBalanceUsd,
 } from "@/hooks/useSupabase";
 import type { AutonomyLevel, AgentDecision } from "@/hooks/useSupabase";
 
@@ -48,35 +49,32 @@ interface ActivityItem {
 const ACTION_TYPE_MAP: Record<string, ActionType> = {
   analysis: "analysis",
   suggestion: "suggestion",
-  compliance: "compliance",
-  execute: "execute",
-  yield: "yield",
-  alert: "alert",
-  deadman: "deadman",
-  kill_switch_activated: "alert",
+  compliance_check: "compliance",
+  prepare_tx: "execute",
+  execute_tx: "execute",
   rebalance: "yield",
-  deposit: "execute",
-  withdraw: "execute",
-  swap: "execute",
-  send: "execute",
+  yield_optimize: "yield",
+  reset_deadman: "deadman",
+  alert: "alert",
 };
 
-const STATUS_MAP: Record<string, "success" | "pending" | "warning"> = {
-  executed: "success",
+const REFLECTION_STATUS_MAP: Record<string, "success" | "pending" | "warning"> = {
+  confirmed: "success",
   approved: "success",
-  pending: "pending",
+  tx_approved: "success",
+  pending_user_approval: "pending",
   rejected: "warning",
-  reverted: "warning",
+  blocked: "warning",
 };
 
 function mapDecisionsToActivityItems(decisions: AgentDecision[]): ActivityItem[] {
   return decisions.map((d) => ({
     id: d.id,
-    type: ACTION_TYPE_MAP[d.action] ?? "analysis",
-    message: d.description,
+    type: ACTION_TYPE_MAP[d.action_type] ?? "analysis",
+    message: d.reasoning ?? "Accion del agente",
     timestamp: d.created_at,
-    status: STATUS_MAP[d.status] ?? "pending",
-    canRevert: d.status === "executed" && d.action !== "kill_switch_activated",
+    status: REFLECTION_STATUS_MAP[d.reflection_result ?? ""] ?? ((d.confidence ?? 0) > 0.8 ? "success" : "pending"),
+    canRevert: d.action_type === "execute_tx",
   }));
 }
 
@@ -104,10 +102,10 @@ export default function DashboardPage() {
   const { updateAutonomy } = useUpdateAutonomy(DEMO_USER_ID);
   const { activate: activateKillSwitch } = useKillSwitch(DEMO_USER_ID);
 
-  // Derive primary wallet address for yield positions query
+  // Derive primary wallet for queries
   const primaryWallet = wallets?.[0];
-  const walletAddress = primaryWallet?.address;
-  const { data: yieldPositions } = useYieldPositions(walletAddress);
+  const walletAddress = primaryWallet?.contract_address;
+  const { data: yieldPositions } = useYieldPositions(DEMO_USER_ID);
 
   // -- Local autonomy state, synced from Supabase profile --
   const [autonomyLevel, setAutonomyLevel] = useState<AutonomyLevel>("asistente");
@@ -119,18 +117,18 @@ export default function DashboardPage() {
   }, [profile?.autonomy_level]);
 
   // -- Derived values (fallback to 0 / empty when Supabase has no data) --
-  const walletBalance = primaryWallet?.balance_usd ?? 0;
-  const cajaFuerteBalance = cajaFuerte?.balance_usd ?? 0;
+  const walletBalance = primaryWallet ? totalBalanceUsd(primaryWallet) : 0;
+  const cajaFuerteBalance = cajaFuerte?.balance_usdt ?? 0;
 
   // Sum yield earned across active positions
   const yieldEarned =
     yieldPositions?.reduce(
-      (sum, pos) => sum + (pos.current_value - pos.amount_deposited),
+      (sum, pos) => sum + ((pos.amount_usd ?? 0) - pos.amount),
       0
     ) ?? 0;
 
   const totalDeposited =
-    yieldPositions?.reduce((sum, pos) => sum + pos.amount_deposited, 0) ??
+    yieldPositions?.reduce((sum, pos) => sum + pos.amount, 0) ??
     cajaFuerteBalance;
 
   // Compute time remaining for Dead Man's Switch
@@ -138,7 +136,7 @@ export default function DashboardPage() {
     ? Math.max(
         0,
         Math.ceil(
-          (new Date(cajaFuerte.time_limit).getTime() - Date.now()) /
+          ((new Date(cajaFuerte.last_activity_at).getTime() + cajaFuerte.dead_man_timeout_seconds * 1000) - Date.now()) /
             (1000 * 60 * 60 * 24)
         )
       )
@@ -226,10 +224,10 @@ export default function DashboardPage() {
             {/* Right: Dead Man's Switch + Agent Chat */}
             <div className="space-y-6">
               <DeadManStatus
-                lastActivityAt={cajaFuerte?.last_activity}
+                lastActivityAt={cajaFuerte?.last_activity_at}
                 timeoutDays={timeRemainingDays}
-                heredero1={cajaFuerte?.heir_guardian_1 ?? undefined}
-                heredero2={cajaFuerte?.heir_guardian_2 ?? undefined}
+                heredero1={cajaFuerte?.herederos?.[0]?.address ?? undefined}
+                heredero2={cajaFuerte?.herederos?.[1]?.address ?? undefined}
               />
               <AgentChat walletAddress={walletAddress} />
             </div>
