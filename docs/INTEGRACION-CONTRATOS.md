@@ -5,26 +5,30 @@
 ```
 Factory (email → wallet address)
   │
-  ├── createNewWallet(email)     → deploy Wallet, mapea email→address
-  └── createNewStrongBox(wallet) → deploy StrongBox, mapea wallet→strongbox
+  ├── createNewWallet(email, userAddress) → deploy Wallet, mapea email→address
+  └── createNewStrongBox(wallet)          → deploy StrongBox, mapea wallet→strongbox
 
 Owner (abstract)
   └── OnlyOwner modifier, getOwner()
 
 HeirGuardians (abstract, hereda de Owner)
   └── setHeirGuardian1/2(), OnlyHeirGuardians modifier
+  └── _validateHeir: newHeir != otherHeir (sin excepcion address(0))
 
 Wallet
-  ├── SendTo(address to) payable → envia BNB
-  ├── Receive() payable          → recibe BNB
-  └── GetBalance()               → consulta balance
+  ├── sendTo(address to, uint256 amount) → envia BNB (onlyOwner)
+  ├── receive() payable                  → recibe BNB
+  └── getBalance()                       → consulta balance
 
 StrongBox (hereda de Owner + HeirGuardians)
-  ├── deposit() payable OnlyOwner       → deposita en caja fuerte
-  ├── withdraw() OnlyOwner              → retira (requiere confirm herederos)
-  ├── inherit() OnlyHeirGuardians       → herencia (solo despues de timeLimit)
-  ├── getBalance() OnlyOwner            → consulta balance
-  └── updateTime() OnlyOwner            → resetea Dead Man's Switch
+  ├── deposit() payable OnlyOwner                → deposita en caja fuerte (sin emit)
+  ├── requestWithdrawal(amount, to) OnlyOwner    → solicita retiro (requiere aprobacion herederos)
+  ├── approveWithdrawal(requestId) OnlyHeirGuardians → heredero aprueba retiro
+  ├── executeWithdrawal(requestId) OnlyOwner     → ejecuta retiro aprobado por ambos herederos
+  ├── inherit() OnlyHeirGuardians onlyAfterTime  → herencia individual (cada heredero reclama su 50%)
+  ├── getBalance()                               → consulta balance
+  ├── receive() payable OnlyOwner                → recibe BNB solo del owner
+  └── (sin updateTime publico — solo _updateTime privado)
 ```
 
 ## Flujo por Canal

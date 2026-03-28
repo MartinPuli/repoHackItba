@@ -69,7 +69,7 @@ abstract contract HeirGuardians is Owner {
         if (newHeir == getOwner()) {
             revert HeirCannotBeOwner();
         }
-        if (newHeir == otherHeir && otherHeir != address(0)) {
+        if (newHeir == otherHeir) {
             revert HeirsMustBeDifferent();
         }
     }

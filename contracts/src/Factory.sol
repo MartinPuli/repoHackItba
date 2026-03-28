@@ -20,20 +20,22 @@ contract Factory {
     mapping (address => address) walletToStrongBox;
 
     /// @notice Crea una nueva wallet para el email dado
-    /// @dev msg.sender se convierte en el owner de la wallet
+    /// @dev La empresa (deployer) llama esta funcion; el owner de la wallet es userAddress
     /// @param email Identificador unico del usuario
-    /// @return walletAddress Direccion del contrato Wallet desplegado
-    function createNewWallet(string memory email) public returns (address walletAddress) {
+    /// @param userAddress Direccion del usuario que sera owner de la wallet
+    /// @return La direccion del contrato Wallet desplegado
+    function createNewWallet(string memory email, address userAddress) public returns (address) {
         if (getWallet(email) != address(0)) {
             revert UserAlreadyHaveWallet();
         }
 
-        // El caller (msg.sender) sera el owner de la nueva wallet
-        Wallet wallet = new Wallet(msg.sender);
-        walletAddress = wallet.getAddress();
+        Wallet wallet = new Wallet(userAddress);
+        address walletAddress = wallet.getAddress();
 
         setWallet(email, walletAddress);
         emit NewWalletCreated(email, walletAddress);
+
+        return walletAddress;
     }
 
     /// @notice Crea una StrongBox vinculada a una wallet existente

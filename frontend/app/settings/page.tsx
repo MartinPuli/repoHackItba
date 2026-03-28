@@ -4,8 +4,10 @@ import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { cn } from "@/lib/utils";
 import { Bell, Globe, Shield, Sparkles, Sliders, Users } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
+import { DEMO_USER_ID, useUserProfile, useAlerts } from "@/hooks/useSupabase";
+import { createClient } from "@/lib/supabase/client";
 
 const toggles = [
   {
@@ -156,7 +158,8 @@ export default function SettingsPage() {
               title={t.title}
               description={t.desc}
               on={flags[t.id] ?? false}
-              onToggle={() => setFlags((f) => ({ ...f, [t.id]: !f[t.id] }))}
+              onToggle={() => handleToggle(t.id)}
+              saving={saving}
             />
           ))}
         </motion.div>

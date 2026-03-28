@@ -20,7 +20,7 @@ contract Wallet is ReentrancyGuard {
     /// @dev Dueno de la wallet, unico autorizado a enviar fondos
     address private immutable owner;
 
-    /// @param _owner Direccion del dueno. Se setea en deploy y no cambia.
+    /// @param _owner Direccion del dueño. Se setea en deploy y no cambia.
     constructor(address _owner) {
         if (_owner == address(0)) revert InvalidAddress();
         owner = _owner;

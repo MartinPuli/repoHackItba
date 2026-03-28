@@ -15,24 +15,40 @@ contract StrongBox is Owner, HeirGuardians, ReentrancyGuard {
     error InvalidAddress();
     error InsufficientBalance();
     error TransferFailed();
+    error WithdrawalNotApproved();
+    error AlreadyApproved();
+    error NoWithdrawalPending();
 
-    event Deposited(address indexed from, uint256 amount);
-    event Withdrawn(address indexed to, uint256 amount);
-    event Inherited(address indexed heir1, address indexed heir2, uint256 amountEach);
+    event Inherited(address indexed heir, uint256 amount);
     event TimeUpdated(uint256 timestamp);
+    event WithdrawalRequested(uint256 indexed requestId, uint256 amount, address to);
+    event WithdrawalApproved(uint256 indexed requestId, address indexed heir);
+    event WithdrawalExecuted(uint256 indexed requestId, uint256 amount, address to);
 
     /// @dev Timestamp de la ultima interaccion del owner
     uint256 private lastTimeUsed;
 
-    /// @dev Periodo de inactividad antes de que los herederos puedan reclamar (1 anio)
+    /// @dev Periodo de inactividad antes de que los herederos puedan reclamar (1 año)
     uint256 private timeLimit = 365 days;
+
+    /// @dev Estructura para solicitudes de retiro pendientes
+    struct WithdrawalRequest {
+        uint256 amount;
+        address to;
+        bool heir1Approved;
+        bool heir2Approved;
+        bool executed;
+    }
+
+    uint256 private withdrawalRequestCount;
+    mapping(uint256 => WithdrawalRequest) private withdrawalRequests;
 
     modifier onlyAfterTime() {
         require(block.timestamp - lastTimeUsed >= timeLimit, "Time limit not reached yet");
         _;
     }
 
-    /// @param initialOwner Direccion del dueno de la caja fuerte
+    /// @param initialOwner Direccion del dueño de la caja fuerte
     constructor(address initialOwner) Owner(initialOwner) {
         lastTimeUsed = block.timestamp;
     }
@@ -41,25 +57,66 @@ contract StrongBox is Owner, HeirGuardians, ReentrancyGuard {
     /// @dev El ether llega via msg.value y queda en el contrato automaticamente.
     function deposit() external payable OnlyOwner {
         if (msg.value == 0) revert InvalidAmount();
-
         _updateTime();
-        emit Deposited(msg.sender, msg.value);
     }
 
-    /// @notice Retira fondos de la caja fuerte (solo owner)
+    /// @notice Solicita un retiro de la caja fuerte (solo owner).
+    ///         Requiere aprobacion de ambos herederos antes de ejecutarse.
     /// @param amount Cantidad en wei a retirar
     /// @param to Direccion destino del retiro
-    function withdraw(uint256 amount, address to) external OnlyOwner nonReentrant {
+    /// @return requestId ID de la solicitud de retiro
+    function requestWithdrawal(uint256 amount, address to) external OnlyOwner returns (uint256 requestId) {
         if (amount == 0) revert InvalidAmount();
         if (to == address(0)) revert InvalidAddress();
         if (address(this).balance < amount) revert InsufficientBalance();
 
         _updateTime();
 
-        // Checks-Effects-Interactions: emit before external call
-        emit Withdrawn(to, amount);
+        requestId = withdrawalRequestCount++;
+        withdrawalRequests[requestId] = WithdrawalRequest({
+            amount: amount,
+            to: to,
+            heir1Approved: false,
+            heir2Approved: false,
+            executed: false
+        });
 
-        (bool success, ) = payable(to).call{value: amount}("");
+        emit WithdrawalRequested(requestId, amount, to);
+    }
+
+    /// @notice Un heredero aprueba una solicitud de retiro pendiente
+    /// @param requestId ID de la solicitud a aprobar
+    function approveWithdrawal(uint256 requestId) external OnlyHeirGuardians {
+        WithdrawalRequest storage req = withdrawalRequests[requestId];
+        if (req.amount == 0) revert NoWithdrawalPending();
+        if (req.executed) revert NoWithdrawalPending();
+
+        if (msg.sender == getHeirGuardian1()) {
+            if (req.heir1Approved) revert AlreadyApproved();
+            req.heir1Approved = true;
+        } else {
+            if (req.heir2Approved) revert AlreadyApproved();
+            req.heir2Approved = true;
+        }
+
+        emit WithdrawalApproved(requestId, msg.sender);
+    }
+
+    /// @notice Ejecuta un retiro aprobado por ambos herederos (solo owner)
+    /// @param requestId ID de la solicitud a ejecutar
+    function executeWithdrawal(uint256 requestId) external OnlyOwner nonReentrant {
+        WithdrawalRequest storage req = withdrawalRequests[requestId];
+        if (req.amount == 0) revert NoWithdrawalPending();
+        if (req.executed) revert NoWithdrawalPending();
+        if (!req.heir1Approved || !req.heir2Approved) revert WithdrawalNotApproved();
+        if (address(this).balance < req.amount) revert InsufficientBalance();
+
+        req.executed = true;
+        _updateTime();
+
+        emit WithdrawalExecuted(requestId, req.amount, req.to);
+
+        (bool success, ) = payable(req.to).call{value: req.amount}("");
         if (!success) revert TransferFailed();
     }
 
@@ -73,11 +130,6 @@ contract StrongBox is Owner, HeirGuardians, ReentrancyGuard {
         return address(this);
     }
 
-    /// @notice Resetea el timer del Dead Man's Switch (solo owner)
-    function updateTime() external OnlyOwner {
-        _updateTime();
-    }
-
     /// @notice Devuelve el timestamp de la ultima actividad
     function getLastTimeUsed() external view returns(uint256) {
         return lastTimeUsed;
@@ -88,34 +140,27 @@ contract StrongBox is Owner, HeirGuardians, ReentrancyGuard {
         return timeLimit;
     }
 
-    /// @notice Permite a los herederos reclamar los fondos despues del tiempo limite.
-    ///         Requiere que ambos herederos esten configurados.
-    ///         Divide el balance en partes iguales entre ambos herederos.
-    function inherit() external OnlyHeirGuardians onlyAfterTime nonReentrant {
-        // Verificar que ambos herederos esten configurados
-        _requireBothHeirsSet();
+    /// @notice Consulta el estado de una solicitud de retiro
+    function getWithdrawalRequest(uint256 requestId) external view returns (
+        uint256 amount, address to, bool heir1Approved, bool heir2Approved, bool executed
+    ) {
+        WithdrawalRequest storage req = withdrawalRequests[requestId];
+        return (req.amount, req.to, req.heir1Approved, req.heir2Approved, req.executed);
+    }
 
+    /// @notice Permite a un heredero reclamar su parte de los fondos despues del tiempo limite.
+    ///         Cada heredero reclama individualmente su mitad (50%).
+    function inherit() external OnlyHeirGuardians onlyAfterTime nonReentrant {
         uint256 balance = address(this).balance;
         if (balance == 0) {
             revert BalanceEqualsZero();
         }
 
-        address heir1 = getHeirGuardian1();
-        address heir2 = getHeirGuardian2();
+        uint256 amountPerHeir = balance / 2;
+        emit Inherited(msg.sender, amountPerHeir);
 
-        // Dividir balance completo: heir1 recibe la mitad, heir2 recibe el resto
-        // (evita perder 1 wei si el balance es impar)
-        uint256 amountHeir1 = balance / 2;
-        uint256 amountHeir2 = balance - amountHeir1;
-
-        // Checks-Effects-Interactions: emit before external calls
-        emit Inherited(heir1, heir2, amountHeir1);
-
-        (bool s1, ) = payable(heir1).call{value: amountHeir1}("");
-        if (!s1) revert TransferFailed();
-
-        (bool s2, ) = payable(heir2).call{value: amountHeir2}("");
-        if (!s2) revert TransferFailed();
+        (bool success, ) = payable(msg.sender).call{value: amountPerHeir}("");
+        if (!success) revert TransferFailed();
     }
 
     /// @dev Actualiza el timestamp de ultima actividad (uso interno)
@@ -124,13 +169,8 @@ contract StrongBox is Owner, HeirGuardians, ReentrancyGuard {
         emit TimeUpdated(block.timestamp);
     }
 
-    /// @dev Permite recibir BNB nativo directamente — actualiza Dead Man's Switch
-    receive() external payable {
-        // Solo actualizar timer si el sender es el owner
-        // (evitar que un tercero resetee el switch)
-        if (msg.sender == getOwner()) {
-            _updateTime();
-        }
-        emit Deposited(msg.sender, msg.value);
+    /// @dev Permite recibir BNB nativo directamente — solo el owner puede depositar
+    receive() external payable OnlyOwner {
+        _updateTime();
     }
 }
