@@ -1,7 +1,7 @@
 {
-  "name": "smart-wallet-contracts",
+  "name": "strongbox-contracts",
   "version": "1.0.0",
-  "description": "Smart Wallet Agent-First — Solidity contracts",
+  "description": "StrongBox — Smart Recovery Vault contracts",
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",

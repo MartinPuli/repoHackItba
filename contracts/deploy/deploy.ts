@@ -6,9 +6,9 @@ async function main() {
   console.log("Balance:", ethers.formatEther(await ethers.provider.getBalance(deployer.address)), "BNB");
 
   // Deploy Factory
-  console.log("\n--- Deploying SmartWalletFactory ---");
-  const Factory = await ethers.getContractFactory("SmartWalletFactory");
-  const factory = await Factory.deploy();
+  console.log("\n--- Deploying Factory ---");
+  const Factory = await ethers.getContractFactory("Factory");
+  const factory = await Factory.deploy(deployer.address);
   await factory.waitForDeployment();
   const factoryAddr = await factory.getAddress();
   console.log("Factory deployed at:", factoryAddr);

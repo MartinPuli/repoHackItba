@@ -3,7 +3,7 @@ import { getAddress, isAddress } from 'ethers';
 import { supabaseAdmin } from '../config/supabase.js';
 import { HttpError } from '../middlewares/httpError.js';
 import { getProvider } from './chainProvider.js';
-import { getCajaFuerteRowForUser } from './userContractsService.js';
+import { getStrongboxRowForUser } from './userContractsService.js';
 
 function assertAdmin() {
   if (!supabaseAdmin) {
@@ -47,14 +47,14 @@ export async function confirmDeploy(
     );
   }
 
-  const row = await getCajaFuerteRowForUser(userId);
+  const row = await getStrongboxRowForUser(userId);
   if (row.is_deployed) {
-    throw new HttpError(409, 'La caja fuerte ya está registrada como deployada');
+    throw new HttpError(409, 'La StrongBox ya está registrada como deployada');
   }
 
   const admin = assertAdmin();
   const { error } = await admin
-    .from('caja_fuerte')
+    .from('strongboxes')
     .update({
       contract_address: address,
       is_deployed: true,

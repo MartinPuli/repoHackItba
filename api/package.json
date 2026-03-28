@@ -1,5 +1,5 @@
 {
-  "name": "@smart-wallet/api",
+  "name": "@strongbox/api",
   "version": "0.1.0",
   "private": true,
   "type": "module",

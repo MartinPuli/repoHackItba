@@ -99,7 +99,7 @@ export async function setupStrongbox(userId: string, body: StrongboxSetupBody): 
     throw new HttpError(500, sbCheckErr.message, sbCheckErr.code);
   }
   if (existingSb) {
-    throw new HttpError(409, 'El usuario ya tiene una caja fuerte configurada');
+    throw new HttpError(409, 'El usuario ya tiene una StrongBox configurada');
   }
 
   // Update user email

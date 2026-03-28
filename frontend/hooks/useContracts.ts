@@ -1,236 +1,219 @@
 "use client";
 
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useAccount } from "wagmi";
-import { FACTORY_ABI, WALLET_ABI, CAJA_FUERTE_ABI, CONTRACTS } from "@/lib/contracts/abis";
 import { parseEther, formatEther, type Address } from "viem";
+
+// TODO: regenerar abis.ts con el nuevo sync-abis.js después de compilar contratos
+// import { FACTORY_ABI, STRONGBOX_ABI, GUARDIAN_ABI, HEIR_ABI, CONTRACTS } from "@/lib/contracts/abis";
+
+// Placeholder — se reemplaza al correr sync-abis.js
+const FACTORY_ABI: readonly unknown[] = [];
+const STRONGBOX_ABI: readonly unknown[] = [];
+const GUARDIAN_ABI: readonly unknown[] = [];
+const HEIR_ABI: readonly unknown[] = [];
+const CONTRACTS = {
+  factory: (process.env.NEXT_PUBLIC_FACTORY_ADDRESS || "0x0000000000000000000000000000000000000000") as `0x${string}`,
+} as const;
 
 // ======================
 // Factory Hooks
 // ======================
 
 /**
- * Check if current user has a Smart Wallet account
+ * Create a new StrongBox vault via Factory
  */
-export function useHasAccount() {
-  const { address } = useAccount();
-
-  return useReadContract({
-    address: CONTRACTS.factory as Address,
-    abi: FACTORY_ABI,
-    functionName: "checkUserHasAccount",
-    args: address ? [address] : undefined,
-    query: { enabled: !!address && CONTRACTS.factory !== "0x0000000000000000000000000000000000000000" },
-  });
-}
-
-/**
- * Get user's Wallet address from Factory
- */
-export function useWalletAddress() {
-  const { address } = useAccount();
-
-  return useReadContract({
-    address: CONTRACTS.factory as Address,
-    abi: FACTORY_ABI,
-    functionName: "getWallet",
-    args: address ? [address] : undefined,
-    query: { enabled: !!address },
-  });
-}
-
-/**
- * Get user's CajaFuerte address from Factory
- */
-export function useCajaFuerteAddress() {
-  const { address } = useAccount();
-
-  return useReadContract({
-    address: CONTRACTS.factory as Address,
-    abi: FACTORY_ABI,
-    functionName: "getCajaFuerte",
-    args: address ? [address] : undefined,
-    query: { enabled: !!address },
-  });
-}
-
-/**
- * Create a new Smart Wallet account (Factory.crear)
- */
-export function useCreateAccount() {
+export function useCreateStrongBox() {
   const { writeContract, data: hash, isPending, error } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
-  function crear(heredero1: string, heredero2: string, timeoutDays: number) {
+  function create(
+    guardian1: string,
+    guardian2: string,
+    heir1: string,
+    heir2: string,
+    timeLimitSeconds: number
+  ) {
     writeContract({
-      address: CONTRACTS.factory as Address,
+      address: CONTRACTS.factory,
       abi: FACTORY_ABI,
-      functionName: "crear",
-      args: [heredero1 as Address, heredero2 as Address, BigInt(timeoutDays)],
+      functionName: "createStrongBox",
+      args: [
+        guardian1 as Address,
+        guardian2 as Address,
+        heir1 as Address,
+        heir2 as Address,
+        BigInt(timeLimitSeconds),
+      ],
     });
   }
 
-  return { crear, isPending, isConfirming, isSuccess, error, hash };
+  return { create, isPending, isConfirming, isSuccess, error, hash };
 }
 
-// ======================
-// Wallet Hooks
-// ======================
-
 /**
- * Read Wallet balance
+ * Get user's StrongBox address from Factory
  */
-export function useWalletBalance(walletAddress?: string) {
+export function useStrongBoxAddress() {
+  const { address } = useAccount();
+
   return useReadContract({
-    address: walletAddress as Address,
-    abi: WALLET_ABI,
-    functionName: "getBalance",
-    query: { enabled: !!walletAddress, refetchInterval: 10_000 },
+    address: CONTRACTS.factory,
+    abi: FACTORY_ABI,
+    functionName: "getStrongBox",
+    args: address ? [address] : undefined,
+    query: { enabled: !!address },
   });
 }
 
-/**
- * Send from Wallet
- */
-export function useSendFromWallet() {
-  const { writeContract, data: hash, isPending, error } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
-
-  function enviar(walletAddress: string, to: string, amountEth: string) {
-    writeContract({
-      address: walletAddress as Address,
-      abi: WALLET_ABI,
-      functionName: "enviar",
-      args: [to as Address, parseEther(amountEth)],
-    });
-  }
-
-  return { enviar, isPending, isConfirming, isSuccess, error, hash };
-}
-
-/**
- * Deposit to CajaFuerte from Wallet
- */
-export function useDepositToCajaFuerte() {
-  const { writeContract, data: hash, isPending, error } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
-
-  function depositar(walletAddress: string, amountEth: string) {
-    writeContract({
-      address: walletAddress as Address,
-      abi: WALLET_ABI,
-      functionName: "depositarEnCajaFuerte",
-      args: [parseEther(amountEth)],
-    });
-  }
-
-  return { depositar, isPending, isConfirming, isSuccess, error, hash };
-}
-
-/**
- * Grant Session Key (for Agent autonomy)
- */
-export function useGrantSessionKey() {
-  const { writeContract, data: hash, isPending, error } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
-
-  function grant(walletAddress: string, agentKey: string, maxAmountEth: string, durationSeconds: number) {
-    writeContract({
-      address: walletAddress as Address,
-      abi: WALLET_ABI,
-      functionName: "grantSessionKey",
-      args: [agentKey as Address, parseEther(maxAmountEth), BigInt(durationSeconds)],
-    });
-  }
-
-  return { grant, isPending, isConfirming, isSuccess, error, hash };
-}
-
-/**
- * Revoke Session Key (Kill Switch)
- */
-export function useRevokeSessionKey() {
-  const { writeContract, data: hash, isPending, error } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
-
-  function revoke(walletAddress: string, agentKey: string) {
-    writeContract({
-      address: walletAddress as Address,
-      abi: WALLET_ABI,
-      functionName: "revokeSessionKey",
-      args: [agentKey as Address],
-    });
-  }
-
-  return { revoke, isPending, isConfirming, isSuccess, error, hash };
-}
-
 // ======================
-// CajaFuerte Hooks
+// StrongBox Hooks (Owner)
 // ======================
 
 /**
- * Read CajaFuerte balance
+ * Deposit BNB into StrongBox
  */
-export function useCajaFuerteBalance(cfAddress?: string) {
+export function useDeposit() {
+  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  function deposit(strongboxAddress: string, amountEth: string) {
+    writeContract({
+      address: strongboxAddress as Address,
+      abi: STRONGBOX_ABI,
+      functionName: "deposit",
+      value: parseEther(amountEth),
+    });
+  }
+
+  return { deposit, isPending, isConfirming, isSuccess, error, hash };
+}
+
+/**
+ * Request withdrawal from StrongBox (needs guardian approval)
+ */
+export function useRequestWithdrawal() {
+  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  function requestWithdrawal(strongboxAddress: string, amountEth: string, to: string) {
+    writeContract({
+      address: strongboxAddress as Address,
+      abi: STRONGBOX_ABI,
+      functionName: "withdraw",
+      args: [parseEther(amountEth), to as Address],
+    });
+  }
+
+  return { requestWithdrawal, isPending, isConfirming, isSuccess, error, hash };
+}
+
+/**
+ * Read StrongBox balance (owner only)
+ */
+export function useStrongBoxBalance(strongboxAddress?: string) {
   return useReadContract({
-    address: cfAddress as Address,
-    abi: CAJA_FUERTE_ABI,
+    address: strongboxAddress as Address,
+    abi: STRONGBOX_ABI,
     functionName: "getBalance",
-    query: { enabled: !!cfAddress, refetchInterval: 10_000 },
+    query: { enabled: !!strongboxAddress, refetchInterval: 10_000 },
   });
 }
 
 /**
- * Read Dead Man's Switch status
+ * Check pending withdrawal request
  */
-export function useDeadManStatus(cfAddress?: string) {
-  const expired = useReadContract({
-    address: cfAddress as Address,
-    abi: CAJA_FUERTE_ABI,
-    functionName: "isExpired",
-    query: { enabled: !!cfAddress, refetchInterval: 30_000 },
+export function usePendingWithdrawal(strongboxAddress?: string) {
+  return useReadContract({
+    address: strongboxAddress as Address,
+    abi: STRONGBOX_ABI,
+    functionName: "hasPendingWithdrawalRequest",
+    query: { enabled: !!strongboxAddress, refetchInterval: 10_000 },
   });
-
-  const timeRemaining = useReadContract({
-    address: cfAddress as Address,
-    abi: CAJA_FUERTE_ABI,
-    functionName: "timeRemaining",
-    query: { enabled: !!cfAddress, refetchInterval: 30_000 },
-  });
-
-  const recoveryInfo = useReadContract({
-    address: cfAddress as Address,
-    abi: CAJA_FUERTE_ABI,
-    functionName: "getRecoveryInfo",
-    query: { enabled: !!cfAddress, refetchInterval: 30_000 },
-  });
-
-  const herederos = useReadContract({
-    address: cfAddress as Address,
-    abi: CAJA_FUERTE_ABI,
-    functionName: "getHerederos",
-    query: { enabled: !!cfAddress },
-  });
-
-  return { expired, timeRemaining, recoveryInfo, herederos };
 }
 
 /**
- * Reset Dead Man's Switch timer
+ * Read inactivity timer info
  */
-export function useResetDeadManSwitch() {
+export function useInactivityStatus(strongboxAddress?: string) {
+  const lastUsed = useReadContract({
+    address: strongboxAddress as Address,
+    abi: STRONGBOX_ABI,
+    functionName: "getLastTimeUsed",
+    query: { enabled: !!strongboxAddress, refetchInterval: 30_000 },
+  });
+
+  const timeLimit = useReadContract({
+    address: strongboxAddress as Address,
+    abi: STRONGBOX_ABI,
+    functionName: "getTimeLimit",
+    query: { enabled: !!strongboxAddress },
+  });
+
+  return { lastUsed, timeLimit };
+}
+
+// ======================
+// Guardian Hooks
+// ======================
+
+/**
+ * Approve a withdrawal request (guardian only)
+ */
+export function useApproveWithdrawal() {
   const { writeContract, data: hash, isPending, error } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
-  function resetTime(cfAddress: string) {
+  function approve(strongboxAddress: string, requestId: number) {
     writeContract({
-      address: cfAddress as Address,
-      abi: CAJA_FUERTE_ABI,
-      functionName: "resetTime",
+      address: strongboxAddress as Address,
+      abi: STRONGBOX_ABI,
+      functionName: "approveWithdrawal",
+      args: [BigInt(requestId)],
     });
   }
 
-  return { resetTime, isPending, isConfirming, isSuccess, error, hash };
+  return { approve, isPending, isConfirming, isSuccess, error, hash };
+}
+
+/**
+ * Reject a withdrawal request (guardian only)
+ */
+export function useRejectWithdrawal() {
+  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  function reject(strongboxAddress: string, requestId: number) {
+    writeContract({
+      address: strongboxAddress as Address,
+      abi: STRONGBOX_ABI,
+      functionName: "rejectWithdrawal",
+      args: [BigInt(requestId)],
+    });
+  }
+
+  return { reject, isPending, isConfirming, isSuccess, error, hash };
+}
+
+// ======================
+// Heir / Recovery Hooks
+// ======================
+
+/**
+ * Claim recovery funds (heir only, after inactivity timeout)
+ */
+export function useClaimRecovery() {
+  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  function claim(strongboxAddress: string) {
+    writeContract({
+      address: strongboxAddress as Address,
+      abi: STRONGBOX_ABI,
+      functionName: "inherit",
+    });
+  }
+
+  return { claim, isPending, isConfirming, isSuccess, error, hash };
 }
 
 // ======================

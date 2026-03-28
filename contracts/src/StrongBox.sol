@@ -6,7 +6,7 @@ import "./Guardian.sol";
 import "./Heir.sol";
 
 /// @title StrongBox
-/// @notice Caja fuerte que almacena fondos nativos y permite:
+/// @notice StrongBox: vault que almacena fondos nativos y permite:
 ///         - depósitos del owner,
 ///         - retiros del owner validados por 2 guardianes,
 ///         - reclamo por inactividad de 2 heirs,
@@ -115,7 +115,7 @@ contract StrongBox is Owner {
     // Constructor
     // -------------------------------------------------------------------------
 
-    /// @param initialOwner Dirección del owner de la caja fuerte.
+    /// @param initialOwner Dirección del owner de la StrongBox.
     /// @param guardianAddress Dirección del contrato Guardian asociado.
     /// @param heirAddress Dirección del contrato Heir asociado.
     /// @param _timeLimit Tiempo máximo de inactividad para habilitar inherit().

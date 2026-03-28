@@ -237,7 +237,7 @@ export default function SettingsPage() {
       </div>
 
       <p className="mt-8 text-center text-[11px] text-ink-faint">
-        Smart Wallet Agent-First · Hackathon ITBA
+        StrongBox · Hackathon ITBA 2026
       </p>
     </AppShell>
   );

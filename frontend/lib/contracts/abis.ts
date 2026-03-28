@@ -847,12 +847,8 @@ export const STRONGBOX_ABI = [
   }
 ] as const;
 
-/** @deprecated use STRONGBOX_ABI */
-export const CAJA_FUERTE_ABI = STRONGBOX_ABI;
-
-// Contract addresses — set NEXT_PUBLIC_FACTORY_ADDRESS (or NEXT_PUBLIC_WALLET_FACTORY_ADDRESS) after deploy
+// Contract addresses — set NEXT_PUBLIC_FACTORY_ADDRESS after deploy
 export const CONTRACTS = {
   factory: (process.env.NEXT_PUBLIC_FACTORY_ADDRESS ||
-    process.env.NEXT_PUBLIC_WALLET_FACTORY_ADDRESS ||
     "0x0000000000000000000000000000000000000000") as `0x${string}`,
 } as const;

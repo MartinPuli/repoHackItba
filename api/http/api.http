@@ -12,7 +12,7 @@ Authorization: Bearer {{accessToken}}
 ### Me — sin token (401)
 GET {{baseUrl}}/api/auth/me
 
-### Caja fuerte — setup lógico (guardianes + herederos; una sola vez por usuario)
+### StrongBox — setup lógico (guardianes + recovery contacts; una sola vez por usuario)
 POST {{baseUrl}}/api/strongbox/setup
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
@@ -23,13 +23,13 @@ Content-Type: application/json
     { "wallet": "0x1111111111111111111111111111111111111111", "email": "g1@ejemplo.com" },
     { "wallet": "0x2222222222222222222222222222222222222222", "email": "g2@ejemplo.com" }
   ],
-  "heirs": [
-    { "wallet": "0x3333333333333333333333333333333333333333", "email": "h1@ejemplo.com" },
-    { "wallet": "0x4444444444444444444444444444444444444444", "email": "h2@ejemplo.com" }
+  "recovery_contacts": [
+    { "wallet": "0x3333333333333333333333333333333333333333", "email": "r1@ejemplo.com" },
+    { "wallet": "0x4444444444444444444444444444444444444444", "email": "r2@ejemplo.com" }
   ]
 }
 
-### Caja fuerte — confirmar deploy on-chain (después de Factory.createStrongBox desde el frontend)
+### StrongBox — confirmar deploy on-chain (después de Factory.createStrongBox desde el frontend)
 POST {{baseUrl}}/api/strongbox/confirm-deploy
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
@@ -39,7 +39,7 @@ Content-Type: application/json
   "deploy_tx_hash": "0x0000000000000000000000000000000000000000000000000000000000000000"
 }
 
-### Caja fuerte — confirmar depósito (después de StrongBox.deposit desde el frontend)
+### StrongBox — confirmar depósito (después de StrongBox.deposit desde el frontend)
 POST {{baseUrl}}/api/strongbox/confirm-deposit
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
@@ -49,10 +49,6 @@ Content-Type: application/json
   "amount_bnb": "0.05"
 }
 
-### Balance smart wallet (mock chain; JWT obligatorio)
-GET {{baseUrl}}/api/wallet/balance
-Authorization: Bearer {{accessToken}}
-
-### Balance caja fuerte (BNB real si is_deployed + contract_address; si no, mock)
-GET {{baseUrl}}/api/caja-fuerte/balance
+### Balance StrongBox (mock si no deployada; RPC si deployada)
+GET {{baseUrl}}/api/strongbox/balance
 Authorization: Bearer {{accessToken}}
