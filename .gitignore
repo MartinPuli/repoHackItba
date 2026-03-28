@@ -21,3 +21,5 @@ smart-wallet/
 goat/
 TradingAgents/
 Multi-Agent-AI-Finance-Assistant/
+.vercel
+.env*.local

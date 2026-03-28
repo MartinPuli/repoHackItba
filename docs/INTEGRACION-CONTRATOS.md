@@ -1,172 +1,144 @@
-# Integracion Agente AI ↔ Smart Contracts
+# Integracion Frontend/Backend ↔ Smart Contracts
 
-## Arquitectura de Contratos (actualizada)
+## Arquitectura de Contratos
 
 ```
-Factory (email → wallet address)
-  │
-  ├── createNewWallet(email, userAddress) → deploy Wallet, mapea email→address
-  └── createNewStrongBox(wallet)          → deploy StrongBox, mapea wallet→strongbox
+Factory (wallet → strongbox)
+  └── createNewStrongBox(ownerAddress) → deploy StrongBox, mapea owner→strongbox
 
 Owner (abstract)
   └── OnlyOwner modifier, getOwner()
 
-HeirGuardians (abstract, hereda de Owner)
-  └── setHeirGuardian1/2(), OnlyHeirGuardians modifier
-  └── _validateHeir: newHeir != otherHeir (sin excepcion address(0))
+Guardian (abstract, hereda de Owner)
+  └── setGuardian1/2(), OnlyGuardians modifier
+  └── _validateGuardian: newGuardian != otherGuardian (sin excepcion address(0))
 
-Wallet
-  ├── sendTo(address to, uint256 amount) → envia BNB (onlyOwner)
-  ├── receive() payable                  → recibe BNB
-  └── getBalance()                       → consulta balance
-
-StrongBox (hereda de Owner + HeirGuardians)
-  ├── deposit() payable OnlyOwner                → deposita en caja fuerte (sin emit)
-  ├── requestWithdrawal(amount, to) OnlyOwner    → solicita retiro (requiere aprobacion herederos)
-  ├── approveWithdrawal(requestId) OnlyHeirGuardians → heredero aprueba retiro
-  ├── executeWithdrawal(requestId) OnlyOwner     → ejecuta retiro aprobado por ambos herederos
-  ├── inherit() OnlyHeirGuardians onlyAfterTime  → herencia individual (cada heredero reclama su 50%)
-  ├── getBalance()                               → consulta balance
-  ├── receive() payable OnlyOwner                → recibe BNB solo del owner
-  └── (sin updateTime publico — solo _updateTime privado)
+StrongBox (hereda de Owner + Guardian)
+  ├── deposit() payable OnlyOwner                    → deposita en caja fuerte
+  ├── requestWithdrawal(amount, to) OnlyOwner        → solicita retiro
+  ├── approveWithdrawal(requestId) OnlyGuardians     → guardian aprueba retiro
+  ├── executeWithdrawal(requestId) OnlyOwner         → ejecuta retiro aprobado por ambos
+  ├── recover() OnlyRecoveryContacts onlyAfterTime   → recuperacion tras inactividad
+  ├── getBalance()                                   → consulta balance
+  ├── receive() payable                              → recibe BNB
+  └── (updateTime interno — se resetea con deposit/requestWithdrawal)
 ```
 
-## Flujo por Canal
+## Interacciones por Contrato
 
-```
-Usuario (App/Telegram/WhatsApp)
-    │
-    ▼
-[Agent Orchestrator] ──► detecta intent ──► extrae params
-    │
-    ▼
-[MCP Server Tools]
-    │
-    ├── wallet_create     → Factory.createNewWallet(email)
-    ├── wallet_deposit    → Wallet.Receive() (msg.value)
-    ├── wallet_transfer   → Wallet.SendTo(to) payable
-    ├── wallet_balance    → Wallet.GetBalance()
-    │
-    ├── strongbox_create  → Factory.createNewStrongBox(walletAddr)
-    ├── strongbox_deposit → StrongBox.deposit() payable
-    ├── strongbox_info    → StrongBox.getBalance() + getHeirGuardian1/2()
-    │
-    ├── yield_invest      → StrongBox.deposit() + DeFi strategy
-    ├── loan_take         → Lending pool (off-chain + colateral on-chain)
-    │
-    └── compliance_*      → UIF/CNV checks (off-chain)
-```
-
-## Interacciones del Agente por Contrato
-
-### 1. Factory — Onboarding por Email
-
-El nuevo Factory mapea emails a wallets directamente:
+### 1. Factory — Creacion de Vault
 
 ```solidity
-// Crear wallet para usuario
-function createNewWallet(string memory email) public;
-// → Emite NewWalletCreated(email, walletAddress)
+// Crear StrongBox para un owner
+function createNewStrongBox(address ownerAddress) public;
+// → Emite NewStrongBoxCreated(ownerAddress, strongBoxAddress)
 
-// Crear StrongBox vinculada a wallet
-function createNewStrongBox(address walletAddress) public;
-// → Emite NewStrongBoxCreated(walletAddress, strongBoxAddress)
-
-// Consultas
-function getWallet(string memory email) public view returns(address);
-function getStrongBox(address wallet) public view returns(address);
+// Consulta
+function getStrongBox(address owner) public view returns(address);
 ```
 
-**Flujo del agente**:
-1. Usuario da su email (via chat, Telegram, WhatsApp)
-2. Agente llama `Factory.getWallet(email)` — si existe, vincula la sesion
-3. Si no existe, llama `Factory.createNewWallet(email)` — deploy on-chain
-4. Opcionalmente, `Factory.createNewStrongBox(walletAddr)` para caja fuerte
+**Flujo desde frontend**:
+1. Usuario conecta MetaMask
+2. Backend hace setup en DB (guardianes + recovery contacts)
+3. Al primer deposito, frontend llama `Factory.createNewStrongBox(ownerAddress)`
+4. Se guarda `contract_address` en DB
 
-### 2. Wallet — Pagos y Transferencias
-
-```solidity
-// Enviar BNB a otra direccion
-function SendTo(address to) public payable returns(bool);
-// → Valida: msg.value > 0, to != address(0), to != address(this)
-// → Emite Tx(from, to, amount)
-
-// Recibir BNB
-function Receive() public payable returns(bool);
-// → Valida: msg.value > 0, msg.sender != address(this)
-// → Emite Tx(sender, this, amount)
-
-// Consultar balance
-function GetBalance() public view returns(uint);
-```
-
-**Interaccion del agente**:
-
-| Canal | Accion | Contrato |
-|-------|--------|----------|
-| "depositar 100 BNB" | Wallet.Receive() | msg.value = 100 BNB |
-| "mandar 50 a 0x..." | Wallet.SendTo(0x...) | msg.value = 50 BNB |
-| "cuanto tengo" | Wallet.GetBalance() | view call |
-
-### 3. StrongBox — Ahorros y Herencia
+### 2. StrongBox — Operaciones del Owner
 
 ```solidity
 // Depositar en caja fuerte (solo owner)
 function deposit() public payable OnlyOwner returns(bool);
-// → Actualiza lastTimeUsed (resetea Dead Man's Switch)
+// → Actualiza lastTimeUsed (resetea timer de inactividad)
 
-// Retirar (solo owner, requiere confirm de herederos)
-function withdraw() public payable OnlyOwner returns(bool);
-// → TODO: cola de peticiones con aprobacion de herederos
+// Solicitar retiro (solo owner, requiere aprobacion de guardianes)
+function requestWithdrawal(uint256 amount, address to) public OnlyOwner returns(uint256 requestId);
+// → Emite WithdrawalRequested(requestId, amount, to)
 
-// Herencia (solo herederos, solo despues de 1 año de inactividad)
-function inherit() OnlyHeirGuardians OnlyAfterTime returns(bool);
-// → Reparte 50% del balance al heredero que llama
-
-// Configurar herederos (solo owner)
-function setHeirGuardian1(address newHeirGuardian) public OnlyOwner;
-function setHeirGuardian2(address newHeirGuardian) public OnlyOwner;
-
-// Dead Man's Switch
-uint private timeLimit = 365 days; // 1 año
-function updateTime() public OnlyOwner; // resetea el timer
+// Ejecutar retiro aprobado (solo owner, despues de ambas aprobaciones)
+function executeWithdrawal(uint256 requestId) public OnlyOwner returns(bool);
+// → Emite WithdrawalExecuted(requestId, amount, to)
 ```
 
-**Flujo de herencia**:
-1. Owner deposita en StrongBox — `lastTimeUsed` se actualiza
-2. Owner configura herederos — `setHeirGuardian1/2(addr)`
-3. Si pasa 1 año sin `updateTime()`:
-   - Herederos pueden llamar `inherit()`
-   - Cada uno recibe 50% del balance
-4. El agente llama `updateTime()` automaticamente al detectar actividad
+**Interaccion desde frontend (Owner Dashboard)**:
 
-### 4. Owner + HeirGuardians — Contratos Abstractos
+| Accion UI | Contrato | Resultado |
+|-----------|----------|-----------|
+| "Depositar" | StrongBox.deposit() | msg.value depositado, timer reseteado |
+| "Solicitar retiro" | StrongBox.requestWithdrawal(amount, to) | Solicitud creada, espera guardianes |
+| "Ejecutar retiro" | StrongBox.executeWithdrawal(requestId) | Fondos transferidos |
+| "Ver balance" | StrongBox.getBalance() | view call |
+
+### 3. StrongBox — Operaciones de Guardianes
 
 ```solidity
-// Owner.sol — control de acceso
-abstract contract Owner {
-    modifier OnlyOwner();
-    function getOwner() public view returns(address);
-}
-
-// HeirGuardians.sol — gestion de herederos
-abstract contract HeirGuardians is Owner {
-    modifier OnlyHeirGuardians();
-    function setHeirGuardian1(address) public OnlyOwner;
-    function setHeirGuardian2(address) public OnlyOwner;
-    function getHeirGuardian1() public view returns(address);
-    function getHeirGuardian2() public view returns(address);
-}
+// Aprobar solicitud de retiro (solo guardianes)
+function approveWithdrawal(uint256 requestId) public OnlyGuardians;
+// → Emite WithdrawalApproved(requestId, msg.sender)
 ```
 
-## Pendientes de Implementacion en Contratos
+**Interaccion desde frontend (Guardian Dashboard)**:
 
-Los siguientes puntos estan marcados como TODO en los contratos:
+| Accion UI | Contrato | Resultado |
+|-----------|----------|-----------|
+| "Aprobar retiro" | StrongBox.approveWithdrawal(requestId) | Aprobacion registrada |
+| "Rechazar retiro" | (cancelacion off-chain o timeout) | Solicitud expira |
 
-1. **Factory.createNewWallet**: Falta el deploy real del contrato Wallet (variables `walletAddress` y `strongBoxAddress` no declaradas)
-2. **Wallet**: Falta agregar `OnlyOwner` modifier (comentario en linea 3 del equipo)
-3. **Wallet**: Agregar `receive() external payable` para recibir BNB directo
-4. **StrongBox.withdraw**: Falta implementar la cola de peticiones con aprobacion de herederos
-5. **StrongBox.inherit**: Falta agregar `public` y `payable` al modifier
-6. **StrongBox.deposit**: Bug — `payable(address(this)).call{value: msg.value}` envia a si mismo, deberia solo aceptar el msg.value
-7. **Import paths**: Usan `HackITBA2026/` — verificar que matchee con Hardhat remappings
+### 4. StrongBox — Recovery por Inactividad
+
+```solidity
+// Recuperar fondos tras inactividad (solo recovery contacts, solo despues de timeLimit)
+function recover() public OnlyRecoveryContacts onlyAfterTime;
+// → Reparte fondos entre recovery contacts
+// → Emite RecoveryExecuted(msg.sender, amount)
+```
+
+**Interaccion desde frontend (Recovery Dashboard)**:
+
+| Accion UI | Contrato | Resultado |
+|-----------|----------|-----------|
+| "Reclamar recovery" | StrongBox.recover() | Fondos transferidos a recovery contacts |
+| "Ver countdown" | StrongBox.getTimeRemaining() | Tiempo restante para recovery |
+
+### 5. Configuracion de Guardianes y Recovery Contacts
+
+```solidity
+// Configurar guardianes (solo owner)
+function setGuardian1(address newGuardian) public OnlyOwner;
+function setGuardian2(address newGuardian) public OnlyOwner;
+
+// Configurar recovery contacts (solo owner)
+function setRecoveryContact1(address newContact) public OnlyOwner;
+function setRecoveryContact2(address newContact) public OnlyOwner;
+
+// Consultas
+function getGuardian1() public view returns(address);
+function getGuardian2() public view returns(address);
+function getRecoveryContact1() public view returns(address);
+function getRecoveryContact2() public view returns(address);
+```
+
+## Timer de Inactividad (Dead Man's Switch)
+
+```solidity
+uint256 private timeLimit; // configurable por owner
+uint256 private lastTimeUsed;
+
+// Se resetea automaticamente con:
+// - deposit()
+// - requestWithdrawal()
+
+// Recovery habilitado cuando:
+// block.timestamp - lastTimeUsed >= timeLimit
+```
+
+El owner NO necesita hacer check-in manual — cualquier interaccion con la vault resetea el timer.
+
+## Pendientes de Implementacion
+
+1. **Factory**: Adaptar para crear StrongBox directamente (sin Wallet intermedia)
+2. **StrongBox**: Implementar cola de solicitudes de retiro con aprobacion de guardianes
+3. **StrongBox**: Separar roles Guardian vs Recovery Contact (actualmente ambos son "HeirGuardians")
+4. **StrongBox**: Agregar `recover()` con logica de distribucion a recovery contacts
+5. **StrongBox**: Agregar `setRecoveryContact1/2()` separados de guardianes
+6. **Events**: Emitir eventos en deposit, requestWithdrawal, approveWithdrawal, executeWithdrawal, recover
+7. **Import paths**: Verificar que matcheen con Hardhat remappings
