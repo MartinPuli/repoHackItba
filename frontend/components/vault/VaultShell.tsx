@@ -25,15 +25,15 @@ export function VaultShell({
     <div className="flex min-h-[100dvh] flex-col items-center bg-canvas px-5 pb-12 pt-8 sm:px-8 md:pt-12">
       {/* Minimal header: logo + optional back */}
       <header className={cn("flex w-full items-center justify-between", mw)}>
-        <Link href="/" className="flex items-center gap-2.5">
+        <Link href="/" className="flex items-center gap-2">
           <Image
-            src="/logo-verde.png"
+            src="/logo-completo-verde.png"
             alt="Vaultix"
-            width={36}
+            width={140}
             height={36}
-            className="h-9 w-9 rounded-xl object-contain"
+            className="h-8 w-auto object-contain"
+            priority
           />
-          <span className="text-[15px] font-bold text-ink">Vaultix</span>
         </Link>
         {backHref && (
           <Link
