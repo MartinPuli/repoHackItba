@@ -75,13 +75,13 @@ export default function HomePage() {
           <img
             src="/logo-verde.png"
             alt="Vaultix"
-            className="h-10 w-10 sm:h-12 sm:w-12"
+            className="h-12 w-12 object-contain sm:h-14 sm:w-14"
           />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/nombre-verde.png"
             alt="Vaultix"
-            className="h-7 sm:h-8"
+            className="h-8 object-contain sm:h-9"
           />
         </Link>
 
