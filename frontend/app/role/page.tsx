@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSignMessage } from "wagmi";
 import { useUnifiedWallet } from "@/hooks/useUnifiedWallet";
@@ -31,7 +31,12 @@ export default function RoleSelectionPage() {
     }
   }, [isConnected, router]);
 
-  // Supabase sign-in: only for wagmi wallets (Lemon skips this — no signMessageAsync)
+  const signInRef = useRef(signIn);
+  signInRef.current = signIn;
+  const signMsgRef = useRef(signMessageAsync);
+  signMsgRef.current = signMessageAsync;
+  const didAttemptSignIn = useRef(false);
+
   useEffect(() => {
     if (
       isConnected &&
@@ -39,11 +44,13 @@ export default function RoleSelectionPage() {
       !isLemon &&
       !session &&
       !authLoading &&
-      !signingIn
+      !signingIn &&
+      !didAttemptSignIn.current
     ) {
+      didAttemptSignIn.current = true;
       setSigningIn(true);
       setSignInError(null);
-      signIn(address, signMessageAsync)
+      signInRef.current(address, signMsgRef.current)
         .catch((err) => {
           setSignInError(
             err instanceof Error ? err.message : "Sign-in failed"
@@ -51,16 +58,7 @@ export default function RoleSelectionPage() {
         })
         .finally(() => setSigningIn(false));
     }
-  }, [
-    isConnected,
-    address,
-    isLemon,
-    session,
-    authLoading,
-    signingIn,
-    signIn,
-    signMessageAsync,
-  ]);
+  }, [isConnected, address, isLemon, session, authLoading, signingIn]);
 
   function handleCreateSafe() {
     if (hasStrongbox) {

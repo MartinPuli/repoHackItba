@@ -78,7 +78,6 @@ export function useAuth() {
       const password = await passwordFromSignature(signature);
       const email = `${address.toLowerCase()}@wallet.local`;
 
-      // Intentar login primero (usuario existente)
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -89,7 +88,6 @@ export function useAuth() {
         return data.session;
       }
 
-      // Si no existe, registrar
       const { data: signUpData, error: signUpError } =
         await supabase.auth.signUp({
           email,
@@ -99,15 +97,36 @@ export function useAuth() {
           },
         });
 
-      if (signUpError) throw signUpError;
-      if (!signUpData.session) {
-        throw new Error(
-          "No session returned. Disable 'Confirm email' in Supabase Auth settings.",
-        );
+      if (!signUpError && signUpData.session) {
+        await syncMe(signUpData.session.access_token);
+        return signUpData.session;
       }
 
-      await syncMe(signUpData.session.access_token);
-      return signUpData.session;
+      // Deadlock: user exists but password changed (different signature).
+      // Reset password via backend admin API, then retry login.
+      if (signUpError?.message?.includes("User already registered")) {
+        const resetRes = await fetch(`${API_URL}/api/auth/wallet-reset`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address, signature, newPassword: password }),
+        });
+
+        if (resetRes.ok) {
+          const { data: retryData, error: retryError } =
+            await supabase.auth.signInWithPassword({ email, password });
+
+          if (!retryError && retryData.session) {
+            await syncMe(retryData.session.access_token);
+            return retryData.session;
+          }
+          throw retryError ?? new Error("Login failed after password reset");
+        }
+      }
+
+      if (signUpError) throw signUpError;
+      throw new Error(
+        "No session returned. Disable 'Confirm email' in Supabase Auth settings.",
+      );
     },
     [supabase],
   );
