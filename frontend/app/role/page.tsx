@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSignMessage } from "wagmi";
 import { useUnifiedWallet } from "@/hooks/useUnifiedWallet";
@@ -25,13 +25,17 @@ export default function RoleSelectionPage() {
   const [signingIn, setSigningIn] = useState(false);
   const [signInError, setSignInError] = useState<string | null>(null);
 
+  // Guard: only attempt sign-in ONCE per address.
+  // Prevents the infinite loop: fail → signingIn=false → effect re-fires → ask signature again
+  const signInAttempted = useRef<string | null>(null);
+
   useEffect(() => {
     if (!isConnected) {
       router.replace("/connect");
     }
   }, [isConnected, router]);
 
-  // Supabase sign-in: only for wagmi wallets (Lemon skips this — no signMessageAsync)
+  // Supabase sign-in: only for wagmi wallets (Lemon skips — no signMessageAsync)
   useEffect(() => {
     if (
       isConnected &&
@@ -39,8 +43,10 @@ export default function RoleSelectionPage() {
       !isLemon &&
       !session &&
       !authLoading &&
-      !signingIn
+      !signingIn &&
+      signInAttempted.current !== address
     ) {
+      signInAttempted.current = address;
       setSigningIn(true);
       setSignInError(null);
       signIn(address, signMessageAsync)
@@ -51,16 +57,9 @@ export default function RoleSelectionPage() {
         })
         .finally(() => setSigningIn(false));
     }
-  }, [
-    isConnected,
-    address,
-    isLemon,
-    session,
-    authLoading,
-    signingIn,
-    signIn,
-    signMessageAsync,
-  ]);
+    // signMessageAsync is intentionally excluded — it's recreated every render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isConnected, address, isLemon, session, authLoading, signIn]);
 
   function handleCreateSafe() {
     if (hasStrongbox) {

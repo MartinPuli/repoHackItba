@@ -11,6 +11,7 @@ import {
   networks,
 } from "@/lib/wagmi/config";
 import { VaultFlowProvider } from "@/context/VaultFlowContext";
+import { LemonProvider } from "@/context/LemonContext";
 
 // Create AppKit instance — MUST be called outside React component
 createAppKit({
@@ -38,7 +39,7 @@ export function Providers({ children }: { children: ReactNode }) {
     <WagmiProvider config={wagmiAdapter.wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <VaultFlowProvider>
-          {children}
+          <LemonProvider>{children}</LemonProvider>
         </VaultFlowProvider>
       </QueryClientProvider>
     </WagmiProvider>
