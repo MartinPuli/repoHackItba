@@ -42,7 +42,7 @@ export default function RoleSelectionPage() {
         {/* Guardian — Demo Mode */}
         <VaultGreenBarButton
           icon={<ShieldUser className="h-5 w-5" strokeWidth={2} />}
-          onClick={() => alert("Demo mode: Guardian view not fully mocked here yet")}
+          onClick={() => router.push("/guardian")}
         >
           Guardian Dashboard
         </VaultGreenBarButton>
@@ -50,7 +50,7 @@ export default function RoleSelectionPage() {
         {/* Heir / Recovery — Demo Mode */}
         <VaultGreenBarButton
           icon={<FileKey className="h-5 w-5" strokeWidth={2} />}
-          onClick={() => alert("Demo mode: Recovery view not fully mocked here yet")}
+          onClick={() => router.push("/heir")}
         >
           Recovery Dashboard
         </VaultGreenBarButton>
