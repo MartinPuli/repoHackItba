@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAccount, useSignMessage } from "wagmi";
+import { useSignMessage } from "wagmi";
+import { useUnifiedWallet } from "@/hooks/useUnifiedWallet";
 import { VaultShell } from "@/components/vault/VaultShell";
 import { VaultGreenBarButton } from "@/components/vault/VaultPrimitives";
 import { Landmark, FileKey, ShieldUser, Loader2 } from "lucide-react";
@@ -10,7 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 export default function RoleSelectionPage() {
   const router = useRouter();
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, isLemon } = useUnifiedWallet();
   const { signMessageAsync } = useSignMessage();
   const {
     session,
@@ -30,8 +31,16 @@ export default function RoleSelectionPage() {
     }
   }, [isConnected, router]);
 
+  // Supabase sign-in: only for wagmi wallets (Lemon skips this — no signMessageAsync)
   useEffect(() => {
-    if (isConnected && address && !session && !authLoading && !signingIn) {
+    if (
+      isConnected &&
+      address &&
+      !isLemon &&
+      !session &&
+      !authLoading &&
+      !signingIn
+    ) {
       setSigningIn(true);
       setSignInError(null);
       signIn(address, signMessageAsync)
@@ -45,6 +54,7 @@ export default function RoleSelectionPage() {
   }, [
     isConnected,
     address,
+    isLemon,
     session,
     authLoading,
     signingIn,

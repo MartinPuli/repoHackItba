@@ -2,7 +2,8 @@
 
 import { useMemo, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { useAccount, usePublicClient } from "wagmi";
+import { usePublicClient } from "wagmi";
+import { useUnifiedWallet } from "@/hooks/useUnifiedWallet";
 import type { Address } from "viem";
 import { getAddress, isAddress } from "viem";
 import { VaultShell } from "@/components/vault/VaultShell";
@@ -67,7 +68,7 @@ function formatCountdown(seconds: number): string {
 }
 
 export default function SafeOwnerDashboardPage() {
-  const { address } = useAccount();
+  const { address } = useUnifiedWallet();
   const publicClient = usePublicClient();
   const { session, userId, loading: authLoading } = useAuth();
   const {

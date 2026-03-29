@@ -21,6 +21,7 @@ El objetivo NO es herencia — es resolver:
 - **Frontend**: Next.js 14+ App Router, Wagmi v2, Viem, TailwindCSS
 - **Backend**: Express, TypeScript, Supabase (auth + DB)
 - **Auth**: MetaMask + Supabase Web3 login (JWT)
+- **Lemon Cash**: Mini App SDK — funciona como app embebida dentro de Lemon Cash
 
 ## Arquitectura de Contratos (codigo real)
 
@@ -118,8 +119,34 @@ Ver `docs/API.md` para detalles.
 **Owner Dashboard**: balance, depositar, solicitar retiro, countdown inactividad, ver guardians/recovery contacts
 **Guardian Dashboard**: solicitudes pendientes, aprobar/rechazar retiros
 **Recovery Dashboard**: vaults asignadas, countdown para recovery, reclamar fondos
-**Connect**: MetaMask login
+**Connect**: MetaMask login o auto-auth via Lemon Cash WebView
 **Role Selection**: elegir rol si la wallet participa en multiples vaults
+
+## Integracion Lemon Cash (Mini App)
+
+Vaultix funciona como Mini App dentro de la app de Lemon Cash. La integracion es transparente:
+
+```
+Browser normal  → WalletConnect (MetaMask, Trust, etc.) como siempre
+Lemon WebView   → SDK de Lemon auto-autentica, sin pop-ups ni firmas
+```
+
+### Hook unificado: `useUnifiedWallet()`
+Todas las paginas usan este hook (no `useAccount()` directo). Combina wagmi + Lemon en una sola interfaz:
+
+```typescript
+const { address, isConnected, isLemon, source } = useUnifiedWallet();
+```
+
+### Funciones del SDK disponibles via `useLemon()`
+- `lemonAuth()` — autenticar manualmente
+- `lemonDeposit(amount, tokenName)` — depositar tokens (USDC, BNB, ETH, etc.)
+- `lemonWithdraw(amount, tokenName)` — retirar tokens a Lemon wallet
+- `isLemon` — detectar si estamos en WebView
+- `wallet` — address autenticada
+- `error` — ultimo error
+
+Ver `docs/LEMON-INTEGRATION.md` para detalles completos.
 
 ## Estructura del Proyecto
 ```
@@ -134,8 +161,9 @@ Ver `docs/API.md` para detalles.
   /components/layout      → AppShell, Sidebar, TopBar
   /components/vault       → VaultPrimitives, VaultShell, VaultSidebar, VaultTopBar
   /components/ui          → PageHeader, PrimaryButton, StatBlock
-  /hooks                  → useContracts, useSupabase
-  /lib                    → wagmi config, supabase client, contract ABIs
+  /hooks                  → useContracts, useSupabase, useUnifiedWallet
+  /lib                    → wagmi config, supabase client, contract ABIs, lemon SDK wrapper
+  /context                → VaultFlowContext, LemonContext
 /api                      → Backend Express + Supabase
   /src/controllers        → auth, balance, strongbox
   /src/services           → auth, strongbox, mockChainBalance, userContracts

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useAccount } from "wagmi";
+import { useUnifiedWallet } from "@/hooks/useUnifiedWallet";
 import { isAddress, getAddress, type Address } from "viem";
 import { VaultShell } from "@/components/vault/VaultShell";
 import {
@@ -45,7 +45,7 @@ interface PendingRequest {
 }
 
 export default function GuardianInterfacePage() {
-  const { address } = useAccount();
+  const { address } = useUnifiedWallet();
   const { session, loading: authLoading } = useAuth();
   const { approve, isPending: approveTxPending } = useApproveWithdrawal();
   const { reject, isPending: rejectTxPending } = useRejectWithdrawal();

@@ -12,32 +12,13 @@ import {
 } from "@/lib/wagmi/config";
 import { VaultFlowProvider } from "@/context/VaultFlowContext";
 
-// Lemon Cash — custom wallet (WalletConnect v2 via deep-link)
-const lemonWallet = {
-  id: "lemon-cash",
-  name: "Lemon",
-  image_url:
-    "data:image/svg+xml;base64," +
-    btoa(`<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
-      <defs><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#B8E948"/><stop offset="100%" stop-color="#7CC520"/>
-      </linearGradient></defs>
-      <rect width="96" height="96" rx="20" fill="url(#lg)"/>
-      <text x="48" y="64" font-family="system-ui,sans-serif" font-size="52" font-weight="700" fill="#fff" text-anchor="middle">L</text>
-    </svg>`),
-  mobile_link: "lemon://",
-  app_store: "https://apps.apple.com/app/lemon-cash-tu-wallet-crypto/id1588084217",
-  play_store: "https://play.google.com/store/apps/details?id=com.applemoncash",
-  homepage: "https://www.lemon.me/",
-};
-
 // Create AppKit instance — MUST be called outside React component
 createAppKit({
   adapters: [wagmiAdapter],
   networks,
   projectId,
   metadata,
-  customWallets: [lemonWallet],
+  customWallets: [],
   features: {
     analytics: false,
     email: false,
@@ -56,7 +37,9 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <WagmiProvider config={wagmiAdapter.wagmiConfig}>
       <QueryClientProvider client={queryClient}>
-        <VaultFlowProvider>{children}</VaultFlowProvider>
+        <VaultFlowProvider>
+          {children}
+        </VaultFlowProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );

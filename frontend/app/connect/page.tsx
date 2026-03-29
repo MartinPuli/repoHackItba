@@ -12,8 +12,11 @@ export default function ConnectPage() {
   const { isConnected } = useAppKitAccount();
   const { open } = useAppKit();
 
+  // Redirect once connected
   useEffect(() => {
-    if (isConnected) router.replace("/role");
+    if (isConnected) {
+      router.replace("/role");
+    }
   }, [isConnected, router]);
 
   return (
@@ -39,7 +42,7 @@ export default function ConnectPage() {
             Select a wallet
           </p>
           <p className="mb-8 max-w-xs text-sm text-ink-muted">
-            MetaMask, Binance, Trust Wallet, Lemon, Coinbase & more.
+            MetaMask, Binance, Trust Wallet, Coinbase & more.
           </p>
 
           <button

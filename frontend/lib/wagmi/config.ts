@@ -11,7 +11,7 @@ export const projectId =
 export const metadata = {
   name: "Vaultix",
   description:
-    "Protege tus activos digitales con guardianes y recuperacion inteligente.",
+    "Protect your digital assets with guardians and smart recovery. Non-custodial on-chain vault.",
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://localhost:3000",
   icons: ["/logo-verde.png"],
 };

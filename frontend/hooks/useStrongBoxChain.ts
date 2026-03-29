@@ -39,7 +39,7 @@ export function useCreateStrongBox() {
     timeLimitSeconds: bigint;
   }): Promise<{ hash: `0x${string}` }> {
     if (!isFactoryReady()) {
-      throw new Error("Factory no configurada (NEXT_PUBLIC_FACTORY_ADDRESS)");
+      throw new Error("Factory not configured (NEXT_PUBLIC_FACTORY_ADDRESS)");
     }
     const hash = await writeContractAsync({
       address: CONTRACTS.factory,
@@ -73,7 +73,7 @@ export function useDepositStrongBox() {
     amountBnb: string;
   }): Promise<{ hash: `0x${string}` }> {
     const value = parseEther(args.amountBnb);
-    if (value <= BigInt(0)) throw new Error("El monto debe ser mayor a 0");
+    if (value <= BigInt(0)) throw new Error("Amount must be greater than 0");
 
     const hash = await writeContractAsync({
       address: args.strongBoxAddress,
@@ -102,7 +102,7 @@ export function useWithdrawStrongBox() {
     toAddress: Address;
   }): Promise<{ hash: `0x${string}` }> {
     const value = parseEther(args.amountBnb);
-    if (value <= BigInt(0)) throw new Error("El monto debe ser mayor a 0");
+    if (value <= BigInt(0)) throw new Error("Amount must be greater than 0");
 
     const hash = await writeContractAsync({
       address: args.strongBoxAddress,

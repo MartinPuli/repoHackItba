@@ -2,7 +2,9 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { useAccount, useDisconnect } from "wagmi";
+import { useDisconnect } from "wagmi";
+import { useUnifiedWallet } from "@/hooks/useUnifiedWallet";
+import { useLemon } from "@/context/LemonContext";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { LogOut, ArrowLeft } from "lucide-react";
@@ -22,7 +24,7 @@ export function VaultShell({
   step?: { current: number; total: number };
 }) {
   const mw = maxWidth === "wide" ? "max-w-4xl" : "max-w-xl sm:max-w-2xl";
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, isLemon } = useUnifiedWallet();
   const { disconnect } = useDisconnect();
   const { signOut } = useAuth();
 

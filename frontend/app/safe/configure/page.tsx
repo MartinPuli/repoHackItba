@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { useAccount } from "wagmi";
+import { useUnifiedWallet } from "@/hooks/useUnifiedWallet";
 import { VaultShell } from "@/components/vault/VaultShell";
 import {
   VaultCard,
@@ -44,7 +44,7 @@ function SectionHeader({
 
 export default function SafeConfigurationPage() {
   const router = useRouter();
-  const { address } = useAccount();
+  const { address } = useUnifiedWallet();
   const { session } = useAuth();
   const {
     form,
