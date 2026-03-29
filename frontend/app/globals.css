@@ -9,8 +9,12 @@
   --bg: #f5f4f0;
   --bg-subtle: #eae8e3;
   --card-bg: #ffffff;
-  --card-border: #e3e1dc;
-  --card-border-hover: #ccc9c2;
+  --card-border: rgba(227, 225, 220, 0.4);
+  --card-border-hover: rgba(204, 201, 194, 0.7);
+
+  /* ── Shadows ──────────────────────────────── */
+  --shadow-premium: 0 10px 30px -10px rgba(26, 127, 90, 0.1), 0 4px 10px -5px rgba(26, 127, 90, 0.05);
+  --shadow-hover: 0 20px 40px -15px rgba(26, 127, 90, 0.15), 0 8px 16px -8px rgba(26, 127, 90, 0.1);
 
   /* ── Accent ───────────────────────────────── */
   --emerald: #1a7f5a;
@@ -60,6 +64,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+  scroll-behavior: smooth;
 }
 
 /* ── Cards ──────────────────────────────────── */
@@ -102,15 +107,58 @@ body {
 }
 
 .gradient-text {
-  color: var(--text-primary);
-  background: none;
-  -webkit-text-fill-color: currentColor;
+  background: linear-gradient(135deg, var(--emerald) 0%, #10b981 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-.glow-green,
-.glow-red,
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(227, 225, 220, 0.4);
+}
+
 .glow-brand {
-  box-shadow: none;
+  box-shadow: 0 0 20px -5px rgba(26, 127, 90, 0.3);
+}
+
+@keyframes float {
+  0% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(5deg); }
+  100% { transform: translateY(0px) rotate(0deg); }
+}
+
+.animate-float {
+  animation: float 10s ease-in-out infinite;
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.05); }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 8s ease-in-out infinite;
+}
+
+.mesh-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.mesh-blob {
+  position: absolute;
+  filter: blur(80px);
+  border-radius: 50%;
+  opacity: 0.35;
 }
 
 .app-bg {
