@@ -50,20 +50,3 @@ export function resolveStrongboxMockAddress(row: StrongboxRow): string {
   }
   return `0x${createHash('sha256').update(row.id).digest('hex').slice(0, 40)}`;
 }
-
-export async function getUserWalletAddress(userId: string): Promise<string> {
-  const admin = assertAdmin();
-  const { data: userRow, error } = await admin
-    .from('users')
-    .select('wallet_address')
-    .eq('id', userId)
-    .maybeSingle();
-
-  if (error) {
-    throw new HttpError(500, error.message, error.code);
-  }
-  if (!userRow?.wallet_address) {
-    throw new HttpError(404, 'No hay wallet_address para este usuario');
-  }
-  return userRow.wallet_address;
-}

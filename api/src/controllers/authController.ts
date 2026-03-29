@@ -9,6 +9,6 @@ export async function me(req: Request, res: Response): Promise<void> {
   if (!authUserId || !authUser) {
     throw new HttpError(500, 'Auth context missing');
   }
-  const { profile, has_strongbox } = await getMeForAuthUser(authUser);
-  res.status(200).json({ profile, has_strongbox });
+  const { profile, has_strongbox, is_guardian, is_heir } = await getMeForAuthUser(authUser);
+  res.status(200).json({ profile, has_strongbox, is_guardian, is_heir });
 }

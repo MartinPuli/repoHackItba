@@ -54,11 +54,18 @@ export async function apiFetch<T = unknown>(
       "message" in parsed &&
       typeof (parsed as { message: unknown }).message === "string"
         ? (parsed as { message: string }).message
-        : `HTTP ${res.status}`;
+        : typeof parsed === "object" &&
+            parsed !== null &&
+            "error" in parsed &&
+            typeof (parsed as { error: unknown }).error === "string"
+          ? (parsed as { error: string }).error
+          : `HTTP ${res.status}`;
     throw new ApiError(msg, res.status, parsed);
   }
   return parsed as T;
 }
+
+// ── Balance ──
 
 export type StrongboxBalanceResponse = {
   balances: {
@@ -82,22 +89,23 @@ export function getCajaFuerteBalance(accessToken: string) {
   });
 }
 
-export type StrongboxSetupPayload = {
+// ── Setup ──
+
+export type SetupBody = {
   own_email: string;
   guardians: { wallet: string; email: string }[];
   recovery_contacts: { wallet: string; email: string }[];
 };
 
-export function postStrongboxSetup(
-  accessToken: string,
-  body: StrongboxSetupPayload,
-) {
+export function postStrongboxSetup(accessToken: string, body: SetupBody) {
   return apiFetch<{ ok: true }>("/api/strongbox/setup", {
     method: "POST",
     accessToken,
     body,
   });
 }
+
+// ── Deploy confirm ──
 
 export function postConfirmDeploy(
   accessToken: string,
@@ -113,6 +121,8 @@ export function postConfirmDeploy(
   );
 }
 
+// ── Deposit confirm ──
+
 export function postConfirmDeposit(
   accessToken: string,
   body: { tx_hash: string; amount_bnb: string },
@@ -122,4 +132,87 @@ export function postConfirmDeposit(
     accessToken,
     body,
   });
+}
+
+// ── Withdrawal flow ──
+
+export function postWithdrawRequest(
+  accessToken: string,
+  body: { amount: string; to_address: string; on_chain_request_id?: number },
+) {
+  return apiFetch<{ id: string; on_chain_request_id: number | null }>(
+    "/api/strongbox/withdraw/request",
+    { method: "POST", accessToken, body },
+  );
+}
+
+export function getWithdrawPending(accessToken: string) {
+  return apiFetch<{
+    requests: Array<{
+      id: string;
+      strongbox_id: string;
+      on_chain_request_id: number | null;
+      amount: string;
+      to_address: string;
+      status: string;
+      guardian1_approved: boolean;
+      guardian2_approved: boolean;
+      created_at: string;
+    }>;
+  }>("/api/strongbox/withdraw/pending", { accessToken });
+}
+
+export function postWithdrawApprove(accessToken: string, withdrawalId: string) {
+  return apiFetch<{ approved: true; both_approved: boolean }>(
+    `/api/strongbox/withdraw/${withdrawalId}/approve`,
+    { method: "POST", accessToken },
+  );
+}
+
+export function postWithdrawReject(accessToken: string, withdrawalId: string) {
+  return apiFetch<{ rejected: true }>(
+    `/api/strongbox/withdraw/${withdrawalId}/reject`,
+    { method: "POST", accessToken },
+  );
+}
+
+export function postWithdrawExecuted(
+  accessToken: string,
+  withdrawalId: string,
+  txHash: string,
+) {
+  return apiFetch<{ ok: true }>(
+    `/api/strongbox/withdraw/${withdrawalId}/executed`,
+    { method: "POST", accessToken, body: { tx_hash: txHash } },
+  );
+}
+
+// ── Guardian endpoints ──
+
+export function getGuardianPending(accessToken: string) {
+  return apiFetch<{
+    requests: Array<{
+      id: string;
+      strongbox_id: string;
+      on_chain_request_id: number | null;
+      contract_address: string | null;
+      amount: string;
+      to_address: string;
+      status: string;
+      guardian1_approved: boolean;
+      guardian2_approved: boolean;
+      guardian_slot: number | null;
+      created_at: string;
+    }>;
+  }>("/api/guardian/pending", { accessToken });
+}
+
+export function getGuardianVaults(accessToken: string) {
+  return apiFetch<{ vaults: unknown[] }>("/api/guardian/vaults", { accessToken });
+}
+
+// ── Heir / Recovery endpoints ──
+
+export function getHeirVaults(accessToken: string) {
+  return apiFetch<{ vaults: unknown[] }>("/api/heir/vaults", { accessToken });
 }

@@ -23,6 +23,8 @@ interface AuthState {
   userId: string | null;
   loading: boolean;
   hasStrongbox: boolean | null;
+  isGuardian: boolean | null;
+  isHeir: boolean | null;
 }
 
 export function useAuth() {
@@ -31,6 +33,8 @@ export function useAuth() {
     userId: null,
     loading: true,
     hasStrongbox: null,
+    isGuardian: null,
+    isHeir: null,
   });
 
   const supabase = getSupabaseBrowser();
@@ -116,6 +120,8 @@ export function useAuth() {
       userId: null,
       loading: false,
       hasStrongbox: null,
+      isGuardian: null,
+      isHeir: null,
     });
   }, [supabase]);
 
@@ -126,7 +132,12 @@ export function useAuth() {
       });
       if (res.ok) {
         const body = await res.json();
-        setState((s) => ({ ...s, hasStrongbox: body.has_strongbox ?? null }));
+        setState((s) => ({
+          ...s,
+          hasStrongbox: body.has_strongbox ?? null,
+          isGuardian: body.is_guardian ?? null,
+          isHeir: body.is_heir ?? null,
+        }));
       }
     } catch {
       // API caída; no bloquear el login

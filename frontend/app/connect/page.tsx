@@ -5,7 +5,7 @@ import { useAppKitAccount, useAppKit } from "@reown/appkit/react";
 import { useRouter } from "next/navigation";
 import { VaultShell } from "@/components/vault/VaultShell";
 import { VaultCard } from "@/components/vault/VaultPrimitives";
-import { Shield } from "lucide-react";
+import { Shield, Users, Clock } from "lucide-react";
 
 export default function ConnectPage() {
   const router = useRouter();
@@ -17,7 +17,7 @@ export default function ConnectPage() {
   }, [isConnected, router]);
 
   return (
-    <VaultShell title="Connect your wallet" step={{ current: 1, total: 4 }}>
+    <VaultShell title="Connect your wallet" step={{ current: 1, total: 4 }} backHref="/">
       <p className="text-[15px] leading-relaxed text-ink-muted">
         Connect your preferred wallet to start using your smart recovery vault.
       </p>
@@ -32,7 +32,7 @@ export default function ConnectPage() {
             Select a wallet
           </p>
           <p className="mb-6 text-xs text-ink-muted">
-            MetaMask, Binance, Trust Wallet, Coinbase y más.
+            MetaMask, Binance, Trust Wallet, Lemon, Coinbase & more.
           </p>
 
           <button
@@ -43,6 +43,37 @@ export default function ConnectPage() {
           </button>
         </div>
       </VaultCard>
+
+      {/* Mini feature highlights */}
+      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+        <div className="flex items-start gap-3 rounded-xl border border-line bg-white p-4">
+          <Shield className="mt-0.5 h-4 w-4 shrink-0 text-brand" strokeWidth={2} />
+          <div>
+            <p className="text-xs font-semibold text-ink">Non-Custodial</p>
+            <p className="mt-0.5 text-[11px] text-ink-faint">
+              Your funds stay in a smart contract, not with us.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-start gap-3 rounded-xl border border-line bg-white p-4">
+          <Users className="mt-0.5 h-4 w-4 shrink-0 text-brand" strokeWidth={2} />
+          <div>
+            <p className="text-xs font-semibold text-ink">2-of-2 Approval</p>
+            <p className="mt-0.5 text-[11px] text-ink-faint">
+              Two guardians must approve every withdrawal.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-start gap-3 rounded-xl border border-line bg-white p-4">
+          <Clock className="mt-0.5 h-4 w-4 shrink-0 text-brand" strokeWidth={2} />
+          <div>
+            <p className="text-xs font-semibold text-ink">Auto Recovery</p>
+            <p className="mt-0.5 text-[11px] text-ink-faint">
+              Recovery contacts claim funds after inactivity.
+            </p>
+          </div>
+        </div>
+      </div>
 
       <p className="mt-4 text-center text-[11px] text-ink-ghost">
         By connecting you agree to the terms of this demo (BSC Testnet).

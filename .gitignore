@@ -12,6 +12,8 @@ out/
 .gsd/browser-baselines/
 .bg-shell/
 .claude/
+.artifacts/
+.playwright-mcp/
 *.log
 **/tsconfig.tsbuildinfo
 

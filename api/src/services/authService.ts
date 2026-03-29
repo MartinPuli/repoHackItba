@@ -40,6 +40,8 @@ function walletFromAuthUser(authUser: User): string {
 export async function getMeForAuthUser(authUser: User): Promise<{
   profile: PublicProfile;
   has_strongbox: boolean;
+  is_guardian: boolean;
+  is_heir: boolean;
 }> {
   const admin = assertAdmin();
   const wallet_address = walletFromAuthUser(authUser);
@@ -67,19 +69,20 @@ export async function getMeForAuthUser(authUser: User): Promise<{
     throw new HttpError(500, 'Upsert de usuario no devolvió fila');
   }
 
-  const { data: sbRow, error: sbErr } = await admin
-    .from('strongboxes')
-    .select('id')
-    .eq('user_id', id)
-    .limit(1)
-    .maybeSingle();
+  const [sbResult, guardianResult, heirResult] = await Promise.all([
+    admin.from('strongboxes').select('id').eq('user_id', id).limit(1).maybeSingle(),
+    admin.from('guardians').select('id').eq('address', wallet_address).limit(1).maybeSingle(),
+    admin.from('recovery_contacts').select('id').eq('address', wallet_address).limit(1).maybeSingle(),
+  ]);
 
-  if (sbErr) {
-    throw new HttpError(500, sbErr.message, sbErr.code);
-  }
+  if (sbResult.error) throw new HttpError(500, sbResult.error.message, sbResult.error.code);
+  if (guardianResult.error) throw new HttpError(500, guardianResult.error.message, guardianResult.error.code);
+  if (heirResult.error) throw new HttpError(500, heirResult.error.message, heirResult.error.code);
 
   return {
     profile: toPublicProfile(profileRow),
-    has_strongbox: sbRow != null,
+    has_strongbox: sbResult.data != null,
+    is_guardian: guardianResult.data != null,
+    is_heir: heirResult.data != null,
   };
 }
