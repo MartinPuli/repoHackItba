@@ -2,7 +2,11 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { useAccount, useDisconnect } from "wagmi";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { LogOut } from "lucide-react";
+import { formatAddress } from "@/lib/utils";
 
 export function VaultShell({
   title,
@@ -17,14 +21,21 @@ export function VaultShell({
   backHref?: string;
   step?: { current: number; total: number };
 }) {
-  // Mobile: full width. Desktop: comfortable reading width
   const mw = maxWidth === "wide" ? "max-w-4xl" : "max-w-xl sm:max-w-2xl";
+  const { address, isConnected } = useAccount();
+  const { disconnect } = useDisconnect();
+  const { signOut } = useAuth();
+
+  function handleDisconnect() {
+    signOut();
+    disconnect();
+  }
 
   return (
     <div className="flex min-h-[100dvh] flex-col items-center bg-canvas px-5 pb-12 pt-8 sm:px-8 md:pt-12">
-      {/* Minimal header: logo + optional back */}
-      <header className={cn("flex w-full items-center", mw, backHref ? "justify-between" : "justify-center")}>
-        <Link href="/" className="flex items-center gap-5" style={{ minHeight: 100 }}>
+      {/* Header: logo + wallet info + disconnect */}
+      <header className={cn("flex w-full items-center justify-between", mw)}>
+        <Link href="/" className="flex items-center gap-4" style={{ minHeight: 80 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/logo-verde.png"
@@ -38,14 +49,32 @@ export function VaultShell({
             style={{ height: 52 }}
           />
         </Link>
-        {backHref && (
-          <Link
-            href={backHref}
-            className="rounded-lg px-3 py-1.5 text-sm font-medium text-ink-faint transition-colors hover:bg-surface-muted hover:text-ink"
-          >
-            Back
-          </Link>
-        )}
+
+        <div className="flex items-center gap-3">
+          {backHref && (
+            <Link
+              href={backHref}
+              className="rounded-lg px-3 py-1.5 text-sm font-medium text-ink-faint transition-colors hover:bg-surface-muted hover:text-ink"
+            >
+              Back
+            </Link>
+          )}
+          {isConnected && address && (
+            <div className="flex items-center gap-2">
+              <span className="hidden text-xs font-mono text-ink-faint sm:inline">
+                {formatAddress(address, 4)}
+              </span>
+              <button
+                onClick={handleDisconnect}
+                className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-ink-muted transition-colors hover:bg-red-50 hover:border-red-200 hover:text-red-600"
+                title="Desconectar wallet"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Salir</span>
+              </button>
+            </div>
+          )}
+        </div>
       </header>
 
       {/* Step indicator */}
