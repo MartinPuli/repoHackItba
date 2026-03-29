@@ -89,7 +89,7 @@ export function BalanceCards({
         iconColor="text-ink"
       />
       <BalanceCard
-        title="StrongBox"
+        title="Vaultix"
         value={formatUSD(vaultBalance)}
         icon={<Shield className="h-5 w-5" strokeWidth={2} />}
         iconBg="bg-surface-muted"

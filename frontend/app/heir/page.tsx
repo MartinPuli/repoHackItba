@@ -5,26 +5,34 @@ import { VaultShell } from "@/components/vault/VaultShell";
 import {
   VaultCard,
   VaultPillButton,
-  VaultMascot,
 } from "@/components/vault/VaultPrimitives";
 import { useVaultFlow } from "@/context/VaultFlowContext";
 import { formatEth } from "@/lib/utils";
 
-/** Renders DD : HH : MM : SS */
 function formatDHMS(totalSeconds: number) {
   const d = Math.floor(totalSeconds / 86400);
   const h = Math.floor((totalSeconds % 86400) / 3600);
   const m = Math.floor((totalSeconds % 3600) / 60);
   const s = totalSeconds % 60;
-  return [d, h, m, s]
-    .map((n) => n.toString().padStart(2, "0"))
-    .join(" : ");
+  return { d, h, m, s };
+}
+
+function TimeBlock({ value, label }: { value: number; label: string }) {
+  return (
+    <div className="flex flex-col items-center">
+      <span className="font-mono text-3xl font-bold tabular-nums text-ink sm:text-4xl">
+        {value.toString().padStart(2, "0")}
+      </span>
+      <span className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
+        {label}
+      </span>
+    </div>
+  );
 }
 
 export default function HeirInterfacePage() {
   const { vaultBalanceEth, heirFundsUnlocked, setHeirFundsUnlocked } =
     useVaultFlow();
-  /* 3d 15h 45m 45s like mock 00:03:15:45 when shown as DD:HH:MM:SS */
   const [secondsLeft, setSecondsLeft] = useState(
     3 * 86400 + 15 * 3600 + 45 * 60 + 45
   );
@@ -43,39 +51,52 @@ export default function HeirInterfacePage() {
     }
   }, [secondsLeft, heirFundsUnlocked, setHeirFundsUnlocked]);
 
+  const time = formatDHMS(secondsLeft);
+
   return (
-    <VaultShell title="Heir Interface">
-      <div className="flex flex-col items-stretch gap-10 lg:flex-row lg:justify-between">
-        <VaultCard className="max-w-xl flex-1 text-center lg:text-left">
-          <p className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">
-            Owner Inactivity Time
+    <VaultShell title="Recovery" backHref="/role">
+      <p className="text-[15px] leading-relaxed text-ink-muted">
+        Track owner inactivity and claim funds when the time limit expires.
+      </p>
+
+      <VaultCard className="mt-6">
+        <p className="text-xs font-semibold uppercase tracking-wide text-ink-faint">
+          Owner Inactivity Countdown
+        </p>
+
+        {/* Countdown timer */}
+        <div className="mt-5 flex items-center justify-center gap-3 sm:gap-5">
+          <TimeBlock value={time.d} label="Days" />
+          <span className="mt-[-18px] text-xl font-light text-ink-faint">:</span>
+          <TimeBlock value={time.h} label="Hours" />
+          <span className="mt-[-18px] text-xl font-light text-ink-faint">:</span>
+          <TimeBlock value={time.m} label="Min" />
+          <span className="mt-[-18px] text-xl font-light text-ink-faint">:</span>
+          <TimeBlock value={time.s} label="Sec" />
+        </div>
+
+        <div className="mt-8 border-t border-line pt-5">
+          <p className="text-sm font-medium text-ink-muted">
+            Current safe funds
           </p>
-          <p className="font-mono text-3xl font-bold tabular-nums tracking-tight text-[#1e4d3a] sm:text-4xl md:text-5xl">
-            {formatDHMS(secondsLeft)}
-          </p>
-          <p className="mt-8 text-sm font-medium text-slate-600">
-            Current safe funds status:
-          </p>
-          <p className="mt-1 text-2xl font-bold text-slate-900">
+          <p className="mt-1 text-2xl font-bold text-ink">
             {formatEth(vaultBalanceEth)}
           </p>
-          <VaultPillButton
-            className="mt-8"
-            disabled={!heirFundsUnlocked}
-            onClick={() =>
-              window.alert("Demo: simulated withdrawal to your wallet.")
-            }
-          >
-            Withdraw Funds
-          </VaultPillButton>
-          <p className="mt-3 text-xs text-slate-500">
-            Available after owner inactivity time exceeds threshold.
-          </p>
-        </VaultCard>
-        <div className="flex justify-center lg:items-start lg:pt-4">
-          <VaultMascot />
         </div>
-      </div>
+
+        <VaultPillButton
+          className="mt-6"
+          disabled={!heirFundsUnlocked}
+          onClick={() =>
+            window.alert("Demo: simulated withdrawal to your wallet.")
+          }
+        >
+          Withdraw Funds
+        </VaultPillButton>
+        <p className="mt-3 text-center text-xs text-ink-ghost">
+          Available after owner inactivity time exceeds threshold.
+        </p>
+      </VaultCard>
     </VaultShell>
   );
 }

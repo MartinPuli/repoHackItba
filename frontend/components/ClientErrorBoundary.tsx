@@ -21,7 +21,7 @@ export class ClientErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error("[StrongBox] Error en cliente:", error, info.componentStack);
+    console.error("[Vaultix] Error en cliente:", error, info.componentStack);
   }
 
   render() {

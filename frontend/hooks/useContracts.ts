@@ -77,12 +77,13 @@ export function useDeposit() {
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
   function deposit(strongboxAddress: string, amountEth: string) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     writeContract({
       address: strongboxAddress as Address,
       abi: STRONGBOX_ABI,
       functionName: "deposit",
       value: parseEther(amountEth),
-    });
+    } as any);
   }
 
   return { deposit, isPending, isConfirming, isSuccess, error, hash };

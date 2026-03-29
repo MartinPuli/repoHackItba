@@ -24,7 +24,7 @@ export default function SafeOwnerDashboardPage() {
     setGetHeirFilter,
   } = useVaultFlow();
 
-  const addr = address ? formatAddress(address, 5) : "—";
+  const addr = address ? formatAddress(address, 5) : "\u2014";
 
   const rows = useMemo(
     () => [
@@ -46,14 +46,14 @@ export default function SafeOwnerDashboardPage() {
         name: "Guardian 1",
         gains:
           form.guardian1.wallet ||
-          "0x9cA3C…f21B",
+          "0x9cA3C\u2026f21B",
         status: "Active",
       },
       {
         name: "Guardian 2",
         gains:
           form.guardian2.wallet ||
-          "0x4e…9a02",
+          "0x4e\u20269a02",
         status: "Pending",
       },
     ],
@@ -68,17 +68,18 @@ export default function SafeOwnerDashboardPage() {
   );
 
   return (
-    <VaultShell title="Safe Owner Dashboard" maxWidth="wide">
-      <div className="mb-8 grid gap-6 lg:grid-cols-2 lg:items-start">
+    <VaultShell title="Your Safe" maxWidth="wide" backHref="/role" step={{ current: 4, total: 4 }}>
+      {/* Balance + Actions */}
+      <div className="grid gap-4 sm:grid-cols-2">
         <VaultCard>
-          <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+          <p className="text-xs font-semibold uppercase tracking-wide text-ink-faint">
             Safe Balance
           </p>
-          <p className="mt-2 text-4xl font-bold tabular-nums text-slate-900 md:text-5xl">
+          <p className="mt-2 text-3xl font-bold tabular-nums text-ink sm:text-4xl">
             {formatEth(vaultBalanceEth)}
           </p>
-          <p className="mt-2 font-mono text-xs text-slate-500">{addr}</p>
-          <div className="mt-6 flex flex-wrap gap-3">
+          <p className="mt-1.5 font-mono text-xs text-ink-faint">{addr}</p>
+          <div className="mt-5 flex flex-wrap gap-2.5">
             <VaultSmallGreenButton
               onClick={() => setVaultBalanceEth(vaultBalanceEth + 0.25)}
             >
@@ -94,17 +95,17 @@ export default function SafeOwnerDashboardPage() {
           </div>
         </VaultCard>
 
-        <VaultCard className="space-y-5">
-          <VaultField label="Get Heir">
+        <VaultCard className="space-y-4">
+          <VaultField label="Search participants">
             <VaultInput
-              placeholder="Search by name or address…"
+              placeholder="Name or address..."
               value={getHeirFilter}
               onChange={(e) => setGetHeirFilter(e.target.value)}
             />
           </VaultField>
           <div>
-            <p className="mb-2 text-sm font-semibold text-slate-800">
-              Set Guardians
+            <p className="mb-2 text-sm font-medium text-ink-muted">
+              Manage Guardians
             </p>
             <VaultMintButton className="w-full sm:w-auto">
               Manage Guardians
@@ -113,12 +114,13 @@ export default function SafeOwnerDashboardPage() {
         </VaultCard>
       </div>
 
-      <VaultCard className="overflow-x-auto p-0">
-        <table className="w-full min-w-[520px] text-left text-sm">
+      {/* Participants table */}
+      <VaultCard className="mt-4 overflow-x-auto p-0">
+        <table className="w-full min-w-[480px] text-left text-sm">
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50/90 text-xs font-bold uppercase tracking-wide text-slate-500">
+            <tr className="border-b border-line text-xs font-semibold uppercase tracking-wide text-ink-faint">
               <th className="px-5 py-3">Name</th>
-              <th className="px-5 py-3">Gains</th>
+              <th className="px-5 py-3">Address</th>
               <th className="px-5 py-3">Status</th>
               <th className="px-5 py-3 text-right">Action</th>
             </tr>
@@ -127,20 +129,20 @@ export default function SafeOwnerDashboardPage() {
             {filtered.map((row) => (
               <tr
                 key={row.name}
-                className="border-b border-slate-100 last:border-0 hover:bg-slate-50/50"
+                className="border-b border-line last:border-0 transition-colors hover:bg-surface-muted/50"
               >
-                <td className="px-5 py-3.5 font-semibold text-slate-900">
+                <td className="px-5 py-3.5 font-medium text-ink">
                   {row.name}
                 </td>
-                <td className="max-w-[200px] truncate px-5 py-3.5 font-mono text-xs text-slate-600">
+                <td className="max-w-[180px] truncate px-5 py-3.5 font-mono text-xs text-ink-muted">
                   {row.gains}
                 </td>
                 <td className="px-5 py-3.5">
                   <span
                     className={
                       row.status === "Active"
-                        ? "rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800"
-                        : "rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-900"
+                        ? "rounded-full bg-primary-light px-2.5 py-0.5 text-xs font-semibold text-brand"
+                        : "rounded-full bg-warning-light px-2.5 py-0.5 text-xs font-semibold text-warning"
                     }
                   >
                     {row.status}
@@ -149,7 +151,7 @@ export default function SafeOwnerDashboardPage() {
                 <td className="px-5 py-3.5 text-right">
                   <button
                     type="button"
-                    className="inline-flex rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-[#1e4d3a]"
+                    className="inline-flex rounded-lg p-2 text-ink-faint transition-colors hover:bg-surface-muted hover:text-ink"
                     aria-label={`Edit ${row.name}`}
                   >
                     <Pencil className="h-4 w-4" strokeWidth={2} />

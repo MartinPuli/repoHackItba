@@ -65,14 +65,16 @@ interface Transaction {
   id: string;
   user_id: string;
   strongbox_id: string | null;
-  tx_type: "deposit" | "withdraw" | "recovery";
-  status: "pending" | "confirmed" | "failed";
+  tx_type: "deposit" | "withdraw" | "recovery" | "send" | "swap" | "yield_deposit" | "yield_withdraw" | "bridge" | "off_ramp";
+  status: "pending" | "confirmed" | "failed" | "reverted";
   chain_id: number;
   tx_hash: string | null;
   from_address: string | null;
   to_address: string | null;
   token_symbol: string | null;
   amount: string;
+  amount_usd: number | null;
+  initiated_by: "user" | "agent" | null;
   created_at: string;
   confirmed_at: string | null;
 }
@@ -146,6 +148,45 @@ export function useUserProfile(userId: string | undefined): QueryResult<UserProf
   return { data, loading, error };
 }
 
+// ── 1b. useUserByWallet ────────────────────────────────────────────────
+// Resolves connected wallet address → Supabase user ID so pages don't need a hardcoded ID.
+
+export function useUserByWallet(walletAddress: string | undefined): QueryResult<UserProfile> {
+  const [data, setData] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!walletAddress) { setLoading(false); return; }
+    let cancelled = false;
+    const supabase = getSupabaseBrowser();
+    if (!supabase) { setData(null); setLoading(false); return; }
+    const db: SupabaseClient = supabase;
+
+    async function fetch() {
+      setLoading(true);
+      setError(null);
+      try {
+        const { data: row, error: err } = await db
+          .from("users")
+          .select("*")
+          .eq("wallet_address", walletAddress!.toLowerCase())
+          .single();
+
+        if (cancelled) return;
+        if (err) setError(err.message);
+        else setData(row as UserProfile);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    fetch();
+    return () => { cancelled = true; };
+  }, [walletAddress]);
+
+  return { data, loading, error };
+}
+
 // ── 2. useStrongBoxData ────────────────────────────────────────────────
 
 export function useStrongBoxData(userId: string | undefined): QueryResult<StrongBox> {
@@ -164,7 +205,7 @@ export function useStrongBoxData(userId: string | undefined): QueryResult<Strong
       setLoading(true);
       setError(null);
       const stopWatch = startQueryWatchdog(() => cancelled, () => {
-        setError("Timeout cargando StrongBox");
+        setError("Timeout cargando vault");
         setLoading(false);
       });
       try {
@@ -317,6 +358,47 @@ export function useAlerts(userId: string | undefined): QueryResult<{ alerts: Ale
         setData({ alerts, unreadCount: alerts.filter((a) => !a.is_read).length });
       } finally {
         stopWatch();
+        if (!cancelled) setLoading(false);
+      }
+    }
+    fetch();
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  return { data, loading, error };
+}
+
+// ── Re-export types ────────────────────────────────────────────────────
+
+// ── 6. useWalletData ───────────────────────────────────────────────────
+// Returns the user's strongboxes as an array (transactions page expects this).
+
+export function useWalletData(userId: string | undefined): QueryResult<StrongBox[]> {
+  const [data, setData] = useState<StrongBox[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!userId) { setLoading(false); return; }
+    let cancelled = false;
+    const supabase = getSupabaseBrowser();
+    if (!supabase) { setData(null); setLoading(false); return; }
+    const db: SupabaseClient = supabase;
+
+    async function fetch() {
+      setLoading(true);
+      setError(null);
+      try {
+        const { data: rows, error: err } = await db
+          .from("strongboxes")
+          .select("*")
+          .eq("user_id", userId!)
+          .order("created_at", { ascending: false });
+
+        if (cancelled) return;
+        if (err) setError(err.message);
+        else setData((rows as StrongBox[]) ?? []);
+      } finally {
         if (!cancelled) setLoading(false);
       }
     }

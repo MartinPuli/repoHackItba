@@ -14,11 +14,11 @@ export function TopBar({ title, unreadAlerts = 0 }: TopBarProps) {
   const [showNotifications, setShowNotifications] = useState(false);
 
   return (
-    <header className="sticky top-0 z-30 border-b border-line bg-white px-5 py-3 md:px-8 lg:px-10">
-      <div className="mx-auto flex h-11 max-w-6xl items-center justify-between gap-4">
+    <header className="sticky top-0 z-30 border-b border-line bg-white/90 px-4 py-3 backdrop-blur-md sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-11 max-w-5xl items-center justify-between gap-4">
         <div className="min-w-0">
           <p className="truncate text-[13px] font-medium text-ink-muted">
-            {title ?? "StrongBox"}
+            {title ?? "Vaultix"}
           </p>
         </div>
 
@@ -28,7 +28,7 @@ export function TopBar({ title, unreadAlerts = 0 }: TopBarProps) {
               type="button"
               onClick={() => setShowNotifications(!showNotifications)}
               className={cn(
-                "rounded-lg p-2 text-ink-muted transition-colors",
+                "rounded-lg p-2 text-ink-faint transition-colors",
                 "hover:bg-surface-muted hover:text-ink"
               )}
               aria-expanded={showNotifications}
@@ -42,11 +42,11 @@ export function TopBar({ title, unreadAlerts = 0 }: TopBarProps) {
               )}
             </button>
             {showNotifications && (
-              <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-lg border border-line bg-white p-4 shadow-panel-hover">
+              <div className="absolute right-0 top-full z-50 mt-2 w-72 rounded-xl border border-line bg-white p-4 shadow-panel-hover sm:w-80">
                 <p className="text-sm font-semibold text-ink">Notificaciones</p>
                 <p className="mt-1.5 text-[13px] leading-relaxed text-ink-muted">
-                  No tenés alertas nuevas. Cuando el agente o compliance requieran
-                  tu atención, aparecerán aquí.
+                  No tenes alertas nuevas. Las notificaciones del sistema
+                  aparecen aca.
                 </p>
               </div>
             )}

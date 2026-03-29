@@ -51,7 +51,7 @@ export default function LoginPage() {
         padding: 24,
       }}
     >
-      <h1 style={{ fontSize: 24, fontWeight: 700 }}>StrongBox</h1>
+      <h1 style={{ fontSize: 24, fontWeight: 700 }}>Vaultix</h1>
       <p style={{ fontSize: 14, color: "#555" }}>
         Conectá tu wallet y firmá para iniciar sesión
       </p>
