@@ -10,6 +10,7 @@ import {
   verifyAuthentication,
   hasRegisteredCredential,
 } from '../services/webauthnService.js';
+import { getMeForAuthUser } from '../services/authService.js';
 
 const router = Router();
 
@@ -17,6 +18,7 @@ router.get(
   '/register/options',
   requireAuth,
   asyncHandler(async (req: Request, res: Response) => {
+    await getMeForAuthUser(req.authUser!);
     const options = await getRegistrationOptions(req.authUserId!);
     res.json(options);
   })
@@ -26,6 +28,7 @@ router.post(
   '/register/verify',
   requireAuth,
   asyncHandler(async (req: Request, res: Response) => {
+    await getMeForAuthUser(req.authUser!);
     const result = await verifyRegistration(req.authUserId!, req.body);
     res.json(result);
   })
