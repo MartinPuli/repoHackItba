@@ -180,7 +180,7 @@ Frontend (Recovery Dashboard)               Blockchain
 
 | Pagina | Rol | Lecturas on-chain | Escrituras on-chain |
 |--------|-----|-------------------|---------------------|
-| `/caja-fuerte` | Owner | getBalance, getLastTimeUsed, getTimeLimit, hasPendingWithdrawalRequest | deposit, withdraw |
+| `/safe/owner` | Owner | getBalance, getLastTimeUsed, getTimeLimit, hasPendingWithdrawalRequest | deposit, withdraw |
 | `/guardian` | Guardian | getWithdrawalRequest, getActiveWithdrawalRequestId | approveWithdrawal, rejectWithdrawal |
 | `/heir` | Heir | getLastTimeUsed, getTimeLimit, getHeir1Claimed, getHeir2Claimed | inherit |
 | `/safe/configure` | Owner | (pre-deploy) | Factory.createStrongBox |

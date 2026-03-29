@@ -54,7 +54,7 @@ export async function confirmDeposit(
   if (!row.is_deployed || !row.contract_address?.trim()) {
     throw new HttpError(
       400,
-      'Caja fuerte no deployada on-chain; llamá primero a POST /api/strongbox/confirm-deploy'
+      'StrongBox no deployada on-chain; llamá primero a POST /api/strongbox/confirm-deploy'
     );
   }
 

@@ -10,9 +10,10 @@ const ARTIFACTS_DIR = path.join(__dirname, "..", "artifacts", "src");
 const OUTPUT_FILE = path.join(__dirname, "..", "..", "frontend", "lib", "contracts", "abis.ts");
 
 const contracts = [
-  { name: "SmartWalletFactory", path: "Factory.sol/SmartWalletFactory.json", exportName: "FACTORY_ABI" },
-  { name: "Wallet", path: "Wallet.sol/Wallet.json", exportName: "WALLET_ABI" },
-  { name: "CajaFuerte", path: "CajaFuerte.sol/CajaFuerte.json", exportName: "CAJA_FUERTE_ABI" },
+  { name: "Factory", path: "Factory.sol/Factory.json", exportName: "FACTORY_ABI" },
+  { name: "StrongBox", path: "StrongBox.sol/StrongBox.json", exportName: "STRONGBOX_ABI" },
+  { name: "Guardian", path: "Guardian.sol/Guardian.json", exportName: "GUARDIAN_ABI" },
+  { name: "Heir", path: "Heir.sol/Heir.json", exportName: "HEIR_ABI" },
 ];
 
 let output = `// Auto-generated from hardhat compile — do not edit manually\n// Run: node contracts/scripts/sync-abis.js\n\n`;

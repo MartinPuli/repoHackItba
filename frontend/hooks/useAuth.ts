@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import type { Session } from "@supabase/supabase-js";
 
-const SIGN_MESSAGE = "Sign in to Smart Wallet — HackITBA 2026";
+const SIGN_MESSAGE = "Sign in to StrongBox — HackITBA 2026";
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 /** Supabase limita password a 72 bytes (bcrypt). La firma hex es ~132 chars → hash fijo 64 hex. */

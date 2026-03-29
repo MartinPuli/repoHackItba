@@ -14,7 +14,7 @@ import { usePathname } from "next/navigation";
 
 const navItems = [
   { href: "/", icon: LayoutDashboard, label: "Inicio" },
-  { href: "/caja-fuerte", icon: Shield, label: "Mi Vault" },
+  { href: "/safe/owner", icon: Shield, label: "Mi Vault" },
   { href: "/guardian", icon: Users, label: "Guardian" },
   { href: "/heir", icon: Clock, label: "Recovery" },
   { href: "/transactions", icon: ArrowRightLeft, label: "Movimientos" },

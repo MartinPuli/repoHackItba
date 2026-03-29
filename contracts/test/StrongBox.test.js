@@ -142,8 +142,8 @@ describe("StrongBox", function () {
             expect(request.amount).to.equal(amount);
             expect(request.to).to.equal(recipient.address);
             expect(request.executed).to.equal(false);
-            expect(request.heir1Approved).to.equal(false);
-            expect(request.heir2Approved).to.equal(false);
+            expect(request.guardian1Approved).to.equal(false);
+            expect(request.guardian2Approved).to.equal(false);
         });
 
         it("should allow only owner to create a withdrawal request", async function () {
@@ -216,8 +216,8 @@ describe("StrongBox", function () {
                 .withArgs(1, guardian1.address);
 
             const request = await strongBox.getWithdrawalRequest(1);
-            expect(request.heir1Approved).to.equal(true);
-            expect(request.heir2Approved).to.equal(false);
+            expect(request.guardian1Approved).to.equal(true);
+            expect(request.guardian2Approved).to.equal(false);
             expect(request.executed).to.equal(false);
         });
 
@@ -227,8 +227,8 @@ describe("StrongBox", function () {
                 .withArgs(1, guardian2.address);
 
             const request = await strongBox.getWithdrawalRequest(1);
-            expect(request.heir1Approved).to.equal(false);
-            expect(request.heir2Approved).to.equal(true);
+            expect(request.guardian1Approved).to.equal(false);
+            expect(request.guardian2Approved).to.equal(true);
             expect(request.executed).to.equal(false);
         });
 

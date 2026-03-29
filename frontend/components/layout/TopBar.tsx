@@ -18,7 +18,7 @@ export function TopBar({ title, unreadAlerts = 0 }: TopBarProps) {
       <div className="mx-auto flex h-11 max-w-6xl items-center justify-between gap-4">
         <div className="min-w-0">
           <p className="truncate text-[13px] font-medium text-ink-muted">
-            {title ?? "Smart Wallet"}
+            {title ?? "StrongBox"}
           </p>
         </div>
 

@@ -60,16 +60,16 @@ function BalanceCard({
 
 interface BalanceCardsProps {
   walletBalance?: number;
-  cajaFuerteBalance?: number;
+  vaultBalance?: number;
   yieldEarned?: number;
 }
 
 export function BalanceCards({
   walletBalance = 0,
-  cajaFuerteBalance = 0,
+  vaultBalance = 0,
   yieldEarned = 0,
 }: BalanceCardsProps) {
-  const totalBalance = walletBalance + cajaFuerteBalance;
+  const totalBalance = walletBalance + vaultBalance;
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -89,8 +89,8 @@ export function BalanceCards({
         iconColor="text-ink"
       />
       <BalanceCard
-        title="Caja fuerte"
-        value={formatUSD(cajaFuerteBalance)}
+        title="StrongBox"
+        value={formatUSD(vaultBalance)}
         icon={<Shield className="h-5 w-5" strokeWidth={2} />}
         iconBg="bg-surface-muted"
         iconColor="text-vault"

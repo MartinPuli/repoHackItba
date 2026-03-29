@@ -116,18 +116,10 @@ export function useUserProfile(userId: string | undefined): QueryResult<UserProf
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!userId) {
-      setLoading(false);
-      return;
-    }
-
+    if (!userId) { setLoading(false); return; }
     let cancelled = false;
     const supabase = getSupabaseBrowser();
-    if (!supabase) {
-      setData(null);
-      setLoading(false);
-      return;
-    }
+    if (!supabase) { setData(null); setLoading(false); return; }
     const db: SupabaseClient = supabase;
 
     async function fetchProfile() {
@@ -141,12 +133,7 @@ export function useUserProfile(userId: string | undefined): QueryResult<UserProf
         },
       );
       try {
-        const { data: row, error: err } = await db
-          .from("users")
-          .select("*")
-          .eq("id", userId!)
-          .single();
-
+        const { data: row, error: err } = await db.from("users").select("*").eq("id", userId!).single();
         if (cancelled) return;
         if (err) setError(err.message);
         else setData(row as UserProfile);
@@ -177,18 +164,10 @@ export function useCajaFuerteData(
   const refetch = useCallback(() => setRefreshNonce((n) => n + 1), []);
 
   useEffect(() => {
-    if (!userId) {
-      setLoading(false);
-      return;
-    }
-
+    if (!userId) { setLoading(false); return; }
     let cancelled = false;
     const supabase = getSupabaseBrowser();
-    if (!supabase) {
-      setData(null);
-      setLoading(false);
-      return;
-    }
+    if (!supabase) { setData(null); setLoading(false); return; }
     const db: SupabaseClient = supabase;
 
     async function fetchStrongbox() {
@@ -277,11 +256,7 @@ export function useTransactions(
 
     let cancelled = false;
     const supabase = getSupabaseBrowser();
-    if (!supabase) {
-      setData(null);
-      setLoading(false);
-      return;
-    }
+    if (!supabase) { setData(null); setLoading(false); return; }
     const db: SupabaseClient = supabase;
 
     async function fetchTx() {
@@ -319,18 +294,10 @@ export function useAlerts(
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!userId) {
-      setLoading(false);
-      return;
-    }
-
+    if (!userId) { setLoading(false); return; }
     let cancelled = false;
     const supabase = getSupabaseBrowser();
-    if (!supabase) {
-      setData(null);
-      setLoading(false);
-      return;
-    }
+    if (!supabase) { setData(null); setLoading(false); return; }
     const db: SupabaseClient = supabase;
 
     async function fetchAlerts() {
@@ -352,15 +319,10 @@ export function useAlerts(
           .limit(50);
 
         if (cancelled) return;
-
-        if (err) {
-          setError(err.message);
-          return;
-        }
+        if (err) { setError(err.message); return; }
 
         const alerts = rows as Alert[];
-        const unreadCount = alerts.filter((a) => !a.is_read).length;
-        setData({ alerts, unreadCount });
+        setData({ alerts, unreadCount: alerts.filter((a) => !a.is_read).length });
       } finally {
         stopWatch();
         if (!cancelled) setLoading(false);

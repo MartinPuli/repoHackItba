@@ -49,7 +49,7 @@ export async function confirmDeploy(
 
   const row = await getStrongboxRowForUser(userId);
   if (row.is_deployed) {
-    throw new HttpError(409, 'La caja fuerte ya está registrada como deployada');
+    throw new HttpError(409, 'La StrongBox ya está registrada como deployada');
   }
 
   const admin = assertAdmin();

@@ -11,7 +11,7 @@ import "./StrongBox.sol";
 /// @dev Guarda un mapping wallet => strongBox.
 ///      También despliega los contratos Guardian y Heir asociados a cada StrongBox.
 contract Factory is Owner {
-    /// @dev Relación entre una wallet y su caja fuerte.
+    /// @dev Relación entre una wallet y su StrongBox.
     mapping(address => address) private strongBoxes;
 
     /// @notice Se lanza cuando una wallet ya tiene una StrongBox asignada.
