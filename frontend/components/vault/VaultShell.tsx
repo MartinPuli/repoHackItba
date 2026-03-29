@@ -24,18 +24,18 @@ export function VaultShell({
     <div className="flex min-h-[100dvh] flex-col items-center bg-canvas px-5 pb-12 pt-8 sm:px-8 md:pt-12">
       {/* Minimal header: logo + optional back */}
       <header className={cn("flex w-full items-center", mw, backHref ? "justify-between" : "justify-center")}>
-        <Link href="/" className="flex items-center gap-3">
+        <Link href="/" className="flex items-center gap-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/logo-verde.png"
             alt="Vaultix icon"
-            className="h-14 w-14 sm:h-16 sm:w-16"
+            style={{ height: 64, width: 64 }}
           />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/nombre-verde.png"
             alt="Vaultix"
-            className="h-10 w-auto sm:h-12"
+            style={{ height: 48 }}
           />
         </Link>
         {backHref && (
