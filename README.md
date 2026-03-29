@@ -1,66 +1,135 @@
 <p align="center">
-  <img src="frontend/public/logo-verde.png" alt="Vaultix" width="80" />
+  <img src="frontend/public/logo-verde.png" alt="Vaultix" width="100" />
 </p>
 
-<h1 align="center">Vaultix — Smart Recovery Vault</h1>
+<h1 align="center">Vaultix</h1>
 
 <p align="center">
-  Non-custodial digital vault that protects on-chain assets and ensures access continuity through guardians and recovery contacts.<br/>
-  <strong>Built at HackITBA 2026.</strong>
+  <strong>Smart Recovery Vault — Never lose access to your digital assets.</strong>
+</p>
+
+<p align="center">
+  Non-custodial on-chain vault with guardian-approved withdrawals and automatic recovery after inactivity.<br/>
+  Built at <strong>HackITBA 2026</strong>.
 </p>
 
 <p align="center">
   <img alt="Solidity" src="https://img.shields.io/badge/Solidity-^0.8.24-363636?logo=solidity" />
   <img alt="Next.js" src="https://img.shields.io/badge/Next.js-14-black?logo=nextdotjs" />
   <img alt="BSC Testnet" src="https://img.shields.io/badge/BSC_Testnet-97-F0B90B?logo=binance" />
+  <img alt="Express" src="https://img.shields.io/badge/Express-4.x-000000?logo=express" />
+  <img alt="Supabase" src="https://img.shields.io/badge/Supabase-Auth+DB-3FCF8E?logo=supabase" />
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
 </p>
 
 ---
 
-## Problem
+## 🔒 What is Vaultix?
 
-In crypto the biggest risk isn't volatility — it's **losing access**. A lost seed phrase, a hacked device, or prolonged inactivity can lock funds forever.
+**Vaultix** is a programmable smart vault that protects your crypto assets with two human security layers:
 
-## Solution
+- **Guardians (×2)** — Must approve every withdrawal. Protects against hacks and unauthorized transfers.
+- **Recovery Contacts (×2)** — Can claim funds after prolonged owner inactivity. Ensures continuity of access.
 
-Vaultix lets you create a digital vault linked to your wallet with two human security layers:
-
-- **Guardians (×2)** — Approve every withdrawal. Protect against hacks and unauthorized transfers.
-- **Recovery Contacts (×2)** — Claim funds after prolonged owner inactivity. Ensure continuity of access.
+It is **not** a multisig, **not** an exchange, and **not** custodial. Your funds live in a smart contract on BNB Chain — nobody else controls them.
 
 ```
-┌─────────────┐     ┌──────────────────────┐
-│   OWNER     │────▶│       VAULTIX         │
-│  (wallet)   │     │   (vault on-chain)    │
-└─────────────┘     └──────────┬────────────┘
-                               │
-                ┌──────────────┼──────────────┐
-                │              │              │
-         ┌──────▼─────┐ ┌─────▼──────┐ ┌─────▼──────┐
-         │ Guardian 1  │ │ Guardian 2  │ │ Recovery 1 │
-         │ (approves   │ │ (approves   │ │ (claims    │
-         │  withdraws) │ │  withdraws) │ │  funds)    │
-         └────────────┘ └────────────┘ └────────────┘
+                    ┌─────────────────────────────┐
+                    │         VAULTIX VAULT        │
+                    │     (Smart Contract on BSC)  │
+                    └─────────────┬───────────────┘
+                                  │
+        ┌─────────────────────────┼─────────────────────────┐
+        │                         │                         │
+  ┌─────▼──────┐           ┌─────▼──────┐           ┌──────▼──────┐
+  │   OWNER    │           │ GUARDIAN ×2 │           │ RECOVERY ×2 │
+  │ (your key) │           │  (approve   │           │ (claim after│
+  │            │           │  withdraws) │           │ inactivity) │
+  └────────────┘           └────────────┘           └─────────────┘
+```
+
+### The Problem
+
+In crypto, the biggest risk isn't volatility — it's **losing access**:
+- Lost seed phrase → funds locked forever
+- Hacked device → unauthorized transfers
+- Prolonged inactivity → no one can recover the funds
+- Single point of failure → no safety net
+
+### The Solution
+
+Vaultix adds a programmable security layer on top of your wallet:
+1. **Every withdrawal requires 2-of-2 guardian approval** — even if your key is compromised, attackers can't drain funds without your guardians
+2. **Automatic recovery after inactivity** — if you can't access your wallet for an extended period, your recovery contacts can claim the funds
+3. **100% non-custodial** — the smart contract holds the funds, not Vaultix
+
+---
+
+## 🏗️ Architecture
+
+| Layer | Technology | Purpose |
+|-------|-----------|---------|
+| **Smart Contracts** | Solidity ^0.8.24, Hardhat | Vault logic, guardian approval, recovery |
+| **Blockchain** | BSC Testnet (chainId 97) | On-chain deployment |
+| **Frontend** | Next.js 14 (App Router), Wagmi v2, Viem, TailwindCSS | User interface for all 3 roles |
+| **Backend** | Express + TypeScript | Auth, DB sync, on-chain verification |
+| **Database** | Supabase (Auth + PostgreSQL) | User profiles, vault metadata, withdrawal tracking |
+| **Wallets** | Reown AppKit (MetaMask, WalletConnect, Coinbase, Trust, Binance, Lemon Cash) | Wallet connection |
+
+### Smart Contract Architecture
+
+```
+Factory (deployed once)
+  └── createStrongBox(guardian1, guardian2, heir1, heir2, timeLimit)
+      ├── deploy → Guardian(guardian1, guardian2)
+      ├── deploy → Heir(heir1, heir2)
+      └── deploy → StrongBox(owner, guardianAddr, heirAddr, timeLimit)
+
+StrongBox (one per user)
+  ├── deposit()              → owner deposits BNB, resets inactivity timer
+  ├── withdraw(amount, to)   → owner creates withdrawal request
+  ├── approveWithdrawal(id)  → guardian approves (auto-executes if 2/2)
+  ├── rejectWithdrawal(id)   → guardian rejects (cancels request)
+  ├── inherit()              → recovery contact claims 50% after inactivity
+  ├── getBalance()           → query vault balance
+  └── getLastTimeUsed()      → last activity timestamp
 ```
 
 ---
 
-## Tech Stack
+## 🚀 Step-by-Step: How to Use Vaultix
 
-| Layer | Tech |
-|-------|------|
-| **Smart Contracts** | Solidity ^0.8.24, Hardhat, Ethers.js |
-| **Chain** | BSC Testnet (chainId 97) |
-| **Frontend** | Next.js 14 (App Router), Wagmi v2, Viem, TailwindCSS, Reown AppKit |
-| **Backend** | Express, TypeScript, Supabase (Auth + DB) |
-| **Auth** | Wallet signature (MetaMask / WalletConnect / Lemon) → Supabase session + WebAuthn biometric step-up |
-| **Wallets** | MetaMask, WalletConnect, Coinbase, Trust Wallet, Lemon Cash, Binance |
+### As an Owner (create & manage your vault)
+
+1. **Connect your wallet** — Go to the app, click "Connect Wallet", and select MetaMask, WalletConnect, or any supported wallet
+2. **Choose "My Safe"** — Select the Owner role from the role selection screen
+3. **Configure your vault** — Enter the wallet addresses and emails of:
+   - 2 Guardians (people you trust to approve withdrawals)
+   - 2 Recovery Contacts (people who can recover funds if you're inactive)
+4. **Deploy on-chain** — The Factory contract deploys your personal StrongBox + Guardian + Heir contracts on BSC Testnet
+5. **Deposit BNB** — Send BNB to your vault. Every deposit resets the inactivity timer
+6. **Request a withdrawal** — When you need funds, create a withdrawal request specifying the amount and destination address
+7. **Wait for guardian approval** — Both guardians must approve for the withdrawal to execute
+
+### As a Guardian (protect a vault)
+
+1. **Connect your wallet** — Use the same wallet address the owner assigned as guardian
+2. **Choose "Guardian Dashboard"** — You'll see pending withdrawal requests from vaults you protect
+3. **Review the request** — Check the amount, destination, and decide:
+   - ✅ **Approve** — Register your approval (if both guardians approve, funds are released automatically)
+   - ❌ **Reject** — Cancel the withdrawal request entirely
+
+### As a Recovery Contact (claim after inactivity)
+
+1. **Connect your wallet** — Use the wallet address assigned as recovery contact
+2. **Choose "Recovery Dashboard"** — See vaults where you're a recovery contact
+3. **Monitor the countdown** — The inactivity timer shows how long since the owner's last action
+4. **Execute Recovery** — Once the timer expires, call `inherit()` to claim your 50% share
 
 ---
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 contracts/                  # Solidity smart contracts
@@ -69,176 +138,188 @@ contracts/                  # Solidity smart contracts
 ├── deploy/                 # BSC Testnet deploy script
 └── scripts/                # ABI sync script
 
-frontend/                   # Next.js 14 App Router
-├── app/                    # Pages: /, connect, role, safe/configure, safe/owner, guardian, heir
-│   ├── error.tsx           # Error boundary (Vaultix design tokens)
-│   ├── global-error.tsx    # Root error boundary
-│   └── not-found.tsx       # 404 page
-├── components/vault/       # VaultShell, VaultPrimitives (shared UI system)
-├── context/                # VaultFlowContext (configure form state), LemonContext (Lemon SDK)
-├── hooks/                  # useAuth, useSupabase, useStrongBoxChain, useWebAuthn
+frontend/                   # Next.js 14 — Full production app (Wagmi + Supabase + on-chain)
+├── app/                    # Pages: /, connect, role, safe/configure, safe/owner, guardian, recoverer
+├── components/             # VaultShell, VaultPrimitives, ChainGuard
+├── hooks/                  # useAuth, useSupabase, useStrongBoxChain, useWebAuthn, useUnifiedWallet
+├── context/                # VaultFlowContext, LemonContext
 └── lib/                    # Wagmi config, Supabase client, contract ABIs, API client, Lemon SDK
+
+frontend-demo/              # Next.js 14 — Demo mode (no wallet/Supabase required, mock data)
+├── app/                    # Same pages with demo mock context
+├── hooks/                  # useStrongBoxChain (mocked)
+├── context/                # DemoMockContext (simulates wallet connection)
+└── lib/                    # Same API client + ABIs
 
 api/                        # Express + TypeScript backend (port 3001)
 ├── src/controllers/        # auth, balance, strongbox, deploy, deposit, withdrawal, guardian
-├── src/services/           # Business logic, chain provider, WebAuthn
+├── src/services/           # Business logic, chain provider, WebAuthn, withdrawal, guardian
 ├── src/middlewares/        # requireAuth (JWT), errorHandler, asyncHandler
-├── src/types/              # Database types, Express augmentation
-└── supabase/migrations/    # SQL schema
+└── src/types/              # Database types, Express augmentation
 
-docs/                       # Design docs, API spec, security notes, rubric
+docs/                       # Design docs, API spec, security model, hackathon rubric
 ```
 
 ---
 
-## Smart Contract Architecture
+## ⚡ Quick Start
 
-```
-Factory
-  └── createStrongBox(guardian1, guardian2, heir1, heir2, timeLimit)
-      ├── deploy Guardian(guardian1, guardian2)
-      ├── deploy Heir(heir1, heir2)
-      └── deploy StrongBox(owner, guardianAddr, heirAddr, timeLimit)
+### Prerequisites
 
-StrongBox (inherits Owner)
-  ├── deposit()              → owner deposits, resets inactivity timer
-  ├── withdraw(amount, to)   → owner creates withdrawal request
-  ├── approveWithdrawal(id)  → guardian approves (auto-executes if both approve)
-  ├── rejectWithdrawal(id)   → guardian rejects (cancels request)
-  └── inherit()              → recovery contact claims 50% after inactivity
-```
+- **Node.js** ≥ 20
+- **npm** (included with Node.js)
+- A wallet with BSC Testnet BNB ([faucet](https://www.bnbchain.org/en/testnet-faucet))
 
-### Secure Withdrawal Flow
-
-1. Owner calls `withdraw(amount, to)` → creates a `WithdrawalRequest`
-2. Guardian 1 calls `approveWithdrawal(id)` → registers approval
-3. Guardian 2 calls `approveWithdrawal(id)` → **auto-executes** the transfer
-4. If any guardian calls `rejectWithdrawal(id)` → cancels the request
-5. Only 1 active request at a time
-
-### Recovery by Inactivity
-
-1. Owner doesn't interact for `timeLimit` seconds
-2. `block.timestamp - lastTimeUsed >= timeLimit` → recovery enabled
-3. Recovery Contact 1 calls `inherit()` → claims 50% (snapshot of balance)
-4. Recovery Contact 2 calls `inherit()` → claims the remaining 50%
-5. Each contact can only claim once
-
-### Inactivity Timer
-
-- Resets automatically on `deposit()` and `withdraw()`
-- `timeLimit` is immutable (set at deployment)
-- No manual check-in — any vault operation resets the timer
-
----
-
-## Quick Start
+### 1. Clone the repository
 
 ```bash
-# 1. Install dependencies
-cd contracts && npm install
-cd ../api && npm install
-cd ../frontend && npm install
+git clone https://github.com/MartinPuli/repoHackItba.git
+cd repoHackItba
+```
 
-# 2. Configure environment variables
-cp contracts/.env.example contracts/.env
+### 2. Install dependencies
+
+```bash
+cd contracts && npm install && cd ..
+cd api && npm install && cd ..
+cd frontend && npm install && cd ..
+cd frontend-demo && npm install && cd ..
+```
+
+### 3. Configure environment variables
+
+```bash
 cp api/.env.example api/.env
 cp frontend/.env.example frontend/.env.local
-# Fill in your keys (see Environment Variables below)
+cp frontend-demo/.env.example frontend-demo/.env.local
+```
 
-# 3. Compile contracts & run tests
+Fill in the values (see [Environment Variables](#-environment-variables) below).
+
+### 4. Compile & test contracts
+
+```bash
 cd contracts
 npx hardhat compile
 npx hardhat test
+```
 
-# 4. Deploy to BSC Testnet (optional)
+### 5. Deploy to BSC Testnet (optional)
+
+```bash
 npx hardhat run deploy/deploy.ts --network bscTestnet
+```
 
-# 5. Start the backend (port 3001)
-cd ../api && npm run dev
+### 6. Start the backend
 
-# 6. Start the frontend (port 3000)
-cd ../frontend && npm run dev
+```bash
+cd api
+npm run dev
+# → API listening on http://0.0.0.0:3001
+```
+
+### 7. Start the frontend
+
+**Full app** (requires Supabase + wallet):
+```bash
+cd frontend
+npm run dev
+# → http://localhost:3000
+```
+
+**Demo mode** (no external dependencies, mock data):
+```bash
+cd frontend-demo
+npm run dev
+# → http://localhost:3000
 ```
 
 ---
 
-## Environment Variables
-
-### `frontend/.env.local`
-
-```env
-NEXT_PUBLIC_BSC_TESTNET_RPC=https://data-seed-prebsc-1-s1.binance.org:8545/
-NEXT_PUBLIC_FACTORY_ADDRESS=          # After contract deploy
-NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID= # From cloud.reown.com
-NEXT_PUBLIC_SUPABASE_URL=             # Optional: without it app runs in demo mode
-NEXT_PUBLIC_SUPABASE_ANON_KEY=        # Optional
-NEXT_PUBLIC_API_URL=http://localhost:3001
-```
+## 🔑 Environment Variables
 
 ### `api/.env`
 
-```env
-PORT=3001
-SUPABASE_URL=
-SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-RPC_URL=https://data-seed-prebsc-1-s1.binance.org:8545/
-WEBAUTHN_RP_ID=localhost
-FRONTEND_ORIGIN=http://localhost:3000
-```
+| Variable | Description |
+|----------|-------------|
+| `PORT` | Server port (default: `3001`) |
+| `SUPABASE_URL` | Supabase project URL |
+| `SUPABASE_ANON_KEY` | Supabase anon/public key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (⚠️ backend only, never expose) |
+| `RPC_URL` | BSC Testnet RPC endpoint |
+| `WEBAUTHN_RP_ID` | WebAuthn relying party ID (e.g. `localhost`) |
+| `FRONTEND_ORIGIN` | Frontend URL for CORS (e.g. `http://localhost:3000`) |
 
-### `contracts/.env`
+### `frontend/.env.local`
 
-```env
-DEPLOYER_PRIVATE_KEY=
-BSC_TESTNET_RPC_URL=https://data-seed-prebsc-1-s1.binance.org:8545/
-BSCSCAN_API_KEY=
-```
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_BSC_TESTNET_RPC` | BSC Testnet RPC URL |
+| `NEXT_PUBLIC_FACTORY_ADDRESS` | Deployed Factory contract address |
+| `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | From [cloud.reown.com](https://cloud.reown.com) |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL (optional — without it, app runs in demo mode) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key (optional) |
+| `NEXT_PUBLIC_API_URL` | Backend URL (default: `http://localhost:3001`) |
 
 ---
 
-## Frontend Pages
+## 🖥️ Frontend Pages
 
 | Route | Role | Description |
 |-------|------|-------------|
-| `/` | — | Landing page with product overview |
-| `/connect` | — | Wallet connection (AppKit: MetaMask, WalletConnect, Lemon, etc.) |
-| `/role` | — | Role selection after connecting + auto sign-in |
-| `/safe/configure` | Owner | Set guardians, recovery contacts, and owner email + biometric step-up |
+| `/` | — | Landing page with product overview and "How it works" |
+| `/connect` | — | Wallet connection via Reown AppKit |
+| `/role` | — | Role selection: Owner / Guardian / Recovery |
+| `/safe/configure` | Owner | Set guardians, recovery contacts, email, and biometric step-up |
 | `/safe/owner` | Owner | Dashboard: balance, deposit, withdraw, deploy, inactivity countdown |
 | `/guardian` | Guardian | Review and approve/reject withdrawal requests |
-| `/heir` | Recovery | Track inactivity countdown and claim funds |
+| `/recoverer` | Recovery | Track inactivity countdown and claim funds |
 
 ---
 
-## API Endpoints
+## 🔌 API Endpoints
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | `GET` | `/health` | — | Health check |
-| `GET` | `/api/auth/me` | JWT | Upsert user, returns roles (`has_strongbox`, `is_guardian`, `is_heir`) |
-| `POST` | `/api/strongbox/setup` | JWT | Create vault + guardians + recovery contacts in DB |
-| `POST` | `/api/strongbox/confirm-deploy` | JWT | Confirm on-chain deploy (saves contract address + tx hash) |
-| `POST` | `/api/strongbox/confirm-deposit` | JWT | Record and verify a deposit transaction on-chain |
-| `GET` | `/api/strongbox/balance` | JWT | Get vault balance (on-chain RPC or mock fallback) |
+| `GET` | `/api/auth/me` | JWT | Upsert user, returns roles |
+| `POST` | `/api/auth/wallet-reset` | — | Reset wallet association |
+| `POST` | `/api/strongbox/setup` | JWT | Create vault + guardians + recovery contacts |
+| `POST` | `/api/strongbox/confirm-deploy` | JWT | Confirm on-chain deploy (validates bytecode) |
+| `POST` | `/api/strongbox/confirm-deposit` | JWT | Record and verify deposit on-chain |
+| `GET` | `/api/strongbox/balance` | JWT | Vault balance (on-chain RPC) |
 | `POST` | `/api/strongbox/withdraw/request` | JWT | Create withdrawal request |
-| `GET` | `/api/strongbox/withdraw/pending` | JWT | List pending withdrawal requests |
-| `POST` | `/api/strongbox/withdraw/:id/approve` | JWT | Guardian approves withdrawal |
-| `POST` | `/api/strongbox/withdraw/:id/reject` | JWT | Guardian rejects withdrawal |
-| `POST` | `/api/strongbox/withdraw/:id/executed` | JWT | Mark withdrawal as executed |
-| `GET` | `/api/guardian/pending` | JWT | Guardian: list pending requests across all vaults |
+| `GET` | `/api/strongbox/withdraw/pending` | JWT | List withdrawal requests |
+| `POST` | `/api/strongbox/withdraw/:id/approve` | JWT | Guardian approves |
+| `POST` | `/api/strongbox/withdraw/:id/reject` | JWT | Guardian rejects |
+| `POST` | `/api/strongbox/withdraw/:id/executed` | JWT | Mark as executed (after on-chain tx) |
 | `GET` | `/api/guardian/vaults` | JWT | Guardian: list assigned vaults |
-| `GET` | `/api/heir/vaults` | JWT | Recovery: list assigned vaults with countdown info |
-| `GET` | `/api/webauthn/status` | JWT | Check if user has registered biometric credential |
-| `GET` | `/api/webauthn/register/options` | JWT | WebAuthn registration challenge |
-| `POST` | `/api/webauthn/register/verify` | JWT | Verify WebAuthn registration |
-| `GET` | `/api/webauthn/authenticate/options` | JWT | WebAuthn authentication challenge |
-| `POST` | `/api/webauthn/authenticate/verify` | JWT | Verify WebAuthn authentication |
+| `GET` | `/api/guardian/pending` | JWT | Guardian: list pending requests |
+| `GET` | `/api/heir/vaults` | JWT | Recovery: list assigned vaults |
+| `GET` | `/api/webauthn/status` | JWT | WebAuthn credential status |
+| `POST` | `/api/webauthn/register/*` | JWT | WebAuthn registration flow |
+| `POST` | `/api/webauthn/authenticate/*` | JWT | WebAuthn authentication flow |
 
 ---
 
-## Database Schema (Supabase)
+## 🛡️ Security Model
+
+| Feature | Implementation |
+|---------|---------------|
+| **2-of-2 guardian approval** | Every withdrawal requires both guardians to approve |
+| **Inactivity timer** | Resets on deposit/withdraw — no manual check-in needed |
+| **One active request** | Only 1 pending withdrawal at a time — prevents approval confusion |
+| **WebAuthn biometric step-up** | Optional biometric verification before vault creation |
+| **On-chain verification** | Backend verifies deploy bytecode + deposit tx receipt against RPC |
+| **Checks-Effects-Interactions** | Solidity pattern in all transfers to prevent reentrancy |
+| **Custom Solidity errors** | Descriptive errors with parameters for better debugging |
+| **Non-custodial** | Funds live in the smart contract — never in a backend or database |
+
+See [`docs/SEGURIDAD-HERENCIA.md`](docs/SEGURIDAD-HERENCIA.md) for the full security model.
+
+---
+
+## 🗃️ Database Schema (Supabase)
 
 | Table | Purpose |
 |-------|---------|
@@ -248,51 +329,86 @@ BSCSCAN_API_KEY=
 | `recovery_contacts` | 2 per vault (slot 1, 2): address + email + share % |
 | `withdrawal_requests` | Requests: amount, to, status, per-guardian approvals |
 | `transactions` | History: deposit, withdraw, recovery |
-| `alerts` | Notifications: pending withdrawal, recovery initiated, inactivity |
+| `alerts` | Notifications: pending withdrawal, recovery, inactivity |
 | `user_authenticators` | WebAuthn credentials for biometric step-up |
+
+See [`docs/SUPABASE-SCHEMA.md`](docs/SUPABASE-SCHEMA.md) for the full SQL schema.
 
 ---
 
-## Demo Flow
+## 🎯 Demo Flow
 
 1. **Connect wallet** → MetaMask / WalletConnect / Lemon Cash via Reown AppKit
 2. **Choose role** → Create Safe / Guardian / Recovery
-3. **Configure vault** → Set 2 guardians + 2 recovery contacts (with emails + wallets) + biometric registration
+3. **Configure vault** → Set 2 guardians + 2 recovery contacts (wallet + email) + biometric registration
 4. **Deploy on-chain** → Factory creates StrongBox + Guardian + Heir contracts on BSC Testnet
 5. **Deposit BNB** → Owner deposits into the vault (resets inactivity timer)
 6. **Request withdrawal** → Owner requests, both guardians approve → funds released
 7. **Recovery** → If owner goes inactive past the time limit, recovery contacts claim their 50% share
 
----
-
-## Security
-
-- **2-of-2 guardian approval** for every withdrawal
-- **Inactivity timer** resets on deposit/withdraw — no manual check-in
-- **One active request** at a time — prevents approval confusion
-- **WebAuthn biometric step-up** before vault creation
-- **Checks-Effects-Interactions** pattern in all Solidity transfers
-- **Custom Solidity errors** with descriptive parameters
-- **Replay protection** via nonces + chainId
-- **Non-custodial** — funds live in the smart contract, never in a backend
-
-See [`docs/SEGURIDAD-HERENCIA.md`](docs/SEGURIDAD-HERENCIA.md) for the full security model.
+> 💡 **Try the demo without a wallet:** Run `frontend-demo` for a fully interactive demo with mock data — no MetaMask, no Supabase, no testnet BNB required.
 
 ---
 
-## What This Is NOT
+## 💰 Business Model
 
-- Not an exchange
-- Not custodial (funds live in a smart contract, not with us)
-- Not primarily a digital will or legal succession system
-- Not a multi-sig — it's a programmable recovery vault
+| Revenue Stream | Description |
+|---------------|-------------|
+| **Deploy fee** | One-time fee when creating a vault on-chain |
+| **Withdrawal fee** | Small % on executed withdrawals |
+| **Premium tier** | More guardians, custom time limits, multi-channel notifications |
 
 ---
 
-## Team
+## 🚫 What Vaultix is NOT
 
-Hackathon ITBA 2026
+- **Not an exchange** — You deposit and withdraw your own funds
+- **Not custodial** — Funds live in a smart contract, not with us
+- **Not a digital will** — It's a programmable recovery vault, not a legal succession tool
+- **Not a multisig** — It's role-based (owner + guardians + recovery contacts)
 
-## License
+---
+
+## 📚 Documentation
+
+| Document | Description |
+|----------|-------------|
+| [`docs/API.md`](docs/API.md) | Full API specification |
+| [`docs/DESIGN.md`](docs/DESIGN.md) | Design decisions and architecture |
+| [`docs/SUPABASE-SCHEMA.md`](docs/SUPABASE-SCHEMA.md) | Complete SQL schema |
+| [`docs/SEGURIDAD-HERENCIA.md`](docs/SEGURIDAD-HERENCIA.md) | Security model and threat analysis |
+| [`docs/LEMON-INTEGRATION.md`](docs/LEMON-INTEGRATION.md) | Lemon Cash Mini App integration |
+| [`docs/INTEGRACION-CONTRATOS.md`](docs/INTEGRACION-CONTRATOS.md) | Contract integration guide |
+| [`docs/RUBRICA-HACKITBA.md`](docs/RUBRICA-HACKITBA.md) | Hackathon rubric mapping |
+
+---
+
+## 🧑‍💻 Tech Stack Summary
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                      FRONTEND                            │
+│  Next.js 14 · Wagmi v2 · Viem · TailwindCSS · AppKit    │
+├──────────────────────────────────────────────────────────┤
+│                       BACKEND                            │
+│  Express · TypeScript · Supabase JS · Ethers.js 6        │
+├──────────────────────────────────────────────────────────┤
+│                      DATABASE                            │
+│  Supabase (PostgreSQL + Auth + RLS)                      │
+├──────────────────────────────────────────────────────────┤
+│                    SMART CONTRACTS                        │
+│  Solidity 0.8.24 · Hardhat · BSC Testnet                 │
+└──────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 👥 Team
+
+**HackITBA 2026**
+
+---
+
+## 📄 License
 
 MIT
