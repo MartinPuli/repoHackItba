@@ -30,7 +30,7 @@ export async function getGuardianPendingController(req: Request, res: Response):
   res.status(200).json({ requests: data });
 }
 
-/** GET /api/heir/vaults — vaults donde soy recovery contact */
+/** GET /api/heir/vaults — vaults donde soy recoverer/recovery contact */
 export async function getHeirVaultsController(req: Request, res: Response): Promise<void> {
   const wallet = walletFromAuth(req);
   const data = await getHeirVaults(wallet);

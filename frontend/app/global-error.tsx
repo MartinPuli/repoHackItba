@@ -1,9 +1,8 @@
 "use client";
 
 /**
- * Obligatorio para errores en el root layout.
- * Debe definir <html> y <body> (no comparte el layout raíz).
- * Sin esto, el dev server puede quedar en "missing required error components, refreshing...".
+ * Required for errors in the root layout.
+ * Must define <html> and <body> (does not share root layout).
  */
 export default function GlobalError({
   error,
@@ -18,15 +17,15 @@ export default function GlobalError({
         style={{
           margin: 0,
           minHeight: "100vh",
-          backgroundColor: "#F9FCF7",
-          color: "#1a2e1f",
-          fontFamily: "Inter, system-ui, sans-serif",
+          backgroundColor: "#f5f4f0",
+          color: "#1a1a18",
+          fontFamily: '"Outfit", system-ui, sans-serif',
           padding: 24,
         }}
       >
-        <h1 style={{ fontSize: 18, fontWeight: 600 }}>Error en la app</h1>
-        <p style={{ color: "#5a7d64", fontSize: 14, maxWidth: 480 }}>
-          {error?.message || "Error desconocido"}
+        <h1 style={{ fontSize: 18, fontWeight: 600 }}>Application error</h1>
+        <p style={{ color: "#4a4a46", fontSize: 14, maxWidth: 480 }}>
+          {error?.message || "Unknown error"}
         </p>
         <button
           type="button"
@@ -36,14 +35,13 @@ export default function GlobalError({
             padding: "10px 16px",
             borderRadius: 12,
             border: "none",
-            background: "#96CCA8",
-            color: "#142822",
+            background: "#1a7f5a",
+            color: "#ffffff",
             fontWeight: 600,
             cursor: "pointer",
-            boxShadow: "0 4px 14px rgba(150, 204, 168, 0.35)",
           }}
         >
-          Reintentar
+          Try again
         </button>
       </body>
     </html>

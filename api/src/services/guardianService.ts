@@ -81,7 +81,7 @@ export async function getGuardianPendingRequests(walletAddress: string) {
   });
 }
 
-/** Obtener vaults donde la wallet es heir/recovery contact */
+/** Obtener vaults donde la wallet es recoverer/recovery contact */
 export async function getHeirVaults(walletAddress: string) {
   const admin = assertAdmin();
   const wallet = walletAddress.toLowerCase();

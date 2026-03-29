@@ -16,7 +16,7 @@
   --shadow-premium: 0 10px 30px -10px rgba(26, 127, 90, 0.1), 0 4px 10px -5px rgba(26, 127, 90, 0.05);
   --shadow-hover: 0 20px 40px -15px rgba(26, 127, 90, 0.15), 0 8px 16px -8px rgba(26, 127, 90, 0.1);
 
-  /* ── Accent ───────────────────────────────── */
+  /* ── Accent (Vaultix Green) ──────────────── */
   --emerald: #1a7f5a;
   --emerald-light: #e6f5ee;
   --emerald-muted: #d0ece0;
@@ -55,6 +55,7 @@
 
 html {
   color-scheme: light;
+  scroll-behavior: smooth;
 }
 
 body {
@@ -72,11 +73,16 @@ body {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: var(--radius);
-  transition: border-color 0.2s ease;
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.25s ease;
 }
 
 .glass-card:hover {
   border-color: var(--card-border-hover);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
 }
 
 .surface-card {
@@ -121,7 +127,7 @@ body {
 }
 
 .glow-brand {
-  box-shadow: 0 0 20px -5px rgba(26, 127, 90, 0.3);
+  box-shadow: 0 0 24px rgba(26, 127, 90, 0.15), 0 0 80px rgba(26, 127, 90, 0.06);
 }
 
 @keyframes float {
@@ -141,24 +147,6 @@ body {
 
 .animate-pulse-soft {
   animation: pulse-soft 8s ease-in-out infinite;
-}
-
-.mesh-bg {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: -1;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.mesh-blob {
-  position: absolute;
-  filter: blur(80px);
-  border-radius: 50%;
-  opacity: 0.35;
 }
 
 .app-bg {
@@ -186,6 +174,69 @@ body {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-muted);
+}
+
+/* ── Hero gradient blobs ───────────────────── */
+.hero-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.hero-blob-1 {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, #d0ece0 0%, transparent 70%);
+  top: -120px;
+  right: -100px;
+}
+
+.hero-blob-2 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, #e6f5ee 0%, transparent 70%);
+  bottom: -80px;
+  left: -80px;
+}
+
+/* ── Stagger animations ────────────────────── */
+.stagger-1 { animation-delay: 0ms; }
+.stagger-2 { animation-delay: 80ms; }
+.stagger-3 { animation-delay: 160ms; }
+.stagger-4 { animation-delay: 240ms; }
+
+/* ── Icon badge ────────────────────────────── */
+.icon-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: var(--emerald-light);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.icon-badge:hover {
+  background: var(--emerald-muted);
+  transform: scale(1.05);
+}
+
+/* ── Vault dark section ────────────────────── */
+.vault-dark {
+  background: linear-gradient(135deg, #0f1a14 0%, #132a1e 50%, #0f1a14 100%);
+}
+
+/* ── Shimmer loading ───────────────────────── */
+.shimmer {
+  background: linear-gradient(90deg, #eae8e3 25%, #f5f4f0 50%, #eae8e3 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s linear infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
 /* ── Mobile bottom nav safe area ────────────── */

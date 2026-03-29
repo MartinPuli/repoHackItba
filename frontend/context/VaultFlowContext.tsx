@@ -18,22 +18,22 @@ export type VaultConfigureForm = {
   ownerEmail: string;
   guardian1: VaultPersonSlot;
   guardian2: VaultPersonSlot;
-  heir1: VaultPersonSlot;
-  heir2: VaultPersonSlot;
+  recoverer1: VaultPersonSlot;
+  recoverer2: VaultPersonSlot;
 };
 
 const defaultConfigureForm: VaultConfigureForm = {
   ownerEmail: "",
   guardian1: { email: "", wallet: "" },
   guardian2: { email: "", wallet: "" },
-  heir1: { email: "", wallet: "" },
-  heir2: { email: "", wallet: "" },
+  recoverer1: { email: "", wallet: "" },
+  recoverer2: { email: "", wallet: "" },
 };
 
 export type VaultFlowContextValue = {
   vaultBalanceEth: number;
-  heirFundsUnlocked: boolean;
-  setHeirFundsUnlocked: (v: boolean) => void;
+  recoveryFundsUnlocked: boolean;
+  setRecoveryFundsUnlocked: (v: boolean) => void;
   vaultOwnerAddress: string;
   setVaultOwnerAddress: (address: string) => void;
   vaultSetupComplete: boolean;
@@ -43,27 +43,27 @@ export type VaultFlowContextValue = {
   updatePerson: (
     slot: keyof Pick<
       VaultConfigureForm,
-      "guardian1" | "guardian2" | "heir1" | "heir2"
+      "guardian1" | "guardian2" | "recoverer1" | "recoverer2"
     >,
     field: keyof VaultPersonSlot,
     value: string
   ) => void;
-  getHeirFilter: string;
-  setGetHeirFilter: (s: string) => void;
+  getRecovererFilter: string;
+  setGetRecovererFilter: (s: string) => void;
 };
 
 const VaultFlowContext = createContext<VaultFlowContextValue | null>(null);
 
 export function VaultFlowProvider({ children }: { children: ReactNode }) {
   const [vaultBalanceEth] = useState(2.5);
-  const [heirFundsUnlocked, setHeirFundsUnlocked] = useState(false);
+  const [recoveryFundsUnlocked, setRecoveryFundsUnlocked] = useState(false);
   const [vaultOwnerAddress, setVaultOwnerAddress] = useState(
     "0x1234567890abcdef1234567890abcdef12345678"
   );
   const [vaultSetupComplete, setVaultSetupComplete] = useState(false);
   const [form, setFormState] =
     useState<VaultConfigureForm>(defaultConfigureForm);
-  const [getHeirFilter, setGetHeirFilter] = useState("");
+  const [getRecovererFilter, setGetRecovererFilter] = useState("");
 
   const setForm = useCallback((partial: Partial<VaultConfigureForm>) => {
     setFormState((prev) => ({ ...prev, ...partial }));
@@ -73,7 +73,7 @@ export function VaultFlowProvider({ children }: { children: ReactNode }) {
     (
       slot: keyof Pick<
         VaultConfigureForm,
-        "guardian1" | "guardian2" | "heir1" | "heir2"
+        "guardian1" | "guardian2" | "recoverer1" | "recoverer2"
       >,
       field: keyof VaultPersonSlot,
       value: string
@@ -89,8 +89,8 @@ export function VaultFlowProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       vaultBalanceEth,
-      heirFundsUnlocked,
-      setHeirFundsUnlocked,
+      recoveryFundsUnlocked,
+      setRecoveryFundsUnlocked,
       vaultOwnerAddress,
       setVaultOwnerAddress,
       vaultSetupComplete,
@@ -98,16 +98,16 @@ export function VaultFlowProvider({ children }: { children: ReactNode }) {
       form,
       setForm,
       updatePerson,
-      getHeirFilter,
-      setGetHeirFilter,
+      getRecovererFilter,
+      setGetRecovererFilter,
     }),
     [
       vaultBalanceEth,
-      heirFundsUnlocked,
+      recoveryFundsUnlocked,
       vaultOwnerAddress,
       vaultSetupComplete,
       form,
-      getHeirFilter,
+      getRecovererFilter,
       setForm,
       updatePerson,
     ]

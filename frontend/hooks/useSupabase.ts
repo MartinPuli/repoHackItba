@@ -63,12 +63,6 @@ interface StrongboxWithRelations {
   recovery_contacts?: RecoveryContactRow[];
 }
 
-interface QueryResult<T> {
-  data: T | null;
-  loading: boolean;
-  error: string | null;
-}
-
 function startQueryWatchdog(
   isCancelled: () => boolean,
   onTimeout: () => void,
@@ -105,7 +99,7 @@ export function useCajaFuerteData(
       const stopWatch = startQueryWatchdog(
         () => cancelled,
         () => {
-          setError("Tiempo de espera al cargar la caja fuerte.");
+          setError("Timed out loading vault data.");
           setLoading(false);
         },
       );

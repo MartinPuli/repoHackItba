@@ -31,10 +31,10 @@ export function useWebAuthn(accessToken: string | null | undefined) {
     }
   }, [accessToken]);
 
-  /** `null` = éxito; string = mensaje de error (evita leer estado stale en el caller). */
+  /** `null` = success; string = error message (avoids reading stale state in caller). */
   const register = useCallback(async (): Promise<string | null> => {
     if (!accessToken) {
-      const msg = "No hay sesión activa";
+      const msg = "No active session";
       setState((s) => ({ ...s, error: msg }));
       return msg;
     }
@@ -55,16 +55,16 @@ export function useWebAuthn(accessToken: string | null | undefined) {
       setState({ isRegistered: true, loading: false, error: null });
       return null;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Error en registro biométrico";
+      const msg = err instanceof Error ? err.message : "Biometric registration failed";
       setState((s) => ({ ...s, loading: false, error: msg }));
       return msg;
     }
   }, [accessToken]);
 
-  /** `null` = éxito; string = mensaje de error. */
+  /** `null` = success; string = error message. */
   const authenticate = useCallback(async (): Promise<string | null> => {
     if (!accessToken) {
-      const msg = "No hay sesión activa";
+      const msg = "No active session";
       setState((s) => ({ ...s, error: msg }));
       return msg;
     }
@@ -85,7 +85,7 @@ export function useWebAuthn(accessToken: string | null | undefined) {
       setState((s) => ({ ...s, loading: false, error: null }));
       return null;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Verificación biométrica fallida";
+      const msg = err instanceof Error ? err.message : "Biometric verification failed";
       setState((s) => ({ ...s, loading: false, error: msg }));
       return msg;
     }

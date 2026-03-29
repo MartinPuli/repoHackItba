@@ -16,18 +16,18 @@ export default function Error({
         flexDirection: "column",
         alignItems: "flex-start",
         justifyContent: "center",
-        fontFamily: "Inter, system-ui, sans-serif",
-        backgroundColor: "#F9FCF7",
-        color: "#1a2e1f",
+        fontFamily: '"Outfit", system-ui, sans-serif',
+        backgroundColor: "#f5f4f0",
+        color: "#1a1a18",
       }}
     >
-      <h1 style={{ fontSize: 18, fontWeight: 600, color: "#1a2e1f" }}>
-        Algo salió mal
+      <h1 style={{ fontSize: 18, fontWeight: 600, color: "#1a1a18" }}>
+        Something went wrong
       </h1>
       <pre
         style={{
           marginTop: 12,
-          color: "#d46b6b",
+          color: "#d93025",
           whiteSpace: "pre-wrap",
           fontSize: 13,
         }}
@@ -42,14 +42,13 @@ export default function Error({
           padding: "10px 16px",
           borderRadius: 12,
           border: "none",
-          background: "#96CCA8",
-          color: "#142822",
+          background: "#1a7f5a",
+          color: "#ffffff",
           fontWeight: 600,
           cursor: "pointer",
-          boxShadow: "0 4px 14px rgba(150, 204, 168, 0.35)",
         }}
       >
-        Reintentar
+        Try again
       </button>
     </div>
   );

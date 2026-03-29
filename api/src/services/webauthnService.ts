@@ -12,7 +12,7 @@ import {
 import { supabaseAdmin } from '../config/supabase.js';
 import { HttpError } from '../middlewares/httpError.js';
 
-const RP_NAME = 'StrongBox';
+const RP_NAME = 'Vaultix';
 const RP_ID = process.env.WEBAUTHN_RP_ID ?? 'localhost';
 const ORIGIN = process.env.FRONTEND_ORIGIN ?? 'http://localhost:3000';
 

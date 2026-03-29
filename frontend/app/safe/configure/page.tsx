@@ -16,6 +16,31 @@ import { useVaultFlow } from "@/context/VaultFlowContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useWebAuthn } from "@/hooks/useWebAuthn";
 import { ApiError, postStrongboxSetup } from "@/lib/api/client";
+import { User, Shield, Clock } from "lucide-react";
+
+function SectionHeader({
+  icon: Icon,
+  title,
+  subtitle,
+}: {
+  icon: React.ElementType;
+  title: string;
+  subtitle?: string;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-light">
+        <Icon className="h-4 w-4 text-brand" strokeWidth={2} />
+      </div>
+      <div>
+        <VaultSectionTitle>{title}</VaultSectionTitle>
+        {subtitle && (
+          <p className="mt-0.5 text-xs text-ink-faint">{subtitle}</p>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function SafeConfigurationPage() {
   const router = useRouter();
@@ -54,30 +79,42 @@ export default function SafeConfigurationPage() {
     }
 
     const guardians = [
-      { wallet: form.guardian1.wallet.trim(), email: form.guardian1.email.trim() },
-      { wallet: form.guardian2.wallet.trim(), email: form.guardian2.email.trim() },
+      {
+        wallet: form.guardian1.wallet.trim(),
+        email: form.guardian1.email.trim(),
+      },
+      {
+        wallet: form.guardian2.wallet.trim(),
+        email: form.guardian2.email.trim(),
+      },
     ];
-    const heirs = [
-      { wallet: form.heir1.wallet.trim(), email: form.heir1.email.trim() },
-      { wallet: form.heir2.wallet.trim(), email: form.heir2.email.trim() },
+    const recoverers = [
+      { wallet: form.recoverer1.wallet.trim(), email: form.recoverer1.email.trim() },
+      { wallet: form.recoverer2.wallet.trim(), email: form.recoverer2.email.trim() },
     ];
 
     const missing =
       !form.ownerEmail.trim() ||
       guardians.some((g) => !g.wallet || !g.email) ||
-      heirs.some((h) => !h.wallet || !h.email);
+      recoverers.some((h) => !h.wallet || !h.email);
     if (missing) {
-      setSaveError("Completá email del titular, y wallet + email de cada guardián y heredero.");
+      setSaveError(
+        "Fill in the owner email, and the wallet + email for each guardian and recovery contact."
+      );
       return;
     }
 
     let hasCredential = await checkStatus();
     if (hasCredential === null) {
-      setSaveError("No se pudo comprobar la verificación biométrica. Reintentá.");
+      setSaveError(
+        "Could not verify biometric status. Please try again."
+      );
       return;
     }
 
-    const stepUpErr = hasCredential ? await authenticate() : await registerBiometric();
+    const stepUpErr = hasCredential
+      ? await authenticate()
+      : await registerBiometric();
     if (stepUpErr) {
       setSaveError(stepUpErr);
       return;
@@ -88,13 +125,17 @@ export default function SafeConfigurationPage() {
       await postStrongboxSetup(session.access_token, {
         own_email: form.ownerEmail.trim(),
         guardians,
-        recovery_contacts: heirs,
+        recovery_contacts: recoverers,
       });
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) {
-        // Ya hay caja lógica; seguir al dashboard
+        // Ya hay caja logica; seguir al dashboard
       } else {
-        setSaveError(e instanceof Error ? e.message : "Error al guardar en el servidor.");
+        setSaveError(
+          e instanceof Error
+            ? e.message
+            : "Failed to save to server."
+        );
         setSaving(false);
         return;
       }
@@ -110,22 +151,26 @@ export default function SafeConfigurationPage() {
       <VaultCard>
         <div className="space-y-10">
           {!session && (
-            <p className="text-sm text-amber-800">
-              Para guardar la caja en el backend,{" "}
-              <Link href="/login" className="font-semibold underline">
-                iniciá sesión con MetaMask
+            <div className="rounded-xl border border-warning/20 bg-warning-light px-4 py-3 text-sm text-amber-800">
+              To save the vault to the backend,{" "}
+              <Link href="/connect" className="font-semibold underline">
+                connect your wallet
               </Link>
-              . Sin sesión solo se actualiza el estado local del demo.
-            </p>
+              . Without a session, only the local demo state is updated.
+            </div>
           )}
           {saveError && (
-            <p className="text-sm text-red-600" role="alert">
+            <div
+              className="rounded-xl border border-danger/20 bg-danger-light px-4 py-3 text-sm text-red-700"
+              role="alert"
+            >
               {saveError}
-            </p>
+            </div>
           )}
 
+          {/* Owner */}
           <section className="space-y-4">
-            <VaultSectionTitle>Your Details</VaultSectionTitle>
+            <SectionHeader icon={User} title="Your Details" />
             <VaultField label="Your Email">
               <VaultInput
                 type="email"
@@ -137,26 +182,38 @@ export default function SafeConfigurationPage() {
             </VaultField>
           </section>
 
+          {/* Recoverers */}
           <section className="space-y-4">
-            <VaultSectionTitle>Heirs (×2)</VaultSectionTitle>
-            <div className="grid gap-6 md:grid-cols-2">
-              {(["heir1", "heir2"] as const).map((key, i) => (
-                <div key={key} className="space-y-4 rounded-xl bg-slate-50/80 p-4">
-                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                    Heir {i + 1}
+            <SectionHeader
+              icon={Clock}
+              title="Recovery Contacts (x2)"
+              subtitle="They can claim funds if you go inactive"
+            />
+            <div className="grid gap-5 md:grid-cols-2">
+              {(["recoverer1", "recoverer2"] as const).map((key, i) => (
+                <div
+                  key={key}
+                  className="space-y-4 rounded-xl border border-line bg-canvas-subtle/60 p-5"
+                >
+                  <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-ink-faint">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary-light text-[10px] font-bold text-brand">
+                      {i + 1}
+                    </span>
+                    Recoverer {i + 1}
                   </p>
-                  <VaultField label="Heir Email">
+                  <VaultField label="Email">
                     <VaultInput
                       type="email"
+                      placeholder="recoverer@email.com"
                       value={form[key].email}
                       onChange={(e) =>
                         updatePerson(key, "email", e.target.value)
                       }
                     />
                   </VaultField>
-                  <VaultField label="Heir Wallet Address">
+                  <VaultField label="Wallet Address">
                     <VaultInput
-                      placeholder="0x…"
+                      placeholder="0x..."
                       value={form[key].wallet}
                       onChange={(e) =>
                         updatePerson(key, "wallet", e.target.value)
@@ -168,26 +225,38 @@ export default function SafeConfigurationPage() {
             </div>
           </section>
 
+          {/* Guardians */}
           <section className="space-y-4">
-            <VaultSectionTitle>Guardians (×2)</VaultSectionTitle>
-            <div className="grid gap-6 md:grid-cols-2">
+            <SectionHeader
+              icon={Shield}
+              title="Guardians (x2)"
+              subtitle="They must approve your withdrawals"
+            />
+            <div className="grid gap-5 md:grid-cols-2">
               {(["guardian1", "guardian2"] as const).map((key, i) => (
-                <div key={key} className="space-y-4 rounded-xl bg-slate-50/80 p-4">
-                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                <div
+                  key={key}
+                  className="space-y-4 rounded-xl border border-line bg-canvas-subtle/60 p-5"
+                >
+                  <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-ink-faint">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary-light text-[10px] font-bold text-brand">
+                      {i + 1}
+                    </span>
                     Guardian {i + 1}
                   </p>
-                  <VaultField label="Guardian Email">
+                  <VaultField label="Email">
                     <VaultInput
                       type="email"
+                      placeholder="guardian@email.com"
                       value={form[key].email}
                       onChange={(e) =>
                         updatePerson(key, "email", e.target.value)
                       }
                     />
                   </VaultField>
-                  <VaultField label="Guardian Wallet Address">
+                  <VaultField label="Wallet Address">
                     <VaultInput
-                      placeholder="0x…"
+                      placeholder="0x..."
                       value={form[key].wallet}
                       onChange={(e) =>
                         updatePerson(key, "wallet", e.target.value)
@@ -201,9 +270,9 @@ export default function SafeConfigurationPage() {
 
           <VaultPillButton onClick={save} disabled={saving || webauthnLoading}>
             {saving
-              ? "Guardando…"
+              ? "Saving…"
               : webauthnLoading
-                ? "Verificando identidad…"
+                ? "Verifying identity…"
                 : "Save and Create Safe"}
           </VaultPillButton>
         </div>

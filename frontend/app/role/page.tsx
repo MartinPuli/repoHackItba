@@ -17,21 +17,19 @@ export default function RoleSelectionPage() {
     loading: authLoading,
     hasStrongbox,
     isGuardian,
-    isHeir,
+    isRecoverer,
     signIn,
   } = useAuth();
 
   const [signingIn, setSigningIn] = useState(false);
   const [signInError, setSignInError] = useState<string | null>(null);
 
-  // Redirect to connect if not connected
   useEffect(() => {
     if (!isConnected) {
       router.replace("/connect");
     }
   }, [isConnected, router]);
 
-  // Auto sign-in when connected but no session
   useEffect(() => {
     if (isConnected && address && !session && !authLoading && !signingIn) {
       setSigningIn(true);
@@ -39,12 +37,20 @@ export default function RoleSelectionPage() {
       signIn(address, signMessageAsync)
         .catch((err) => {
           setSignInError(
-            err instanceof Error ? err.message : "Error al iniciar sesión",
+            err instanceof Error ? err.message : "Sign-in failed"
           );
         })
         .finally(() => setSigningIn(false));
     }
-  }, [isConnected, address, session, authLoading, signingIn, signIn, signMessageAsync]);
+  }, [
+    isConnected,
+    address,
+    session,
+    authLoading,
+    signingIn,
+    signIn,
+    signMessageAsync,
+  ]);
 
   function handleCreateSafe() {
     if (hasStrongbox) {
@@ -65,14 +71,16 @@ export default function RoleSelectionPage() {
       step={{ current: 2, total: 4 }}
     >
       {isLoading && (
-        <div className="mb-4 flex items-center gap-2 text-sm text-slate-500">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          {signingIn ? "Sign the message in your wallet…" : "Loading session…"}
+        <div className="mb-5 flex items-center gap-2.5 rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink-muted shadow-card-rest">
+          <Loader2 className="h-4 w-4 animate-spin text-brand" />
+          {signingIn
+            ? "Sign the message in your wallet…"
+            : "Loading session…"}
         </div>
       )}
 
       {signInError && (
-        <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+        <p className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
           {signInError}
         </p>
       )}
@@ -82,46 +90,52 @@ export default function RoleSelectionPage() {
       </p>
 
       <div className="mt-6 space-y-3">
-        {/* Owner / Create Safe — always visible */}
-        <VaultGreenBarButton
-          icon={<Landmark className="h-5 w-5" strokeWidth={2} />}
-          onClick={handleCreateSafe}
-          disabled={isLoading}
-        >
-          {hasStrongbox ? "My Safe" : "Create Safe"}
-        </VaultGreenBarButton>
+        <div className="animate-fade-in-up" style={{ animationDelay: "0ms" }}>
+          <VaultGreenBarButton
+            icon={<Landmark className="h-5 w-5" strokeWidth={2} />}
+            onClick={handleCreateSafe}
+            disabled={isLoading}
+          >
+            {hasStrongbox ? "My Safe" : "Create Safe"}
+          </VaultGreenBarButton>
+        </div>
 
-        {/* Guardian — show always, let the page handle auth */}
-        <VaultGreenBarButton
-          icon={<ShieldUser className="h-5 w-5" strokeWidth={2} />}
-          onClick={() => router.push("/guardian")}
-          disabled={isLoading}
-        >
-          Guardian Dashboard
-          {isGuardian === false && (
-            <span className="ml-auto text-[11px] font-normal text-ink-faint">
-              Not assigned
-            </span>
-          )}
-        </VaultGreenBarButton>
+        <div className="animate-fade-in-up" style={{ animationDelay: "80ms" }}>
+          <VaultGreenBarButton
+            icon={<ShieldUser className="h-5 w-5" strokeWidth={2} />}
+            onClick={() => router.push("/guardian")}
+            disabled={isLoading}
+          >
+            Guardian Dashboard
+            {isGuardian === false && (
+              <span className="ml-auto rounded-full border border-line px-2 py-0.5 text-[10px] font-medium text-ink-ghost">
+                Not assigned
+              </span>
+            )}
+          </VaultGreenBarButton>
+        </div>
 
-        {/* Heir / Recovery — show always, let the page handle auth */}
-        <VaultGreenBarButton
-          icon={<FileKey className="h-5 w-5" strokeWidth={2} />}
-          onClick={() => router.push("/heir")}
-          disabled={isLoading}
+        <div
+          className="animate-fade-in-up"
+          style={{ animationDelay: "160ms" }}
         >
-          Recovery Dashboard
-          {isHeir === false && (
-            <span className="ml-auto text-[11px] font-normal text-ink-faint">
-              Not assigned
-            </span>
-          )}
-        </VaultGreenBarButton>
+          <VaultGreenBarButton
+            icon={<FileKey className="h-5 w-5" strokeWidth={2} />}
+            onClick={() => router.push("/heir")}
+            disabled={isLoading}
+          >
+            Recovery Dashboard
+            {isRecoverer === false && (
+              <span className="ml-auto rounded-full border border-line px-2 py-0.5 text-[10px] font-medium text-ink-ghost">
+                Not assigned
+              </span>
+            )}
+          </VaultGreenBarButton>
+        </div>
       </div>
 
-      {!isLoading && session && isGuardian === null && isHeir === null && (
-        <p className="mt-4 text-xs text-ink-faint">
+      {!isLoading && session && isGuardian === null && isRecoverer === null && (
+        <p className="mt-5 rounded-lg bg-surface-muted px-3 py-2 text-xs text-ink-faint">
           Could not check your roles — the API may be unavailable. You can still
           try accessing each dashboard.
         </p>

@@ -4,9 +4,9 @@ import { Providers } from "./providers";
 import { ClientErrorBoundary } from "@/components/ClientErrorBoundary";
 
 /**
- * Provee Wagmi/RainbowKit en el árbol. Sin gate de “mounted”: esperar al
- * useEffect dejaba la UI en “Cargando…” si la hidratación fallaba o se
- * demoraba; Wagmi v2 con `ssr: true` en config está pensado para Next.js.
+ * Provides Wagmi/AppKit in the tree. No "mounted" gate: waiting for
+ * useEffect left the UI stuck on "Loading…" if hydration failed or was
+ * delayed; Wagmi v2 with `ssr: true` in config is designed for Next.js.
  */
 export default function Web3Root({
   children,

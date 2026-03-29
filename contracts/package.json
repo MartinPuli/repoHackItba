@@ -1,7 +1,7 @@
 {
-  "name": "strongbox-contracts",
+  "name": "vaultix-contracts",
   "version": "1.0.0",
-  "description": "StrongBox — Smart Recovery Vault contracts",
+  "description": "Vaultix — Smart Recovery Vault contracts",
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",

@@ -169,7 +169,7 @@ export function useRejectWithdrawal() {
   return { reject, isPending, error };
 }
 
-// ── StrongBox: Inherit (heir claims) ──
+// ── StrongBox: Inherit (recoverer claims) ──
 
 export function useInheritStrongBox() {
   const { writeContractAsync, isPending, error } = useWriteContract();

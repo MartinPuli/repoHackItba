@@ -36,7 +36,7 @@ router.post('/strongbox/withdraw/:id/executed', requireAuth, asyncHandler(postWi
 router.get('/guardian/vaults', requireAuth, asyncHandler(getGuardianVaultsController));
 router.get('/guardian/pending', requireAuth, asyncHandler(getGuardianPendingController));
 
-// ── Heir / Recovery endpoints ──
+// ── Recoverer / Recovery endpoints ──
 router.get('/heir/vaults', requireAuth, asyncHandler(getHeirVaultsController));
 
 export default router;

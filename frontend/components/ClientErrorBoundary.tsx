@@ -11,7 +11,7 @@ interface State {
 }
 
 /**
- * Evita pantalla en blanco si Wagmi/RainbowKit u otro hijo revienta en el cliente.
+ * Prevents blank screen if Wagmi/AppKit or any child crashes on the client.
  */
 export class ClientErrorBoundary extends Component<Props, State> {
   state: State = { error: null };
@@ -21,7 +21,7 @@ export class ClientErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error("[Vaultix] Error en cliente:", error, info.componentStack);
+    console.error("[Vaultix] Client error:", error, info.componentStack);
   }
 
   render() {
@@ -31,29 +31,29 @@ export class ClientErrorBoundary extends Component<Props, State> {
           style={{
             minHeight: "100vh",
             padding: 24,
-            background: "#eef1ef",
-            color: "#0f1712",
-            fontFamily: "system-ui, sans-serif",
+            background: "#f5f4f0",
+            color: "#1a1a18",
+            fontFamily: '"Outfit", system-ui, sans-serif',
             maxWidth: 520,
           }}
         >
           <h1 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>
-            No se pudo cargar la aplicación
+            Could not load the application
           </h1>
-          <p style={{ fontSize: 14, color: "#3d4f45", lineHeight: 1.5 }}>
-            Probá recargar la página con Ctrl+F5. Si usás una extensión de
-            wallet o bloqueador, desactivalo un momento para esta URL.
+          <p style={{ fontSize: 14, color: "#4a4a46", lineHeight: 1.5 }}>
+            Try reloading the page with Ctrl+F5. If you use a wallet extension
+            or ad blocker, try disabling it for this URL.
           </p>
           <pre
             style={{
               marginTop: 16,
               padding: 12,
               background: "#fff",
-              border: "1px solid #dce3de",
+              border: "1px solid #e3e1dc",
               borderRadius: 8,
               fontSize: 12,
               overflow: "auto",
-              color: "#7f1d1d",
+              color: "#d93025",
             }}
           >
             {this.state.error.message}
@@ -66,13 +66,13 @@ export class ClientErrorBoundary extends Component<Props, State> {
               padding: "10px 18px",
               borderRadius: 8,
               border: "none",
-              background: "#2d6b4f",
+              background: "#1a7f5a",
               color: "#fff",
               fontWeight: 600,
               cursor: "pointer",
             }}
           >
-            Recargar
+            Reload
           </button>
         </div>
       );

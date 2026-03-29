@@ -211,8 +211,8 @@ export function getGuardianVaults(accessToken: string) {
   return apiFetch<{ vaults: unknown[] }>("/api/guardian/vaults", { accessToken });
 }
 
-// ── Heir / Recovery endpoints ──
+// ── Recoverer / Recovery endpoints ──
 
-export function getHeirVaults(accessToken: string) {
+export function getRecovererVaults(accessToken: string) {
   return apiFetch<{ vaults: unknown[] }>("/api/heir/vaults", { accessToken });
 }

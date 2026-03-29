@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import type { Session } from "@supabase/supabase-js";
 
-const SIGN_MESSAGE = "Sign in to StrongBox — HackITBA 2026";
+const SIGN_MESSAGE = "Sign in to Vaultix — HackITBA 2026";
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 /** Supabase limita password a 72 bytes (bcrypt). La firma hex es ~132 chars → hash fijo 64 hex. */
@@ -24,7 +24,7 @@ interface AuthState {
   loading: boolean;
   hasStrongbox: boolean | null;
   isGuardian: boolean | null;
-  isHeir: boolean | null;
+  isRecoverer: boolean | null;
 }
 
 export function useAuth() {
@@ -34,7 +34,7 @@ export function useAuth() {
     loading: true,
     hasStrongbox: null,
     isGuardian: null,
-    isHeir: null,
+    isRecoverer: null,
   });
 
   const supabase = getSupabaseBrowser();
@@ -72,7 +72,7 @@ export function useAuth() {
       address: string,
       signMessageAsync: (args: { message: string }) => Promise<string>,
     ) => {
-      if (!supabase) throw new Error("Supabase no configurado");
+      if (!supabase) throw new Error("Supabase not configured");
 
       const signature = await signMessageAsync({ message: SIGN_MESSAGE });
       const password = await passwordFromSignature(signature);
@@ -102,7 +102,7 @@ export function useAuth() {
       if (signUpError) throw signUpError;
       if (!signUpData.session) {
         throw new Error(
-          "No se obtuvo sesión. Desactivá 'Confirm email' en Supabase Auth.",
+          "No session returned. Disable 'Confirm email' in Supabase Auth settings.",
         );
       }
 
@@ -121,7 +121,7 @@ export function useAuth() {
       loading: false,
       hasStrongbox: null,
       isGuardian: null,
-      isHeir: null,
+      isRecoverer: null,
     });
   }, [supabase]);
 
@@ -136,7 +136,7 @@ export function useAuth() {
           ...s,
           hasStrongbox: body.has_strongbox ?? null,
           isGuardian: body.is_guardian ?? null,
-          isHeir: body.is_heir ?? null,
+          isRecoverer: body.is_heir ?? null,
         }));
       }
     } catch {

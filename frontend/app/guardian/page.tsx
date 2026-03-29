@@ -20,7 +20,15 @@ import {
   postWithdrawReject,
 } from "@/lib/api/client";
 import { formatAddress } from "@/lib/utils";
-import { Check, X, Loader2 } from "lucide-react";
+import {
+  Check,
+  X,
+  Loader2,
+  Shield,
+  AlertTriangle,
+  CircleCheckBig,
+  Clock,
+} from "lucide-react";
 
 interface PendingRequest {
   id: string;
@@ -55,7 +63,9 @@ export default function GuardianInterfacePage() {
       const res = await getGuardianPending(session.access_token);
       setRequests(res.requests);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error al cargar solicitudes");
+      setError(
+        e instanceof Error ? e.message : "Failed to load requests"
+      );
     } finally {
       setLoading(false);
     }
@@ -70,7 +80,6 @@ export default function GuardianInterfacePage() {
     setActionBusy(req.id);
     setError(null);
     try {
-      // 1. On-chain: approve withdrawal if we have contract address + on_chain_request_id
       if (
         req.contract_address &&
         isAddress(req.contract_address) &&
@@ -82,12 +91,10 @@ export default function GuardianInterfacePage() {
           requestId: BigInt(req.on_chain_request_id),
         });
       }
-
-      // 2. DB: register approval in backend
       await postWithdrawApprove(session.access_token, req.id);
       await loadRequests();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error al aprobar");
+      setError(e instanceof Error ? e.message : "Failed to approve");
     } finally {
       setActionBusy(null);
     }
@@ -98,7 +105,6 @@ export default function GuardianInterfacePage() {
     setActionBusy(req.id);
     setError(null);
     try {
-      // 1. On-chain: reject withdrawal if we have contract address + on_chain_request_id
       if (
         req.contract_address &&
         isAddress(req.contract_address) &&
@@ -110,12 +116,10 @@ export default function GuardianInterfacePage() {
           requestId: BigInt(req.on_chain_request_id),
         });
       }
-
-      // 2. DB: register rejection in backend
       await postWithdrawReject(session.access_token, req.id);
       await loadRequests();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error al rechazar");
+      setError(e instanceof Error ? e.message : "Failed to reject");
     } finally {
       setActionBusy(null);
     }
@@ -124,7 +128,7 @@ export default function GuardianInterfacePage() {
   if (authLoading) {
     return (
       <VaultShell title="Guardian Dashboard" backHref="/role">
-        <p className="text-sm text-slate-600">Cargando sesión…</p>
+        <p className="text-sm text-ink-muted">Loading session…</p>
       </VaultShell>
     );
   }
@@ -133,8 +137,8 @@ export default function GuardianInterfacePage() {
     return (
       <VaultShell title="Guardian Dashboard" backHref="/role">
         <VaultCard>
-          <p className="text-slate-700">
-            Necesitás iniciar sesión para ver las solicitudes de retiro.
+          <p className="text-ink-muted">
+            You need to sign in to view withdrawal requests.
           </p>
         </VaultCard>
       </VaultShell>
@@ -148,7 +152,10 @@ export default function GuardianInterfacePage() {
       </p>
 
       {error && (
-        <p className="mt-4 text-sm text-red-600" role="alert">
+        <p
+          className="mt-4 rounded-xl border border-danger/20 bg-danger-light px-4 py-3 text-sm text-red-600"
+          role="alert"
+        >
           {error}
         </p>
       )}
@@ -156,23 +163,32 @@ export default function GuardianInterfacePage() {
       <div className="mt-6 space-y-4">
         {loading && (
           <VaultCard>
-            <div className="flex items-center gap-3 py-4 text-slate-500">
-              <Loader2 className="h-5 w-5 animate-spin" />
-              Cargando solicitudes…
+            <div className="flex items-center gap-3 py-6 text-ink-muted">
+              <Loader2 className="h-5 w-5 animate-spin text-brand" />
+              Loading requests…
             </div>
           </VaultCard>
         )}
 
         {!loading && requests.length === 0 && (
           <VaultCard>
-            <p className="py-4 text-center text-sm text-slate-500">
-              No hay solicitudes de retiro pendientes para aprobar.
-            </p>
+            <div className="flex flex-col items-center py-10 text-center">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary-light">
+                <Shield className="h-6 w-6 text-brand" />
+              </div>
+              <p className="text-sm font-medium text-ink-muted">
+                No pending requests
+              </p>
+              <p className="mt-1 text-xs text-ink-ghost">
+                Withdrawal requests will appear here.
+              </p>
+            </div>
           </VaultCard>
         )}
 
-        {requests.map((req) => {
-          const isBusy = actionBusy === req.id || approveTxPending || rejectTxPending;
+        {requests.map((req, i) => {
+          const isBusy =
+            actionBusy === req.id || approveTxPending || rejectTxPending;
           const mySlot = req.guardian_slot;
           const alreadyApproved =
             (mySlot === 1 && req.guardian1_approved) ||
@@ -183,82 +199,99 @@ export default function GuardianInterfacePage() {
             req.on_chain_request_id != null;
 
           return (
-            <VaultCard key={req.id}>
-              <div className="space-y-3">
+            <VaultCard
+              key={req.id}
+              className="animate-fade-in-up"
+            >
+              <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-ink-faint">
+                    <div className="h-1.5 w-1.5 rounded-full bg-warning" />
                     Withdrawal Request
-                  </p>
-                  <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-900">
+                  </div>
+                  <span className="rounded-full border border-warning/20 bg-warning-light px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-700">
                     Pending
                   </span>
                 </div>
 
-                <div className="grid gap-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Amount:</span>
-                    <span className="font-mono font-semibold">
-                      {req.amount} BNB
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">To:</span>
-                    <span className="font-mono text-xs">
-                      {formatAddress(req.to_address, 6)}
-                    </span>
-                  </div>
-                  {req.contract_address && (
+                <div className="rounded-xl border border-line bg-surface-muted p-4">
+                  <div className="grid gap-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Vault:</span>
-                      <span className="font-mono text-xs">
-                        {formatAddress(req.contract_address, 6)}
+                      <span className="text-ink-muted">Amount:</span>
+                      <span className="font-mono font-bold text-ink">
+                        {req.amount} BNB
                       </span>
                     </div>
-                  )}
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Guardian 1:</span>
-                    <span
-                      className={
-                        req.guardian1_approved
-                          ? "text-emerald-600 font-semibold"
-                          : "text-slate-400"
-                      }
-                    >
-                      {req.guardian1_approved ? "✓ Approved" : "Pending"}
-                    </span>
+                    <div className="flex justify-between">
+                      <span className="text-ink-muted">To:</span>
+                      <span className="font-mono text-xs text-ink-faint">
+                        {formatAddress(req.to_address, 6)}
+                      </span>
+                    </div>
+                    {req.contract_address && (
+                      <div className="flex justify-between">
+                        <span className="text-ink-muted">Vault:</span>
+                        <span className="font-mono text-xs text-ink-faint">
+                          {formatAddress(req.contract_address, 6)}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Guardian 2:</span>
-                    <span
-                      className={
-                        req.guardian2_approved
-                          ? "text-emerald-600 font-semibold"
-                          : "text-slate-400"
-                      }
-                    >
-                      {req.guardian2_approved ? "✓ Approved" : "Pending"}
-                    </span>
-                  </div>
-                  {!hasOnChain && (
-                    <p className="text-xs text-amber-600">
-                      ⚠ Sin request on-chain — la aprobación será solo en DB
-                    </p>
-                  )}
                 </div>
 
+                {/* Guardian approval status */}
+                <div className="flex gap-3">
+                  <div
+                    className={`flex flex-1 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold ${
+                      req.guardian1_approved
+                        ? "border-brand/20 bg-primary-light text-brand"
+                        : "border-line bg-surface-muted text-ink-ghost"
+                    }`}
+                  >
+                    {req.guardian1_approved ? (
+                      <CircleCheckBig className="h-3.5 w-3.5" />
+                    ) : (
+                      <Clock className="h-3.5 w-3.5" />
+                    )}
+                    G1: {req.guardian1_approved ? "Approved" : "Pending"}
+                  </div>
+                  <div
+                    className={`flex flex-1 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold ${
+                      req.guardian2_approved
+                        ? "border-brand/20 bg-primary-light text-brand"
+                        : "border-line bg-surface-muted text-ink-ghost"
+                    }`}
+                  >
+                    {req.guardian2_approved ? (
+                      <CircleCheckBig className="h-3.5 w-3.5" />
+                    ) : (
+                      <Clock className="h-3.5 w-3.5" />
+                    )}
+                    G2: {req.guardian2_approved ? "Approved" : "Pending"}
+                  </div>
+                </div>
+
+                {!hasOnChain && (
+                  <div className="flex items-center gap-2 rounded-lg border border-warning/20 bg-warning-light px-3 py-2 text-xs text-amber-700">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                    No on-chain request — approval will be DB-only
+                  </div>
+                )}
+
                 {alreadyApproved ? (
-                  <p className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-center text-sm font-medium text-emerald-700">
-                    ✓ Ya aprobaste esta solicitud
-                  </p>
+                  <div className="flex items-center justify-center gap-2 rounded-xl border border-brand/20 bg-primary-light px-3 py-3 text-sm font-semibold text-brand">
+                    <CircleCheckBig className="h-4 w-4" />
+                    You already approved this request
+                  </div>
                 ) : (
-                  <div className="mt-3 flex gap-3">
+                  <div className="flex gap-3">
                     <VaultPillButton
                       className="flex-1 gap-2"
                       onClick={() => void handleApprove(req)}
                       disabled={isBusy}
                     >
                       <Check className="h-4 w-4" strokeWidth={2.5} />
-                      {isBusy ? "Procesando…" : "Approve"}
+                      {isBusy ? "Processing…" : "Approve"}
                     </VaultPillButton>
                     <VaultDangerButton
                       className="flex-1"
@@ -266,7 +299,7 @@ export default function GuardianInterfacePage() {
                       disabled={isBusy}
                     >
                       <X className="h-4 w-4" strokeWidth={2.5} />
-                      {isBusy ? "Procesando…" : "Reject"}
+                      {isBusy ? "Processing…" : "Reject"}
                     </VaultDangerButton>
                   </div>
                 )}
@@ -278,3 +311,4 @@ export default function GuardianInterfacePage() {
     </VaultShell>
   );
 }
+
