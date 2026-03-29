@@ -159,3 +159,11 @@ export function VaultInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   );
 }
 
+export function VaultSectionTitle({ children }: { children: ReactNode }) {
+  return (
+    <h2 className="text-[13px] font-semibold uppercase tracking-wide text-ink-muted">
+      {children}
+    </h2>
+  );
+}
+
