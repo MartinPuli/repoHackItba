@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { isAddress, getAddress, type Address } from "viem";
 import { VaultShell } from "@/components/vault/VaultShell";
 import {
@@ -60,6 +61,7 @@ interface RecovererVault {
 }
 
 export default function RecovererInterfacePage() {
+  const router = useRouter();
   const { session, loading: authLoading } = useAuth();
   const { inherit, isPending: inheritTxPending } = useInheritStrongBox();
 
@@ -68,6 +70,12 @@ export default function RecovererInterfacePage() {
   const [error, setError] = useState<string | null>(null);
   const [actionBusy, setActionBusy] = useState(false);
   const [now, setNow] = useState(Math.floor(Date.now() / 1000));
+
+  useEffect(() => {
+    if (!authLoading && !session) {
+      router.replace("/connect");
+    }
+  }, [authLoading, session, router]);
 
   useEffect(() => {
     const id = window.setInterval(() => {

@@ -350,6 +350,8 @@ export default function SafeOwnerDashboardPage() {
   if (!session) {
     router.replace("/connect");
     return null;
+  }
+
   if (!caja && !cajaLoading) {
     return (
       <VaultShell title="Safe Owner Dashboard" maxWidth="wide">

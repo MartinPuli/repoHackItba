@@ -46,6 +46,7 @@ interface PendingRequest {
 }
 
 export default function GuardianInterfacePage() {
+  const router = useRouter();
   const { address } = useUnifiedWallet();
   const { session, loading: authLoading } = useAuth();
   const { approve, isPending: approveTxPending } = useApproveWithdrawal();
@@ -55,6 +56,12 @@ export default function GuardianInterfacePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionBusy, setActionBusy] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!authLoading && !session) {
+      router.replace("/connect");
+    }
+  }, [authLoading, session, router]);
 
   const loadRequests = useCallback(async () => {
     if (!session?.access_token) return;
