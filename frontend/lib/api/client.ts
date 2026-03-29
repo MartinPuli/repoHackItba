@@ -82,6 +82,23 @@ export function getCajaFuerteBalance(accessToken: string) {
   });
 }
 
+export type StrongboxSetupPayload = {
+  own_email: string;
+  guardians: { wallet: string; email: string }[];
+  recovery_contacts: { wallet: string; email: string }[];
+};
+
+export function postStrongboxSetup(
+  accessToken: string,
+  body: StrongboxSetupPayload,
+) {
+  return apiFetch<{ ok: true }>("/api/strongbox/setup", {
+    method: "POST",
+    accessToken,
+    body,
+  });
+}
+
 export function postConfirmDeploy(
   accessToken: string,
   body: { contract_address: string; deploy_tx_hash: string },
