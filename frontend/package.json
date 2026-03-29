@@ -16,6 +16,8 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@rainbow-me/rainbowkit": "^2.2.10",
+    "@simplewebauthn/browser": "^13.3.0",
     "@reown/appkit": "^1.8.19",
     "@reown/appkit-adapter-wagmi": "^1.8.19",
     "@supabase/ssr": "^0.9.0",

@@ -4,7 +4,23 @@ import { useState, useEffect, useCallback } from "react";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-// ── Types ──
+// ── Types (alineados a api/supabase/migrations/20260328130000_001_initial_schema.sql) ──
+
+interface QueryResult<T> {
+  data: T | null;
+  loading: boolean;
+  error: string | null;
+}
+
+export interface UserProfile {
+  id: string;
+  wallet_address: string;
+  display_name: string | null;
+  email: string | null;
+  created_at: string;
+  updated_at: string;
+  last_active_at: string;
+}
 
 export interface GuardianRow {
   id: string;

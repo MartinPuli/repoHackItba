@@ -6,6 +6,7 @@ import { errorHandler } from './middlewares/errorHandler.js';
 import authRoutes from './routes/authRoutes.js';
 import balanceRoutes from './routes/balanceRoutes.js';
 import strongboxRoutes from './routes/strongboxRoutes.js';
+import webauthnRoutes from './routes/webauthnRoutes.js';
 
 export const app = express();
 
@@ -20,5 +21,6 @@ app.get('/health', (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api', balanceRoutes);
 app.use('/api', strongboxRoutes);
+app.use('/api/webauthn', webauthnRoutes);
 
 app.use(errorHandler);

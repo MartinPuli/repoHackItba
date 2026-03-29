@@ -299,6 +299,36 @@ export interface Database {
         };
         Relationships: [];
       };
+      user_authenticators: {
+        Row: {
+          id: string;
+          user_id: string;
+          credential_id: string;
+          public_key: string;
+          counter: number;
+          transports: string[] | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          credential_id: string;
+          public_key: string;
+          counter?: number;
+          transports?: string[] | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          credential_id?: string;
+          public_key?: string;
+          counter?: number;
+          transports?: string[] | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       user_dashboard: {
