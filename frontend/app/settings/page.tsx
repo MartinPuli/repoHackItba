@@ -6,12 +6,8 @@ import { cn } from "@/lib/utils";
 import { Bell, Globe, Shield, Sparkles, Sliders, Users } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import {
-  DEMO_USER_ID,
-  useAlerts,
-  useUserProfile,
-} from "@/hooks/useSupabase";
-import { getSupabaseBrowser } from "@/lib/supabase/client";
+import { DEMO_USER_ID, useAlerts } from "@/hooks/useSupabase";
+const SETTINGS_FLAGS_KEY = "strongbox_ui_flags_v1";
 
 const toggles = [
   {
@@ -96,26 +92,27 @@ function ToggleRow({
 }
 
 export default function SettingsPage() {
-  const { data: profile } = useUserProfile(DEMO_USER_ID);
   const { data: alertsData } = useAlerts(DEMO_USER_ID);
   const unreadAlerts = alertsData?.unreadCount ?? 0;
 
   const [flags, setFlags] = useState<Record<string, boolean>>(DEFAULT_FLAGS);
   const [saving, setSaving] = useState(false);
 
-  // Load preferences from Supabase user profile
   useEffect(() => {
-    if (profile) {
-      const stored = (profile as unknown as Record<string, unknown>).preferences as
-        | Record<string, boolean>
-        | undefined;
-      if (stored && typeof stored === "object") {
-        setFlags((prev) => ({ ...prev, ...stored }));
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(SETTINGS_FLAGS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Record<string, boolean>;
+        if (parsed && typeof parsed === "object") {
+          setFlags((prev) => ({ ...prev, ...parsed }));
+        }
       }
+    } catch {
+      /* ignore */
     }
-  }, [profile]);
+  }, []);
 
-  // Persist toggle change to Supabase
   const handleToggle = useCallback(
     async (id: string) => {
       const newFlags = { ...flags, [id]: !flags[id] };
@@ -123,27 +120,16 @@ export default function SettingsPage() {
       setSaving(true);
 
       try {
-        const supabase = getSupabaseBrowser();
-        if (!supabase) {
-          // Modo local: preferencias solo en memoria
-          return;
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem(SETTINGS_FLAGS_KEY, JSON.stringify(newFlags));
         }
-        const { error: upErr } = await supabase
-          .from("users")
-          .update({
-            preferences: newFlags,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", DEMO_USER_ID);
-        if (upErr) throw upErr;
       } catch {
-        // Revert on error
         setFlags(flags);
       } finally {
         setSaving(false);
       }
     },
-    [flags]
+    [flags],
   );
 
   return (

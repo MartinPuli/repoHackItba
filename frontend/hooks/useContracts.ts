@@ -1,40 +1,69 @@
 "use client";
 
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useAccount } from "wagmi";
-import { parseEther, formatEther, type Address } from "viem";
+import { parseEther, formatEther, type Address, zeroAddress } from "viem";
+import { FACTORY_ABI, STRONGBOX_ABI, CONTRACTS } from "@/lib/contracts/abis";
 
-// TODO: regenerar abis.ts con el nuevo sync-abis.js después de compilar contratos
-// import { FACTORY_ABI, STRONGBOX_ABI, GUARDIAN_ABI, HEIR_ABI, CONTRACTS } from "@/lib/contracts/abis";
-
-// Placeholder — se reemplaza al correr sync-abis.js
-const FACTORY_ABI: readonly unknown[] = [];
-const STRONGBOX_ABI: readonly unknown[] = [];
-const GUARDIAN_ABI: readonly unknown[] = [];
-const HEIR_ABI: readonly unknown[] = [];
-const CONTRACTS = {
-  factory: (process.env.NEXT_PUBLIC_FACTORY_ADDRESS || "0x0000000000000000000000000000000000000000") as `0x${string}`,
-} as const;
+const ZERO = zeroAddress;
 
 // ======================
 // Factory Hooks
 // ======================
 
 /**
- * Create a new StrongBox vault via Factory
+ * Indica si la wallet conectada ya tiene una StrongBox en la factory.
+ */
+export function useHasAccount() {
+  const { address } = useAccount();
+
+  return useReadContract({
+    address: CONTRACTS.factory as Address,
+    abi: FACTORY_ABI,
+    functionName: "getStrongBox",
+    args: address ? [address] : undefined,
+    query: {
+      enabled: !!address && CONTRACTS.factory !== ZERO,
+      select: (strongBox) => strongBox !== ZERO,
+    },
+  });
+}
+
+/**
+ * Dirección de la StrongBox del usuario según la Factory.
+ */
+export function useStrongBoxAddress() {
+  const { address } = useAccount();
+
+  return useReadContract({
+    address: CONTRACTS.factory as Address,
+    abi: FACTORY_ABI,
+    functionName: "getStrongBox",
+    args: address ? [address] : undefined,
+    query: { enabled: !!address },
+  });
+}
+
+/** @deprecated Usar useStrongBoxAddress */
+export function useCajaFuerteAddress() {
+  return useStrongBoxAddress();
+}
+
+/**
+ * Crea StrongBox on-chain (guardianes, heirs y time limit en segundos).
  */
 export function useCreateStrongBox() {
   const { writeContract, data: hash, isPending, error } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
-  function create(
+  function createStrongBox(
     guardian1: string,
     guardian2: string,
     heir1: string,
     heir2: string,
-    timeLimitSeconds: number
+    timeLimitSeconds: bigint | number
   ) {
     writeContract({
-      address: CONTRACTS.factory,
+      address: CONTRACTS.factory as Address,
       abi: FACTORY_ABI,
       functionName: "createStrongBox",
       args: [
@@ -47,57 +76,37 @@ export function useCreateStrongBox() {
     });
   }
 
-  return { create, isPending, isConfirming, isSuccess, error, hash };
+  return { createStrongBox, isPending, isConfirming, isSuccess, error, hash };
 }
 
-/**
- * Get user's StrongBox address from Factory
- */
-export function useStrongBoxAddress() {
-  const { address } = useAccount();
+// ======================
+// StrongBox Hooks
+// ======================
 
+export function useStrongBoxBalance(strongBoxAddress?: string) {
   return useReadContract({
-    address: CONTRACTS.factory,
-    abi: FACTORY_ABI,
-    functionName: "getStrongBox",
-    args: address ? [address] : undefined,
-    query: { enabled: !!address },
+    address: strongBoxAddress as Address,
+    abi: STRONGBOX_ABI,
+    functionName: "getBalance",
+    query: { enabled: !!strongBoxAddress, refetchInterval: 10_000 },
   });
 }
 
-// ======================
-// StrongBox Hooks (Owner)
-// ======================
-
-/**
- * Deposit BNB into StrongBox
- */
-export function useDeposit() {
-  const { writeContract, data: hash, isPending, error } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
-
-  function deposit(strongboxAddress: string, amountEth: string) {
-    writeContract({
-      address: strongboxAddress as Address,
-      abi: STRONGBOX_ABI,
-      functionName: "deposit",
-      value: parseEther(amountEth),
-    });
-  }
-
-  return { deposit, isPending, isConfirming, isSuccess, error, hash };
+/** @deprecated Usar useStrongBoxBalance */
+export function useWalletBalance(walletAddress?: string) {
+  return useStrongBoxBalance(walletAddress);
 }
 
 /**
- * Request withdrawal from StrongBox (needs guardian approval)
+ * Solicitud de retiro (el owner llama withdraw; los guardianes aprueban después).
  */
 export function useRequestWithdrawal() {
   const { writeContract, data: hash, isPending, error } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
-  function requestWithdrawal(strongboxAddress: string, amountEth: string, to: string) {
+  function requestWithdrawal(strongBoxAddress: string, to: string, amountEth: string) {
     writeContract({
-      address: strongboxAddress as Address,
+      address: strongBoxAddress as Address,
       abi: STRONGBOX_ABI,
       functionName: "withdraw",
       args: [parseEther(amountEth), to as Address],
@@ -107,58 +116,41 @@ export function useRequestWithdrawal() {
   return { requestWithdrawal, isPending, isConfirming, isSuccess, error, hash };
 }
 
-/**
- * Read StrongBox balance (owner only)
- */
-export function useStrongBoxBalance(strongboxAddress?: string) {
-  return useReadContract({
-    address: strongboxAddress as Address,
-    abi: STRONGBOX_ABI,
-    functionName: "getBalance",
-    query: { enabled: !!strongboxAddress, refetchInterval: 10_000 },
-  });
+/** @deprecated Usar useRequestWithdrawal */
+export function useSendFromWallet() {
+  const { requestWithdrawal, ...rest } = useRequestWithdrawal();
+  return {
+    enviar: (walletAddress: string, to: string, amountEth: string) =>
+      requestWithdrawal(walletAddress, to, amountEth),
+    ...rest,
+  };
 }
 
-/**
- * Check pending withdrawal request
- */
-export function usePendingWithdrawal(strongboxAddress?: string) {
-  return useReadContract({
-    address: strongboxAddress as Address,
-    abi: STRONGBOX_ABI,
-    functionName: "hasPendingWithdrawalRequest",
-    query: { enabled: !!strongboxAddress, refetchInterval: 10_000 },
-  });
+export function useDepositToStrongBox() {
+  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  function deposit(strongBoxAddress: string, amountEth: string) {
+    writeContract({
+      address: strongBoxAddress as Address,
+      abi: STRONGBOX_ABI,
+      functionName: "deposit",
+      value: parseEther(amountEth),
+    });
+  }
+
+  return { deposit, isPending, isConfirming, isSuccess, error, hash };
 }
 
-/**
- * Read inactivity timer info
- */
-export function useInactivityStatus(strongboxAddress?: string) {
-  const lastUsed = useReadContract({
-    address: strongboxAddress as Address,
-    abi: STRONGBOX_ABI,
-    functionName: "getLastTimeUsed",
-    query: { enabled: !!strongboxAddress, refetchInterval: 30_000 },
-  });
-
-  const timeLimit = useReadContract({
-    address: strongboxAddress as Address,
-    abi: STRONGBOX_ABI,
-    functionName: "getTimeLimit",
-    query: { enabled: !!strongboxAddress },
-  });
-
-  return { lastUsed, timeLimit };
+/** @deprecated Usar useDepositToStrongBox */
+export function useDepositToCajaFuerte() {
+  const { deposit, ...rest } = useDepositToStrongBox();
+  return {
+    depositar: (walletAddress: string, amountEth: string) => deposit(walletAddress, amountEth),
+    ...rest,
+  };
 }
 
-// ======================
-// Guardian Hooks
-// ======================
-
-/**
- * Approve a withdrawal request (guardian only)
- */
 export function useApproveWithdrawal() {
   const { writeContract, data: hash, isPending, error } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
@@ -175,9 +167,6 @@ export function useApproveWithdrawal() {
   return { approve, isPending, isConfirming, isSuccess, error, hash };
 }
 
-/**
- * Reject a withdrawal request (guardian only)
- */
 export function useRejectWithdrawal() {
   const { writeContract, data: hash, isPending, error } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
@@ -198,9 +187,6 @@ export function useRejectWithdrawal() {
 // Heir / Recovery Hooks
 // ======================
 
-/**
- * Claim recovery funds (heir only, after inactivity timeout)
- */
 export function useClaimRecovery() {
   const { writeContract, data: hash, isPending, error } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });

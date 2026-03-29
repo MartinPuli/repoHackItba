@@ -1,6 +1,8 @@
 import { createHash } from 'crypto';
 
-export type BalanceSource = 'mock';
+import { getProvider } from './chainProvider.js';
+
+export type BalanceSource = 'mock' | 'rpc';
 
 export interface NativeBalance {
   symbol: 'BNB';
@@ -36,6 +38,26 @@ export function readStrongboxBalanceMock(
       formatted: formatFixed(nativeWei, 18, 6),
     },
     source: 'mock',
+  };
+}
+
+export async function readStrongboxBalanceFromRpc(
+  contractAddress: string,
+  chainId: number
+): Promise<StrongboxBalanceMock> {
+  const provider = getProvider();
+  const wei = await provider.getBalance(contractAddress);
+  const addr = contractAddress.toLowerCase();
+
+  return {
+    chainId,
+    contractAddress: addr,
+    native: {
+      symbol: 'BNB',
+      wei: wei.toString(),
+      formatted: formatFixed(wei, 18, 6),
+    },
+    source: 'rpc',
   };
 }
 
