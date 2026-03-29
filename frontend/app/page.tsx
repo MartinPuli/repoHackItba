@@ -41,18 +41,18 @@ function StepItem({
 
 function BackgroundDecor() {
   return (
-    <div className="mesh-bg pointer-events-none overflow-hidden">
+    <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
       <div className="dot-pattern absolute inset-0 opacity-[0.4]" />
       <div 
-        className="mesh-blob animate-float bg-brand/20" 
+        className="absolute rounded-full blur-[100px] animate-float bg-brand/20" 
         style={{ width: '600px', height: '600px', top: '-10%', right: '-10%' }} 
       />
       <div 
-        className="mesh-blob animate-pulse-soft bg-emerald-400/10" 
+        className="absolute rounded-full blur-[100px] animate-pulse-soft bg-emerald-400/10" 
         style={{ width: '500px', height: '500px', bottom: '10%', left: '-5%' }} 
       />
       <div 
-        className="mesh-blob animate-float bg-brand/15" 
+        className="absolute rounded-full blur-[100px] animate-float bg-brand/15" 
         style={{ width: '400px', height: '400px', top: '40%', right: '15%', animationDelay: '-3s' }} 
       />
     </div>
