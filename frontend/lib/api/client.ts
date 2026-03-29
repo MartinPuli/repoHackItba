@@ -76,30 +76,9 @@ export type StrongboxBalanceResponse = {
   };
 };
 
-/** Alias por compatibilidad con código anterior. */
-export type CajaFuerteBalanceResponse = StrongboxBalanceResponse;
-
-export function getStrongboxBalance(accessToken: string) {
+export function getCajaFuerteBalance(accessToken: string) {
   return apiFetch<StrongboxBalanceResponse>("/api/strongbox/balance", {
     accessToken,
-  });
-}
-
-/** @deprecated Preferir getStrongboxBalance */
-export const getCajaFuerteBalance = getStrongboxBalance;
-
-export function postStrongboxSetup(
-  accessToken: string,
-  body: {
-    own_email: string;
-    guardians: { wallet: string; email: string }[];
-    recovery_contacts: { wallet: string; email: string }[];
-  },
-) {
-  return apiFetch<{ ok: true }>("/api/strongbox/setup", {
-    method: "POST",
-    accessToken,
-    body,
   });
 }
 

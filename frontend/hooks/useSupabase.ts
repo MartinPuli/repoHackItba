@@ -45,8 +45,7 @@ export interface RecoveryContactRow {
   updated_at: string;
 }
 
-/** StrongBox + guardianes y recovery contacts (tablas `guardians`, `recovery_contacts`). */
-export interface StrongboxWithRelations {
+interface StrongboxWithRelations {
   id: string;
   user_id: string;
   contract_address: string | null;
@@ -64,37 +63,11 @@ export interface StrongboxWithRelations {
   recovery_contacts?: RecoveryContactRow[];
 }
 
-export interface Transaction {
-  id: string;
-  user_id: string;
-  strongbox_id: string | null;
-  tx_type: "deposit" | "withdraw" | "recovery";
-  status: "pending" | "confirmed" | "failed" | "reverted";
-  chain_id: number;
-  tx_hash: string | null;
-  from_address: string;
-  to_address: string;
-  amount: string;
-  gas_used: string | null;
-  error_message: string | null;
-  created_at: string;
-  confirmed_at: string | null;
+interface QueryResult<T> {
+  data: T | null;
+  loading: boolean;
+  error: string | null;
 }
-
-export interface Alert {
-  id: string;
-  user_id: string;
-  priority: "low" | "medium" | "high" | "critical";
-  title: string;
-  message: string;
-  category: string;
-  related_entity_type: string | null;
-  related_entity_id: string | null;
-  is_read: boolean;
-  created_at: string;
-}
-
-export const DEMO_USER_ID = "00000000-0000-0000-0000-000000000001";
 
 function startQueryWatchdog(
   isCancelled: () => boolean,
@@ -106,50 +79,6 @@ function startQueryWatchdog(
     if (!isCancelled()) onTimeout();
   }, ms);
   return () => window.clearTimeout(id);
-}
-
-// ── useUserProfile ─────────────────────────────────────────────────────
-
-export function useUserProfile(userId: string | undefined): QueryResult<UserProfile> {
-  const [data, setData] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!userId) { setLoading(false); return; }
-    let cancelled = false;
-    const supabase = getSupabaseBrowser();
-    if (!supabase) { setData(null); setLoading(false); return; }
-    const db: SupabaseClient = supabase;
-
-    async function fetchProfile() {
-      setLoading(true);
-      setError(null);
-      const stopWatch = startQueryWatchdog(
-        () => cancelled,
-        () => {
-          setError("Tiempo de espera al cargar el perfil. Revisá Supabase o la red.");
-          setLoading(false);
-        },
-      );
-      try {
-        const { data: row, error: err } = await db.from("users").select("*").eq("id", userId!).single();
-        if (cancelled) return;
-        if (err) setError(err.message);
-        else setData(row as UserProfile);
-      } finally {
-        stopWatch();
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    void fetchProfile();
-    return () => {
-      cancelled = true;
-    };
-  }, [userId]);
-
-  return { data, loading, error };
 }
 
 /** Datos de la strongbox del usuario desde Supabase (`strongboxes` + relaciones). */
@@ -236,104 +165,4 @@ export function useCajaFuerteData(
   }, [userId, refreshNonce]);
 
   return { data, loading, error, refetch };
-}
-
-/** Transacciones asociadas a una strongbox (`strongbox_id`). */
-export function useTransactions(
-  strongboxId: string | undefined,
-  limit: number = 20,
-): QueryResult<Transaction[]> {
-  const [data, setData] = useState<Transaction[] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!strongboxId) {
-      setLoading(false);
-      setData(null);
-      return;
-    }
-
-    let cancelled = false;
-    const supabase = getSupabaseBrowser();
-    if (!supabase) { setData(null); setLoading(false); return; }
-    const db: SupabaseClient = supabase;
-
-    async function fetchTx() {
-      setLoading(true);
-      setError(null);
-      const { data: rows, error: err } = await db
-        .from("transactions")
-        .select("*")
-        .eq("strongbox_id", strongboxId)
-        .order("created_at", { ascending: false })
-        .limit(limit);
-
-      if (cancelled) return;
-      if (err) setError(err.message);
-      else setData(rows as Transaction[]);
-      setLoading(false);
-    }
-
-    void fetchTx();
-    return () => {
-      cancelled = true;
-    };
-  }, [strongboxId, limit]);
-
-  return { data, loading, error };
-}
-
-export function useAlerts(
-  userId: string | undefined,
-): QueryResult<{ alerts: Alert[]; unreadCount: number }> {
-  const [data, setData] = useState<{ alerts: Alert[]; unreadCount: number } | null>(
-    null,
-  );
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!userId) { setLoading(false); return; }
-    let cancelled = false;
-    const supabase = getSupabaseBrowser();
-    if (!supabase) { setData(null); setLoading(false); return; }
-    const db: SupabaseClient = supabase;
-
-    async function fetchAlerts() {
-      setLoading(true);
-      setError(null);
-      const stopWatch = startQueryWatchdog(
-        () => cancelled,
-        () => {
-          setError("Tiempo de espera al cargar alertas.");
-          setLoading(false);
-        },
-      );
-      try {
-        const { data: rows, error: err } = await db
-          .from("alerts")
-          .select("*")
-          .eq("user_id", userId!)
-          .order("created_at", { ascending: false })
-          .limit(50);
-
-        if (cancelled) return;
-        if (err) { setError(err.message); return; }
-
-        const alerts = rows as Alert[];
-        setData({ alerts, unreadCount: alerts.filter((a) => !a.is_read).length });
-      } finally {
-        stopWatch();
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    void fetchAlerts();
-    return () => {
-      cancelled = true;
-    };
-  }, [userId]);
-
-  return { data, loading, error };
 }
