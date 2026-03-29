@@ -3,7 +3,12 @@
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { usePublicClient } from "wagmi";
+import type { Address } from "viem";
+import { getAddress, isAddress } from "viem";
 import { useUnifiedWallet } from "@/hooks/useUnifiedWallet";
+import { useCreateStrongBox, useFactoryConfigured } from "@/hooks/useStrongBoxChain";
+import { CONTRACTS, FACTORY_ABI } from "@/lib/contracts/abis";
 import { VaultShell } from "@/components/vault/VaultShell";
 import {
   VaultCard,
@@ -42,9 +47,15 @@ function SectionHeader({
   );
 }
 
+/** Igual al default en DB (1 año). */
+const DEFAULT_TIME_LIMIT_SECONDS = BigInt(31_536_000);
+
 export default function SafeConfigurationPage() {
   const router = useRouter();
   const { address, isConnected } = useUnifiedWallet();
+  const publicClient = usePublicClient();
+  const factoryOk = useFactoryConfigured();
+  const { createStrongBox, isPending: deployTxPending } = useCreateStrongBox();
   const { session, loading: authLoading } = useAuth();
   const {
     form,
@@ -128,28 +139,95 @@ export default function SafeConfigurationPage() {
 
     setSaving(true);
     try {
+      if (!factoryOk) {
+        setSaveError(
+          "Configurá NEXT_PUBLIC_FACTORY_ADDRESS en el frontend para el deploy on-chain."
+        );
+        return;
+      }
+      if (!address || !isConnected) {
+        setSaveError("Conectá tu wallet para crear la Safe on-chain.");
+        return;
+      }
+      if (!publicClient) {
+        setSaveError("No hay cliente RPC disponible.");
+        return;
+      }
+
+      const [g1Raw, g2Raw, h1Raw, h2Raw] = [
+        guardians[0]!.wallet,
+        guardians[1]!.wallet,
+        recoverers[0]!.wallet,
+        recoverers[1]!.wallet,
+      ];
+      if (![g1Raw, g2Raw, h1Raw, h2Raw].every((w) => isAddress(w))) {
+        setSaveError(
+          "Cada guardian y recovery contact debe tener una wallet EVM válida (0x…)."
+        );
+        return;
+      }
+      const guardian1 = getAddress(g1Raw) as Address;
+      const guardian2 = getAddress(g2Raw) as Address;
+      const heir1 = getAddress(h1Raw) as Address;
+      const heir2 = getAddress(h2Raw) as Address;
+
+      const ownerLc = address.toLowerCase();
+      if (
+        [guardian1, guardian2, heir1, heir2].some(
+          (a) => a.toLowerCase() === ownerLc,
+        )
+      ) {
+        setSaveError(
+          "No podés usar tu propia wallet conectada como guardian o recovery contact.",
+        );
+        return;
+      }
+
+      const { hash } = await createStrongBox({
+        guardian1,
+        guardian2,
+        heir1,
+        heir2,
+        timeLimitSeconds: DEFAULT_TIME_LIMIT_SECONDS,
+      });
+
+      const deployed = await publicClient.readContract({
+        address: CONTRACTS.factory,
+        abi: FACTORY_ABI,
+        functionName: "getStrongBox",
+        args: [address],
+      });
+
+      if (
+        !deployed ||
+        deployed === "0x0000000000000000000000000000000000000000"
+      ) {
+        throw new Error("Factory did not return a StrongBox address.");
+      }
+
+      const contractAddress = getAddress(deployed as string);
+
       await postStrongboxSetup(session.access_token, {
         own_email: form.ownerEmail.trim(),
         guardians,
         recovery_contacts: recoverers,
+        contract_address: contractAddress,
+        deploy_tx_hash: hash,
       });
+
+      router.push("/safe/owner");
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) {
-        // Ya hay caja logica; seguir al dashboard
+        // Ya hay caja lógica; seguir al dashboard
+        router.push("/safe/owner");
       } else {
         setSaveError(
-          e instanceof Error
-            ? e.message
-            : "Failed to save to server."
+          e instanceof Error ? e.message : "Failed to save to server."
         );
-        setSaving(false);
-        return;
       }
     } finally {
       setSaving(false);
     }
-
-    router.push("/safe/owner");
   }
 
   return (
@@ -171,6 +249,15 @@ export default function SafeConfigurationPage() {
               role="alert"
             >
               {saveError}
+            </div>
+          )}
+          {session && !factoryOk && (
+            <div className="rounded-xl border border-warning/20 bg-warning-light px-4 py-3 text-sm text-amber-800">
+              Set{" "}
+              <code className="rounded bg-white/60 px-1.5 py-0.5 text-xs font-mono">
+                NEXT_PUBLIC_FACTORY_ADDRESS
+              </code>{" "}
+              for on-chain deploy.
             </div>
           )}
 
@@ -274,12 +361,17 @@ export default function SafeConfigurationPage() {
             </div>
           </section>
 
-          <VaultPillButton onClick={save} disabled={saving || webauthnLoading}>
-            {saving
-              ? "Saving…"
-              : webauthnLoading
-                ? "Verifying identity…"
-                : "Save and Create Safe"}
+          <VaultPillButton
+            onClick={save}
+            disabled={saving || webauthnLoading || deployTxPending}
+          >
+            {webauthnLoading
+              ? "Verifying identity…"
+              : deployTxPending
+                ? "Deploying on-chain…"
+                : saving
+                  ? "Saving…"
+                  : "Save and Create Safe"}
           </VaultPillButton>
         </div>
       </VaultCard>

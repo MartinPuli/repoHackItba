@@ -1,6 +1,10 @@
+import type { User } from '@supabase/supabase-js';
+
 import { supabaseAdmin } from '../config/supabase.js';
 import { HttpError } from '../middlewares/httpError.js';
 import type { Database } from '../types/database.types.js';
+import { walletFromAuthUser } from './authService.js';
+import { getProvider } from './chainProvider.js';
 
 type PersonInput = { wallet: string; email: string };
 
@@ -8,6 +12,8 @@ export type StrongboxSetupBody = {
   own_email: string;
   guardians: PersonInput[];
   recovery_contacts: PersonInput[];
+  contract_address: string;
+  deploy_tx_hash: string;
 };
 
 function assertAdmin() {
@@ -43,7 +49,19 @@ function assertTwoPeople(arr: PersonInput[], kind: string): void {
   }
 }
 
-export async function setupStrongbox(userId: string, body: StrongboxSetupBody): Promise<void> {
+function assertDeployTxHash(raw: string, label: string): string {
+  const h = raw.trim().toLowerCase();
+  if (!/^0x[a-f0-9]{64}$/.test(h)) {
+    throw new HttpError(400, `${label} inválido (esperado 0x + 64 hex)`);
+  }
+  return h;
+}
+
+export async function setupStrongbox(
+  userId: string,
+  body: StrongboxSetupBody,
+  authUser: User,
+): Promise<void> {
   const ownEmail = assertEmail(body.own_email, 'own_email');
   assertTwoPeople(body.guardians, 'guardians');
   assertTwoPeople(body.recovery_contacts, 'recovery_contacts');
@@ -73,22 +91,26 @@ export async function setupStrongbox(userId: string, body: StrongboxSetupBody): 
 
   const admin = assertAdmin();
 
-  const { data: userRow, error: userErr } = await admin
+  const ownerWallet = walletFromAuthUser(authUser);
+  if (authUser.id !== userId) {
+    throw new HttpError(500, 'Auth user id mismatch');
+  }
+
+  const { error: upsertUserErr } = await admin
     .from('users')
-    .select('wallet_address')
-    .eq('id', userId)
-    .maybeSingle();
-  if (userErr) {
-    throw new HttpError(500, userErr.message, userErr.code);
+    .upsert({ id: userId, wallet_address: ownerWallet }, { onConflict: 'id' });
+  if (upsertUserErr) {
+    if (upsertUserErr.code === '23505') {
+      throw new HttpError(
+        409,
+        'Conflicto: wallet_address ya usada por otro usuario',
+        upsertUserErr.code,
+      );
+    }
+    throw new HttpError(500, upsertUserErr.message, upsertUserErr.code);
   }
-  if (!userRow) {
-    throw new HttpError(
-      404,
-      'Usuario no encontrado en public.users. Recargá la página para que /api/auth/me cree tu perfil primero.'
-    );
-  }
-  const ownerWallet = userRow.wallet_address?.toLowerCase();
-  if (ownerWallet && addresses.some((a) => a === ownerWallet)) {
+
+  if (addresses.some((a) => a === ownerWallet)) {
     throw new HttpError(400, 'Guardianes/recovery contacts no pueden usar la wallet del titular');
   }
 
@@ -107,6 +129,18 @@ export async function setupStrongbox(userId: string, body: StrongboxSetupBody): 
     throw new HttpError(409, 'El usuario ya tiene una StrongBox configurada');
   }
 
+  const contractAddress = assertEvmAddress(body.contract_address, 'contract_address');
+  const deployTxHash = assertDeployTxHash(body.deploy_tx_hash, 'deploy_tx_hash');
+
+  const provider = getProvider();
+  const code = await provider.getCode(contractAddress);
+  if (!code || code === '0x') {
+    throw new HttpError(
+      400,
+      'No hay bytecode en contract_address; el deploy no está confirmado on-chain'
+    );
+  }
+
   // Update user email
   const { error: userUpdateErr } = await admin
     .from('users')
@@ -116,10 +150,12 @@ export async function setupStrongbox(userId: string, body: StrongboxSetupBody): 
     throw new HttpError(500, userUpdateErr.message, userUpdateErr.code);
   }
 
-  // Create strongbox
+  // Create strongbox (ya deployada on-chain antes de este insert)
   const sbInsert: Database['public']['Tables']['strongboxes']['Insert'] = {
     user_id: userId,
-    is_deployed: false,
+    is_deployed: true,
+    contract_address: contractAddress,
+    deploy_tx_hash: deployTxHash,
   };
 
   const { data: sbRow, error: sbErr } = await admin

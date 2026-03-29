@@ -25,7 +25,8 @@ function toPublicProfile(row: Database['public']['Tables']['users']['Row']): Pub
   };
 }
 
-function walletFromAuthUser(authUser: User): string {
+/** Wallet EVM del titular según metadata del JWT de Supabase (fuente de verdad en setup / auth). */
+export function walletFromAuthUser(authUser: User): string {
   const meta = authUser.user_metadata as Record<string, unknown> | undefined;
   const raw = meta?.ethereum_address ?? meta?.wallet_address ?? meta?.address;
   if (typeof raw !== 'string' || !/^0x[a-fA-F0-9]{40}$/.test(raw)) {

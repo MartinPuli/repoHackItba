@@ -20,19 +20,28 @@ function readSetupBody(req: Request): StrongboxSetupBody {
   if (!Array.isArray(recovery)) {
     throw new HttpError(400, 'recovery_contacts o heirs debe ser un array (2 contactos)');
   }
+  if (typeof b?.contract_address !== 'string') {
+    throw new HttpError(400, 'contract_address es requerido (string)');
+  }
+  if (typeof b?.deploy_tx_hash !== 'string') {
+    throw new HttpError(400, 'deploy_tx_hash es requerido (string)');
+  }
   return {
     own_email: b.own_email,
     guardians: b.guardians as StrongboxSetupBody['guardians'],
     recovery_contacts: recovery as StrongboxSetupBody['recovery_contacts'],
+    contract_address: b.contract_address,
+    deploy_tx_hash: b.deploy_tx_hash,
   };
 }
 
 export async function postStrongboxSetup(req: Request, res: Response): Promise<void> {
   const authUserId = req.authUserId;
-  if (!authUserId) {
+  const authUser = req.authUser;
+  if (!authUserId || !authUser) {
     throw new HttpError(500, 'Auth context missing');
   }
   const body = readSetupBody(req);
-  await setupStrongbox(authUserId, body);
+  await setupStrongbox(authUserId, body, authUser);
   res.status(201).json({ ok: true });
 }

@@ -12,7 +12,7 @@ Authorization: Bearer {{accessToken}}
 ### Me — sin token (401)
 GET {{baseUrl}}/api/auth/me
 
-### StrongBox — setup lógico (guardianes + recovery contacts; una sola vez por usuario)
+### StrongBox — setup (tras deploy on-chain; guardianes + recovery; una vez por usuario)
 POST {{baseUrl}}/api/strongbox/setup
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
@@ -26,7 +26,9 @@ Content-Type: application/json
   "recovery_contacts": [
     { "wallet": "0x3333333333333333333333333333333333333333", "email": "h1@ejemplo.com" },
     { "wallet": "0x4444444444444444444444444444444444444444", "email": "h2@ejemplo.com" }
-  ]
+  ],
+  "contract_address": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "deploy_tx_hash": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 }
 
 ### StrongBox — setup con alias heirs (equivale a recovery_contacts)

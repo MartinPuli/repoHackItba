@@ -3,7 +3,6 @@
 import { useMemo, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { usePublicClient } from "wagmi";
 import { useUnifiedWallet } from "@/hooks/useUnifiedWallet";
 import type { Address } from "viem";
 import { getAddress, isAddress } from "viem";
@@ -16,14 +15,8 @@ import {
   VaultMintButton,
 } from "@/components/vault/VaultPrimitives";
 import { useAuth } from "@/hooks/useAuth";
+import { useCajaFuerteData } from "@/hooks/useSupabase";
 import {
-  useCajaFuerteData,
-  type GuardianRow,
-  type RecoveryContactRow,
-} from "@/hooks/useSupabase";
-import {
-  useFactoryConfigured,
-  useCreateStrongBox,
   useDepositStrongBox,
   useWithdrawStrongBox,
   useStrongBoxOnChainState,
@@ -31,32 +24,12 @@ import {
 import {
   ApiError,
   getCajaFuerteBalance,
-  postConfirmDeploy,
   postConfirmDeposit,
   postWithdrawRequest,
   getWithdrawPending,
 } from "@/lib/api/client";
-import { CONTRACTS, FACTORY_ABI } from "@/lib/contracts/abis";
 import { formatAddress } from "@/lib/utils";
-import { Clock, ArrowDownToLine, ArrowUpFromLine, Rocket, Shield, Users } from "lucide-react";
-
-function pickGuardianAddress(
-  guardians: GuardianRow[] | undefined,
-  slot: number
-): Address | null {
-  const h = guardians?.find((x) => x.slot === slot);
-  if (!h?.address || !isAddress(h.address)) return null;
-  return getAddress(h.address);
-}
-
-function pickRecoveryAddress(
-  contacts: RecoveryContactRow[] | undefined,
-  slot: number
-): Address | null {
-  const h = contacts?.find((x) => x.slot === slot);
-  if (!h?.address || !isAddress(h.address)) return null;
-  return getAddress(h.address);
-}
+import { Clock, ArrowDownToLine, ArrowUpFromLine, Shield, Users } from "lucide-react";
 
 function formatCountdown(seconds: number): string {
   if (seconds <= 0) return "Expired!";
@@ -71,7 +44,6 @@ function formatCountdown(seconds: number): string {
 export default function SafeOwnerDashboardPage() {
   const router = useRouter();
   const { address } = useUnifiedWallet();
-  const publicClient = usePublicClient();
   const { session, userId, loading: authLoading } = useAuth();
   const {
     data: caja,
@@ -86,7 +58,6 @@ export default function SafeOwnerDashboardPage() {
   );
   const [balanceError, setBalanceError] = useState<string | null>(null);
 
-  const [deployError, setDeployError] = useState<string | null>(null);
   const [depositError, setDepositError] = useState<string | null>(null);
   const [depositAmount, setDepositAmount] = useState("0.01");
 
@@ -109,8 +80,6 @@ export default function SafeOwnerDashboardPage() {
   const [actionBusy, setActionBusy] = useState(false);
   const [now, setNow] = useState(Math.floor(Date.now() / 1000));
 
-  const factoryOk = useFactoryConfigured();
-  const { createStrongBox, isPending: deployTxPending } = useCreateStrongBox();
   const { deposit, isPending: depositTxPending } = useDepositStrongBox();
   const { withdraw, isPending: withdrawTxPending } = useWithdrawStrongBox();
 
@@ -200,18 +169,6 @@ export default function SafeOwnerDashboardPage() {
 
   const addr = address ? formatAddress(address, 5) : "—";
 
-  const canDeploy =
-    !!address &&
-    !!session?.access_token &&
-    !!caja &&
-    !caja.is_deployed &&
-    factoryOk &&
-    !!pickGuardianAddress(caja.guardians, 1) &&
-    !!pickGuardianAddress(caja.guardians, 2) &&
-    !!pickRecoveryAddress(caja.recovery_contacts, 1) &&
-    !!pickRecoveryAddress(caja.recovery_contacts, 2) &&
-    caja.time_limit_seconds > 0;
-
   const canDeposit =
     !!address &&
     !!session?.access_token &&
@@ -226,61 +183,6 @@ export default function SafeOwnerDashboardPage() {
     !!strongBoxAddr &&
     Number.parseFloat(withdrawAmount) > 0 &&
     isAddress(withdrawTo);
-
-  async function handleDeploy() {
-    if (!address || !session?.access_token || !caja || !publicClient) return;
-    setDeployError(null);
-    setActionBusy(true);
-    try {
-      const g1 = pickGuardianAddress(caja.guardians, 1);
-      const g2 = pickGuardianAddress(caja.guardians, 2);
-      const h1 = pickRecoveryAddress(caja.recovery_contacts, 1);
-      const h2 = pickRecoveryAddress(caja.recovery_contacts, 2);
-      if (!g1 || !g2 || !h1 || !h2) {
-        throw new Error(
-          "Missing valid addresses for guardians/recovery contacts."
-        );
-      }
-
-      const { hash } = await createStrongBox({
-        guardian1: g1,
-        guardian2: g2,
-        heir1: h1,
-        heir2: h2,
-        timeLimitSeconds: BigInt(caja.time_limit_seconds),
-      });
-
-      const deployed = await publicClient.readContract({
-        address: CONTRACTS.factory,
-        abi: FACTORY_ABI,
-        functionName: "getStrongBox",
-        args: [address],
-      });
-
-      if (
-        !deployed ||
-        deployed === "0x0000000000000000000000000000000000000000"
-      ) {
-        throw new Error(
-          "Factory did not return a StrongBox address."
-        );
-      }
-
-      const contractAddress = getAddress(deployed as string);
-
-      await postConfirmDeploy(session.access_token, {
-        contract_address: contractAddress,
-        deploy_tx_hash: hash,
-      });
-
-      await refetch();
-      await loadBalance();
-    } catch (e) {
-      setDeployError(e instanceof Error ? e.message : "Deploy failed.");
-    } finally {
-      setActionBusy(false);
-    }
-  }
 
   async function handleDeposit() {
     if (!strongBoxAddr || !session?.access_token) return;
@@ -377,12 +279,6 @@ export default function SafeOwnerDashboardPage() {
           {cajaErr}
         </p>
       )}
-      {!factoryOk && caja && !caja.is_deployed && (
-        <div className="mb-6 rounded-xl border border-warning/20 bg-warning-light p-4 text-sm text-amber-800">
-          Set <code className="rounded bg-white/60 px-1.5 py-0.5 text-xs font-mono">NEXT_PUBLIC_FACTORY_ADDRESS</code> for on-chain deploy.
-        </div>
-      )}
-
       <div className="mb-8 grid gap-6 lg:grid-cols-2 lg:items-start">
         {/* Balance + Actions */}
         <VaultCard>
@@ -439,24 +335,11 @@ export default function SafeOwnerDashboardPage() {
 
           <div className="mt-6 flex flex-col gap-3">
             {!caja?.is_deployed && caja && (
-              <>
-                {deployError && (
-                  <p className="rounded-lg border border-danger/20 bg-danger-light px-3 py-2 text-sm text-red-600">
-                    {deployError}
-                  </p>
-                )}
-                <VaultSmallGreenButton
-                  onClick={() => void handleDeploy()}
-                  disabled={
-                    !canDeploy || actionBusy || deployTxPending || cajaLoading
-                  }
-                >
-                  <Rocket className="h-4 w-4" />
-                  {deployTxPending || actionBusy
-                    ? "Deploying…"
-                    : "Deploy StrongBox on-chain"}
-                </VaultSmallGreenButton>
-              </>
+              <p className="rounded-lg border border-warning/20 bg-warning-light px-3 py-2 text-sm text-amber-800">
+                Esta caja no tiene contrato on-chain. Si acabás de guardar la
+                configuración, recargá la página. Si el problema sigue, volvé a
+                crear la Safe desde configuración.
+              </p>
             )}
             {caja?.is_deployed && (
               <>

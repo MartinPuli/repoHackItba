@@ -95,6 +95,8 @@ export type SetupBody = {
   own_email: string;
   guardians: { wallet: string; email: string }[];
   recovery_contacts: { wallet: string; email: string }[];
+  contract_address: string;
+  deploy_tx_hash: string;
 };
 
 export function postStrongboxSetup(accessToken: string, body: SetupBody) {
