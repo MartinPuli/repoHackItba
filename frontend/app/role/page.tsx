@@ -25,6 +25,10 @@ export default function RoleSelectionPage() {
   const [signingIn, setSigningIn] = useState(false);
   const [signInError, setSignInError] = useState<string | null>(null);
 
+  // Guard: only attempt sign-in ONCE per address.
+  // Prevents the infinite loop: fail → signingIn=false → effect re-fires → ask signature again
+  const signInAttempted = useRef<string | null>(null);
+
   useEffect(() => {
     if (!isConnected) {
       router.replace("/connect");

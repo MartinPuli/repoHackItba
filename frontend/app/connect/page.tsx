@@ -3,21 +3,48 @@
 import { useEffect } from "react";
 import { useAppKitAccount, useAppKit } from "@reown/appkit/react";
 import { useRouter } from "next/navigation";
+import { useLemon } from "@/context/LemonContext";
 import { VaultShell } from "@/components/vault/VaultShell";
 import { VaultCard } from "@/components/vault/VaultPrimitives";
-import { Shield, Users, Clock, Wallet } from "lucide-react";
+import { Shield, Users, Clock, Wallet, Loader2 } from "lucide-react";
 
 export default function ConnectPage() {
   const router = useRouter();
   const { isConnected } = useAppKitAccount();
   const { open } = useAppKit();
+  const { isLemon, wallet: lemonWallet, authenticating: lemonLoading } = useLemon();
 
-  // Redirect once connected
+  // Redirect once connected (either via WalletConnect or Lemon)
   useEffect(() => {
     if (isConnected) {
       router.replace("/role");
+      return;
     }
-  }, [isConnected, router]);
+    // If Lemon authenticated successfully, go to role selection
+    if (isLemon && lemonWallet) {
+      router.replace("/role");
+    }
+  }, [isConnected, isLemon, lemonWallet, router]);
+
+  // If inside Lemon WebView and authenticating, show loading
+  if (isLemon && lemonLoading) {
+    return (
+      <VaultShell
+        title="Connecting via Lemon"
+        step={{ current: 1, total: 4 }}
+        backHref="/"
+      >
+        <VaultCard className="mt-6">
+          <div className="flex flex-col items-center py-12 text-center">
+            <Loader2 className="mb-4 h-10 w-10 animate-spin text-brand" />
+            <p className="text-sm text-ink-muted">
+              Authenticating with Lemon Cash...
+            </p>
+          </div>
+        </VaultCard>
+      </VaultShell>
+    );
+  }
 
   return (
     <VaultShell

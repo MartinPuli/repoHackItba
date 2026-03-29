@@ -12,11 +12,13 @@ import {
 } from "@/lib/wagmi/config";
 import { VaultFlowProvider } from "@/context/VaultFlowContext";
 import { LemonProvider } from "@/context/LemonContext";
+import { ChainGuard } from "@/components/ChainGuard";
 
 // Create AppKit instance — MUST be called outside React component
 createAppKit({
   adapters: [wagmiAdapter],
   networks,
+  defaultNetwork: networks[0], // BSC Testnet — force as default
   projectId,
   metadata,
   customWallets: [],

@@ -4,7 +4,6 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { useDisconnect } from "wagmi";
 import { useUnifiedWallet } from "@/hooks/useUnifiedWallet";
-import { useLemon } from "@/context/LemonContext";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { LogOut, ArrowLeft } from "lucide-react";

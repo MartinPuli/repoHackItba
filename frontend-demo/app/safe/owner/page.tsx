@@ -11,12 +11,27 @@ import {
   VaultMintButton,
 } from "@/components/vault/VaultPrimitives";
 import { formatAddress } from "@/lib/utils";
-import { Clock } from "lucide-react";
+import { Clock, Coins } from "lucide-react";
+
+const MOCK_TOKENS = [
+  { symbol: "BNB", name: "BNB", balance: "2.50" },
+  { symbol: "USDT", name: "Tether USD", balance: "1,450.00" },
+  { symbol: "USDC", name: "USD Coin", balance: "800.00" },
+  { symbol: "BTCB", name: "Bitcoin BEP2", balance: "0.15" },
+  { symbol: "ETH", name: "Ethereum", balance: "3.20" },
+  { symbol: "VLTX", name: "Vaultix Token", balance: "10,000" },
+  { symbol: "PEPE", name: "Pepe", balance: "1,500,000" },
+  { symbol: "LINK", name: "Chainlink", balance: "145.20" },
+  { symbol: "UNI", name: "Uniswap", balance: "41.50" },
+  { symbol: "AAVE", name: "Aave", balance: "12.00" },
+  { symbol: "DAI", name: "Dai Stablecoin", balance: "200.00" },
+];
 
 export default function SafeOwnerDashboardPage() {
   const { address } = useAccount();
 
-  const [depositAmount, setDepositAmount] = useState("0.01");
+  const [selectedToken, setSelectedToken] = useState(MOCK_TOKENS[0]);
+  const [depositAmount, setDepositAmount] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawTo, setWithdrawTo] = useState("");
   const [showWithdraw, setShowWithdraw] = useState(false);
@@ -36,7 +51,7 @@ export default function SafeOwnerDashboardPage() {
   function handleDeposit() {
     fakeAction(() => {
       setDepositAmount("");
-      alert("Demo Mode: Deposit successful!");
+      alert(`Demo Mode: Successfully deposited ${selectedToken.symbol}!`);
     });
   }
 
@@ -45,7 +60,7 @@ export default function SafeOwnerDashboardPage() {
       setShowWithdraw(false);
       setWithdrawAmount("");
       setWithdrawTo("");
-      alert("Demo Mode: Withdrawal request created. Guardians must approve.");
+      alert(`Demo Mode: Withdrawal request of ${selectedToken.symbol} created. Guardians must approve.`);
     });
   }
 
@@ -54,11 +69,33 @@ export default function SafeOwnerDashboardPage() {
       <div className="mb-8 grid gap-6 lg:grid-cols-2 lg:items-start">
         {/* Balance + Actions */}
         <VaultCard>
-          <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-            Safe Balance (BNB)
-          </p>
-          <p className="mt-2 text-4xl font-bold tabular-nums text-slate-900 md:text-5xl">
-            2.50 <span className="text-sm font-normal text-slate-500">(demo mode)</span>
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+              Safe Balance
+            </p>
+            <div className="relative">
+              <select
+                className="appearance-none rounded-lg border border-slate-200 bg-slate-50 py-1.5 pl-3 pr-8 text-xs font-bold text-slate-700 outline-none transition-colors hover:border-brand/40 focus:border-brand focus:ring-2 focus:ring-brand/20 cursor-pointer"
+                value={selectedToken.symbol}
+                onChange={(e) => {
+                  const t = MOCK_TOKENS.find(x => x.symbol === e.target.value);
+                  if (t) setSelectedToken(t);
+                }}
+              >
+                {MOCK_TOKENS.map((token) => (
+                  <option key={token.symbol} value={token.symbol}>
+                    {token.symbol} - {token.name}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+                <Coins className="h-4 w-4" />
+              </div>
+            </div>
+          </div>
+          
+          <p className="mt-3 text-4xl font-bold tabular-nums text-slate-900 md:text-5xl transition-all">
+            {selectedToken.balance} <span className="text-lg font-bold text-slate-500">{selectedToken.symbol}</span>
           </p>
           <p className="mt-2 font-mono text-xs text-slate-500">{address ? formatAddress(address, 5) : "—"}</p>
           <p className="mt-1 font-mono text-xs text-slate-400">
@@ -73,11 +110,11 @@ export default function SafeOwnerDashboardPage() {
           </div>
 
           <div className="mt-6 flex flex-col gap-3">
-            <VaultField label="Deposit (BNB)">
+            <VaultField label={`Deposit Amount (${selectedToken.symbol})`}>
               <VaultInput
                 value={depositAmount}
                 onChange={(e) => setDepositAmount(e.target.value)}
-                placeholder="0.01"
+                placeholder="1.00"
               />
             </VaultField>
             
@@ -85,7 +122,7 @@ export default function SafeOwnerDashboardPage() {
               onClick={handleDeposit}
               disabled={actionBusy}
             >
-              {actionBusy ? "Depósito en curso…" : "Deposit"}
+              {actionBusy ? "Depósito en curso…" : `Deposit ${selectedToken.symbol}`}
             </VaultSmallGreenButton>
 
             {!showWithdraw ? (
@@ -94,11 +131,11 @@ export default function SafeOwnerDashboardPage() {
               </VaultMintButton>
             ) : (
               <div className="space-y-3 rounded-xl border border-line bg-slate-50 p-4">
-                <VaultField label="Amount (BNB)">
+                <VaultField label={`Amount (${selectedToken.symbol})`}>
                   <VaultInput
                     value={withdrawAmount}
                     onChange={(e) => setWithdrawAmount(e.target.value)}
-                    placeholder="0.005"
+                    placeholder="0.5"
                   />
                 </VaultField>
                 <VaultField label="To Address">
@@ -135,7 +172,7 @@ export default function SafeOwnerDashboardPage() {
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm">
             <div className="flex justify-between">
               <span className="text-slate-600">Amount:</span>
-              <span className="font-mono font-semibold">1.0 BNB</span>
+              <span className="font-mono font-semibold">500.0 USDT</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-600">To:</span>
