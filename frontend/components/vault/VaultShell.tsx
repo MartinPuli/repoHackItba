@@ -1,7 +1,6 @@
 "use client";
 
 import type { ReactNode } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -25,14 +24,18 @@ export function VaultShell({
     <div className="flex min-h-[100dvh] flex-col items-center bg-canvas px-5 pb-12 pt-8 sm:px-8 md:pt-12">
       {/* Minimal header: logo + optional back */}
       <header className={cn("flex w-full items-center", mw, backHref ? "justify-between" : "justify-center")}>
-        <Link href="/" className="flex items-center gap-2">
-          <Image
-            src="/logo-completo-verde.png"
+        <Link href="/" className="flex items-center gap-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo-verde.png"
+            alt="Vaultix icon"
+            style={{ height: 64, width: 64 }}
+          />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/nombre-verde.png"
             alt="Vaultix"
-            width={320}
-            height={80}
-            className="h-16 w-auto object-contain sm:h-20"
-            priority
+            style={{ height: 48 }}
           />
         </Link>
         {backHref && (
