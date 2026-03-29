@@ -133,7 +133,7 @@ export default function RoleSelectionPage() {
         >
           <VaultGreenBarButton
             icon={<FileKey className="h-5 w-5" strokeWidth={2} />}
-            onClick={() => router.push("/heir")}
+            onClick={() => router.push("/recoverer")}
             disabled={isLoading}
           >
             Recovery Dashboard
