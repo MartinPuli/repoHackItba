@@ -29,9 +29,9 @@ export function VaultShell({
           <Image
             src="/logo-completo-verde.png"
             alt="Vaultix"
-            width={200}
-            height={48}
-            className="h-10 w-auto object-contain sm:h-12"
+            width={320}
+            height={80}
+            className="h-16 w-auto object-contain sm:h-20"
             priority
           />
         </Link>
