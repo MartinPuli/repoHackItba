@@ -13,47 +13,9 @@ const nextConfig = {
       "pino-pretty": false,
       "@react-native-async-storage/async-storage": false,
     };
+    // Required for WalletConnect / AppKit
+    config.externals.push("pino-pretty", "lokijs", "encoding");
     return config;
-  },
-  transpilePackages: [
-    "@rainbow-me/rainbowkit",
-    "@reown/appkit",
-    "@reown/appkit-scaffold-ui",
-    "@reown/appkit-common",
-    "@walletconnect/modal",
-    "@walletconnect/ethereum-provider",
-    "@lit-labs/ssr-dom-shim",
-    "@lit/reactive-element",
-    "lit",
-  ],
-  async headers() {
-    return [
-      {
-        source: "/(.*)",
-        headers: [
-          {
-            key: "Content-Security-Policy",
-            value: [
-              "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "font-src 'self' https://fonts.gstatic.com",
-              "img-src 'self' data: blob: https:",
-              "connect-src 'self' https: wss:",
-              "frame-src 'self' https:",
-            ].join("; "),
-          },
-          {
-            key: "X-Content-Type-Options",
-            value: "nosniff",
-          },
-          {
-            key: "Referrer-Policy",
-            value: "strict-origin-when-cross-origin",
-          },
-        ],
-      },
-    ];
   },
 };
 

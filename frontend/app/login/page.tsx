@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAccount, useSignMessage } from "wagmi";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { useAppKit } from "@reown/appkit/react";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function LoginPage() {
@@ -11,6 +11,7 @@ export default function LoginPage() {
   const { address, isConnected } = useAccount();
   const { signMessageAsync } = useSignMessage();
   const { session, loading: authLoading, signIn } = useAuth();
+  const { open } = useAppKit();
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +57,23 @@ export default function LoginPage() {
         Conectá tu wallet y firmá para iniciar sesión
       </p>
 
-      <ConnectButton />
+      <button
+        onClick={() => open()}
+        style={{
+          padding: "10px 24px",
+          fontSize: 14,
+          fontWeight: 600,
+          cursor: "pointer",
+          border: "1px solid #1a7f5a",
+          borderRadius: 8,
+          background: "#1a7f5a",
+          color: "#fff",
+        }}
+      >
+        {isConnected
+          ? `${address?.slice(0, 6)}...${address?.slice(-4)}`
+          : "Connect Wallet"}
+      </button>
 
       {isConnected && (
         <button
