@@ -10,8 +10,14 @@ import webauthnRoutes from './routes/webauthnRoutes.js';
 
 export const app = express();
 
-app.use(helmet({ contentSecurityPolicy: false }));
-app.use(cors());
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: false,
+    crossOriginEmbedderPolicy: false,
+  }),
+);
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 
 app.get('/health', (_req, res) => {
