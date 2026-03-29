@@ -35,12 +35,45 @@ export default function ConnectPage() {
             MetaMask, Binance, Trust Wallet, Lemon, Coinbase & more.
           </p>
 
-          <button
-            onClick={() => open()}
-            className="w-full rounded-xl bg-brand px-6 py-3.5 text-sm font-semibold text-white transition-all hover:bg-primary-dark active:scale-[0.98] sm:max-w-xs"
-          >
-            Connect Wallet
-          </button>
+          <div className="w-full sm:max-w-xs space-y-3">
+            <button
+              onClick={() => open()}
+              className="flex w-full items-center justify-between rounded-xl border border-line bg-white px-4 py-3.5 text-sm font-semibold text-ink transition-all hover:border-brand/30 hover:bg-slate-50 hover:shadow-sm active:scale-[0.98]"
+            >
+              <div className="flex items-center gap-3">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" alt="MetaMask" className="h-6 w-6" />
+                MetaMask
+              </div>
+              <span className="text-xs bg-brand/10 text-brand px-2 py-0.5 rounded-full">Installed</span>
+            </button>
+            <button
+              onClick={() => open()}
+              className="flex w-full items-center justify-between rounded-xl border border-line bg-white px-4 py-3.5 text-sm font-semibold text-ink transition-all hover:border-brand/30 hover:bg-slate-50 hover:shadow-sm active:scale-[0.98]"
+            >
+              <div className="flex items-center gap-3">
+                <img src="https://trustwallet.com/assets/images/media/assets/TWT.png" alt="Trust Wallet" className="h-6 w-6 rounded-full" />
+                Trust Wallet
+              </div>
+            </button>
+            <button
+              onClick={() => open()}
+              className="flex w-full items-center justify-between rounded-xl border border-line bg-white px-4 py-3.5 text-sm font-semibold text-ink transition-all hover:border-brand/30 hover:bg-slate-50 hover:shadow-sm active:scale-[0.98]"
+            >
+              <div className="flex items-center gap-3">
+                <img src="https://public.bnbstatic.com/image/cms/article/body/202311/f7b0561574a625f38a7c2f0f4e2acc77.png" alt="Binance Web3" className="h-6 w-6 rounded-full" />
+                Binance Web3
+              </div>
+            </button>
+            <button
+              onClick={() => open()}
+              className="flex w-full items-center justify-between rounded-xl border border-line bg-white px-4 py-3.5 text-sm font-semibold text-ink transition-all hover:border-brand/30 hover:bg-slate-50 hover:shadow-sm active:scale-[0.98]"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-500">...</div>
+                Other Wallets
+              </div>
+            </button>
+          </div>
         </div>
       </VaultCard>
 
