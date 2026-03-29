@@ -9,13 +9,13 @@ import { Shield, Users, Clock, HelpCircle, X, ChevronRight, Search } from "lucid
 
 export default function ConnectPage() {
   const router = useRouter();
-  const { isConnected } = useAppKitAccount();
+  const { isConnected, hydrated } = useAppKitAccount();
   const { open } = useAppKit();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
-    if (isConnected) router.replace("/role");
-  }, [isConnected, router]);
+    if (hydrated && isConnected) router.replace("/role");
+  }, [hydrated, isConnected, router]);
 
   return (
     <VaultShell title="Connect your wallet" step={{ current: 1, total: 4 }} backHref="/">

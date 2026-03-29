@@ -16,8 +16,11 @@ export const metadata = {
   icons: ["/logo-verde.png"],
 };
 
-// Networks
-export const networks: [AppKitNetwork, ...AppKitNetwork[]] = [bscTestnet];
+// Networks — BSC Testnet only.
+// When MetaMask is on another chain, AppKit will prompt to switch.
+export const networks: [AppKitNetwork, ...AppKitNetwork[]] = [
+  bscTestnet,
+];
 
 // Wagmi Adapter (includes WalletConnect, Coinbase, Injected connectors)
 export const wagmiAdapter = new WagmiAdapter({

@@ -9,16 +9,16 @@ import { Landmark, FileKey, ShieldUser } from "lucide-react";
 
 export default function RoleSelectionPage() {
   const router = useRouter();
-  const { isConnected } = useAccount();
+  const { isConnected, hydrated } = useAccount();
 
-  // Redirect to connect if not connected
+  // Redirect to connect if not connected (wait for hydration first)
   useEffect(() => {
-    if (!isConnected) {
+    if (hydrated && !isConnected) {
       router.replace("/");
     }
-  }, [isConnected, router]);
+  }, [hydrated, isConnected, router]);
 
-  if (!isConnected) return null;
+  if (!hydrated || !isConnected) return null;
 
   return (
     <VaultShell

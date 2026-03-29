@@ -4,7 +4,6 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { useAccount, useDisconnect } from "@/context/DemoMockContext";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/hooks/useAuth";
 import { LogOut } from "lucide-react";
 import { formatAddress } from "@/lib/utils";
 
@@ -24,10 +23,8 @@ export function VaultShell({
   const mw = maxWidth === "wide" ? "max-w-4xl" : "max-w-xl sm:max-w-2xl";
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
-  const { signOut } = useAuth();
 
   function handleDisconnect() {
-    signOut();
     disconnect();
   }
 

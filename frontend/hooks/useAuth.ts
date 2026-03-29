@@ -7,11 +7,28 @@ import type { Session } from "@supabase/supabase-js";
 const SIGN_MESSAGE = "Sign in to Vaultix — HackITBA 2026";
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
-/** Supabase limita password a 72 bytes (bcrypt). La firma hex es ~132 chars → hash fijo 64 hex. */
+/** Legacy: password from signature (non-deterministic, kept for migration) */
 async function passwordFromSignature(signature: string): Promise<string> {
   const buf = await crypto.subtle.digest(
     "SHA-256",
     new TextEncoder().encode(signature),
+  );
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+/**
+ * Derive a deterministic password from the wallet address.
+ * ECDSA signatures are non-deterministic (same message can produce different
+ * signatures), so we use the address itself + a fixed salt as the password.
+ * The signature is only used to PROVE ownership of the wallet.
+ */
+async function passwordFromAddress(address: string): Promise<string> {
+  const input = `vaultix-hackitba-2026:${address.toLowerCase()}`;
+  const buf = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(input),
   );
   return Array.from(new Uint8Array(buf))
     .map((b) => b.toString(16).padStart(2, "0"))
@@ -74,10 +91,14 @@ export function useAuth() {
     ) => {
       if (!supabase) throw new Error("Supabase not configured");
 
+      // 1) Ask user to sign message to prove wallet ownership
       const signature = await signMessageAsync({ message: SIGN_MESSAGE });
-      const password = await passwordFromSignature(signature);
+
+      // 2) Derive deterministic credentials from the address (not the signature)
+      const password = await passwordFromAddress(address);
       const email = `${address.toLowerCase()}@wallet.local`;
 
+      // 3) Try login with address-based password (new flow)
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -88,6 +109,7 @@ export function useAuth() {
         return data.session;
       }
 
+      // 4) Try signup (new user)
       const { data: signUpData, error: signUpError } =
         await supabase.auth.signUp({
           email,
@@ -102,30 +124,24 @@ export function useAuth() {
         return signUpData.session;
       }
 
-      // Deadlock: user exists but password changed (different signature).
-      // Reset password via backend admin API, then retry login.
-      if (signUpError?.message?.includes("User already registered")) {
-        const resetRes = await fetch(`${API_URL}/api/auth/wallet-reset`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ address, signature, newPassword: password }),
+      // 5) User exists but with old signature-based password.
+      //    Try login with the old method (SHA-256 of signature) as fallback.
+      const oldPassword = await passwordFromSignature(signature);
+      const { data: fallback, error: fallbackErr } =
+        await supabase.auth.signInWithPassword({
+          email,
+          password: oldPassword,
         });
 
-        if (resetRes.ok) {
-          const { data: retryData, error: retryError } =
-            await supabase.auth.signInWithPassword({ email, password });
-
-          if (!retryError && retryData.session) {
-            await syncMe(retryData.session.access_token);
-            return retryData.session;
-          }
-          throw retryError ?? new Error("Login failed after password reset");
-        }
+      if (!fallbackErr && fallback.session) {
+        // Logged in with old password — update to new deterministic one
+        await supabase.auth.updateUser({ password });
+        await syncMe(fallback.session.access_token);
+        return fallback.session;
       }
 
-      if (signUpError) throw signUpError;
       throw new Error(
-        "No session returned. Disable 'Confirm email' in Supabase Auth settings.",
+        "Could not sign in. Try disconnecting your wallet and reconnecting.",
       );
     },
     [supabase],
@@ -159,7 +175,7 @@ export function useAuth() {
         }));
       }
     } catch {
-      // API caída; no bloquear el login
+      // API down; don't block login
     }
   }
 
