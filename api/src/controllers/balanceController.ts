@@ -1,11 +1,18 @@
 import type { Request, Response } from 'express';
 
 import { HttpError } from '../middlewares/httpError.js';
-import { readStrongboxBalanceMock } from '../services/mockChainBalance.js';
+import {
+  readStrongboxBalanceFromRpc,
+  readStrongboxBalanceMock,
+} from '../services/mockChainBalance.js';
 import {
   getStrongboxRowForUser,
   resolveStrongboxMockAddress,
 } from '../services/userContractsService.js';
+
+function isLikelyEvmAddress(addr: string | null | undefined): boolean {
+  return typeof addr === 'string' && /^0x[a-fA-F0-9]{40}$/.test(addr.trim());
+}
 
 export async function getStrongboxBalance(req: Request, res: Response): Promise<void> {
   const authUserId = req.authUserId;
@@ -14,8 +21,11 @@ export async function getStrongboxBalance(req: Request, res: Response): Promise<
   }
 
   const row = await getStrongboxRowForUser(authUserId);
-  const mockAddr = resolveStrongboxMockAddress(row);
-  const balances = readStrongboxBalanceMock(mockAddr, row.chain_id);
+
+  const useRpc = row.is_deployed && isLikelyEvmAddress(row.contract_address);
+  const balances = useRpc
+    ? await readStrongboxBalanceFromRpc(row.contract_address!.trim(), row.chain_id)
+    : readStrongboxBalanceMock(resolveStrongboxMockAddress(row), row.chain_id);
 
   res.status(200).json({
     balances,

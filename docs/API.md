@@ -4,10 +4,11 @@ Referencia para integrar el **frontend** con el servidor Express. La API es **JS
 
 ## Base URL
 
-| Entorno    | URL                        |
-| ---------- | -------------------------- |
-| Local      | `http://localhost:3000`    |
-| Produccion | Definir segun deploy       |
+| Entorno    | URL                                               |
+| ---------- | ------------------------------------------------- |
+| Local API  | `http://localhost:3001` (tipico `PORT=3001` en `api/`) |
+| Frontend   | Suele ser `http://localhost:3000` — usar `NEXT_PUBLIC_API_URL=http://localhost:3001` |
+| Produccion | Definir segun deploy                              |
 
 ## Convenciones
 
@@ -79,6 +80,7 @@ Crea StrongBox logica en DB (sin deploy on-chain). Configura guardianes y recove
 | `own_email` | string | si | Email del titular |
 | `guardians` | array | si | 2 objetos `{ "wallet", "email" }` |
 | `recovery_contacts` | array | si | 2 objetos `{ "wallet", "email" }` |
+| `heirs` | array | no | Alias de `recovery_contacts` (mismo formato) |
 
 Las 4 wallets deben ser distintas entre si y distintas de la del titular.
 
@@ -90,7 +92,12 @@ Las 4 wallets deben ser distintas entre si y distintas de la del titular.
 
 ### `GET /api/strongbox/balance`
 
-Balance de la StrongBox del usuario (mock → on-chain RPC).
+Balance de la StrongBox del usuario autenticado.
+
+- Si **no** esta deployada on-chain: balance **mock** deterministico (misma forma que antes).
+- Si esta deployada (`is_deployed` + `contract_address` valida): **RPC** (`RPC_URL` en servidor), `balances.source` = `"rpc"`.
+
+**Alias**: `GET /api/caja-fuerte/balance` (mismo comportamiento).
 
 **Respuesta 200**:
 ```json
@@ -98,61 +105,41 @@ Balance de la StrongBox del usuario (mock → on-chain RPC).
   "balances": {
     "chainId": 97,
     "contractAddress": "0x...",
-    "native": { "symbol": "BNB", "formatted": "0.5" },
-    "source": "mock"
+    "native": {
+      "symbol": "BNB",
+      "wei": "1000000000000000000",
+      "formatted": "1.000000"
+    },
+    "source": "rpc"
+  },
+  "dbSnapshot": {
+    "balance_native": "0",
+    "is_deployed": true,
+    "recovery_state": "inactive",
+    "time_limit_seconds": 31536000,
+    "last_activity_at": "2026-03-28T12:00:00.000Z"
   }
 }
 ```
 
-**Errores**: 401, 404 (sin strongbox).
+**Errores**: 401, 404 (sin strongbox), 500 (ej. `RPC_URL` no configurado cuando hace falta leer on-chain).
 
 ---
 
-### `POST /api/strongbox/withdraw/request`
+### `POST /api/strongbox/confirm-deploy` / `POST /api/strongbox/confirm-deposit`
 
-Crea solicitud de retiro. Notifica a guardianes.
-
-**Body**:
-
-| Campo | Tipo | Notas |
-|-------|------|-------|
-| `amount` | string | Monto en wei |
-| `to_address` | string | Direccion destino |
-
-**Respuesta 201**: `{ "request_id": "uuid" }`
-
----
-
-### `POST /api/strongbox/withdraw/:id/approve`
-
-Guardian aprueba solicitud de retiro.
-
-**Respuesta 200**: `{ "ok": true, "fully_approved": false }`
-
----
-
-### `GET /api/strongbox/withdraw/pending`
-
-Lista solicitudes de retiro pendientes para el usuario (como owner o guardian).
-
----
-
-### `GET /api/strongbox/guardians`
-
-Lista guardianes y recovery contacts de la StrongBox del usuario.
+Confirmacion on-chain luego de que el usuario firma con MetaMask. Ver implementacion en `api/src/services/deployService.ts` y `depositService.ts`.
 
 ---
 
 ## Ejemplo cURL
 
 ```bash
-# Auth
-curl -s http://localhost:3000/api/auth/me \
+curl -s http://localhost:3001/api/auth/me \
   -H 'Authorization: Bearer <TOKEN>'
 
-# Setup
-curl -s -X POST http://localhost:3000/api/strongbox/setup \
+curl -s -X POST http://localhost:3001/api/strongbox/setup \
   -H 'Authorization: Bearer <TOKEN>' \
   -H 'Content-Type: application/json' \
-  -d '{"own_email":"yo@mail.com","guardians":[{"wallet":"0x111...","email":"g1@mail.com"},{"wallet":"0x222...","email":"g2@mail.com"}],"recovery_contacts":[{"wallet":"0x333...","email":"r1@mail.com"},{"wallet":"0x444...","email":"r2@mail.com"}]}'
+  -d '{"own_email":"yo@mail.com","guardians":[{"wallet":"0x1111111111111111111111111111111111111111","email":"g1@mail.com"},{"wallet":"0x2222222222222222222222222222222222222222","email":"g2@mail.com"}],"recovery_contacts":[{"wallet":"0x3333333333333333333333333333333333333333","email":"r1@mail.com"},{"wallet":"0x4444444444444444444444444444444444444444","email":"r2@mail.com"}]}'
 ```
