@@ -2,6 +2,7 @@
 
 import { useMemo, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { usePublicClient } from "wagmi";
 import { useUnifiedWallet } from "@/hooks/useUnifiedWallet";
 import type { Address } from "viem";
@@ -68,6 +69,7 @@ function formatCountdown(seconds: number): string {
 }
 
 export default function SafeOwnerDashboardPage() {
+  const router = useRouter();
   const { address } = useUnifiedWallet();
   const publicClient = usePublicClient();
   const { session, userId, loading: authLoading } = useAuth();
@@ -346,23 +348,8 @@ export default function SafeOwnerDashboardPage() {
   }
 
   if (!session) {
-    return (
-      <VaultShell title="Safe Owner Dashboard" maxWidth="wide">
-        <VaultCard>
-          <p className="text-ink-muted">
-            You need to sign in to view your vault and balances.
-          </p>
-          <Link
-            href="/role"
-            className="mt-4 inline-block rounded-xl bg-brand px-5 py-2.5 text-sm font-semibold text-white shadow-brand-sm hover:bg-primary-dark"
-          >
-            Sign In
-          </Link>
-        </VaultCard>
-      </VaultShell>
-    );
-  }
-
+    router.replace("/connect");
+    return null;
   if (!caja && !cajaLoading) {
     return (
       <VaultShell title="Safe Owner Dashboard" maxWidth="wide">

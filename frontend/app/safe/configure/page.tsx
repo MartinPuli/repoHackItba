@@ -44,8 +44,8 @@ function SectionHeader({
 
 export default function SafeConfigurationPage() {
   const router = useRouter();
-  const { address } = useUnifiedWallet();
-  const { session } = useAuth();
+  const { address, isConnected } = useUnifiedWallet();
+  const { session, loading: authLoading } = useAuth();
   const {
     form,
     setForm,
@@ -63,6 +63,12 @@ export default function SafeConfigurationPage() {
 
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!authLoading && !session) {
+      router.replace("/connect");
+    }
+  }, [authLoading, session, router]);
 
   useEffect(() => {
     if (session?.access_token) void checkStatus();

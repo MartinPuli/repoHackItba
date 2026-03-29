@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { useUnifiedWallet } from "@/hooks/useUnifiedWallet";
 import { isAddress, getAddress, type Address } from "viem";
 import { VaultShell } from "@/components/vault/VaultShell";
