@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-// ── Types (alineados a api/supabase/migrations/20260328120000_001_initial_schema.sql) ──
+// ── Types (alineados a api/supabase/migrations/20260328130000_001_initial_schema.sql) ──
 
 interface QueryResult<T> {
   data: T | null;

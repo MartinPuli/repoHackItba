@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
 import { VaultShell } from "@/components/vault/VaultShell";
 import {
@@ -14,6 +14,7 @@ import {
 } from "@/components/vault/VaultPrimitives";
 import { useVaultFlow } from "@/context/VaultFlowContext";
 import { useAuth } from "@/hooks/useAuth";
+import { useWebAuthn } from "@/hooks/useWebAuthn";
 import { ApiError, postStrongboxSetup } from "@/lib/api/client";
 
 export default function SafeConfigurationPage() {
@@ -28,8 +29,19 @@ export default function SafeConfigurationPage() {
     setVaultOwnerAddress,
   } = useVaultFlow();
 
+  const {
+    loading: webauthnLoading,
+    checkStatus,
+    register: registerBiometric,
+    authenticate,
+  } = useWebAuthn(session?.access_token);
+
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (session?.access_token) void checkStatus();
+  }, [session?.access_token, checkStatus]);
 
   async function save() {
     setSaveError(null);
@@ -56,6 +68,18 @@ export default function SafeConfigurationPage() {
       heirs.some((h) => !h.wallet || !h.email);
     if (missing) {
       setSaveError("Completá email del titular, y wallet + email de cada guardián y heredero.");
+      return;
+    }
+
+    let hasCredential = await checkStatus();
+    if (hasCredential === null) {
+      setSaveError("No se pudo comprobar la verificación biométrica. Reintentá.");
+      return;
+    }
+
+    const stepUpErr = hasCredential ? await authenticate() : await registerBiometric();
+    if (stepUpErr) {
+      setSaveError(stepUpErr);
       return;
     }
 
@@ -175,8 +199,12 @@ export default function SafeConfigurationPage() {
             </div>
           </section>
 
-          <VaultPillButton onClick={save} disabled={saving}>
-            {saving ? "Guardando…" : "Save and Create Safe"}
+          <VaultPillButton onClick={save} disabled={saving || webauthnLoading}>
+            {saving
+              ? "Guardando…"
+              : webauthnLoading
+                ? "Verificando identidad…"
+                : "Save and Create Safe"}
           </VaultPillButton>
         </div>
       </VaultCard>
