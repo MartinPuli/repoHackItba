@@ -42,7 +42,9 @@ export function Providers({ children }: { children: ReactNode }) {
       <QueryClientProvider client={queryClient}>
         <LemonProvider>
           <VaultFlowProvider>
-            {children}
+            <ChainGuard>
+              {children}
+            </ChainGuard>
           </VaultFlowProvider>
         </LemonProvider>
       </QueryClientProvider>

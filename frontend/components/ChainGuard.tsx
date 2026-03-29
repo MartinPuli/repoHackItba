@@ -4,66 +4,56 @@ import { useAccount, useSwitchChain } from "wagmi";
 import { bscTestnet } from "wagmi/chains";
 import { AlertTriangle, ArrowRightLeft, Loader2 } from "lucide-react";
 import { useState, useEffect, useRef, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
 
 const TARGET_CHAIN_ID = bscTestnet.id; // 97
+
+// Pages where we don't block for wrong chain (landing, connect)
+const EXEMPT_PATHS = ["/", "/connect"];
 
 /**
  * Wraps children and blocks UI when the wallet is on the wrong chain.
  *
- * - If not connected or chainId not yet resolved → renders children (no flash)
+ * - Landing page and connect page are exempt (user hasn't started yet)
+ * - If not connected → renders children
  * - If on wrong chain → auto-attempts switch once, then shows manual button
- * - Debounces 600ms to avoid flickering during wagmi's connection settle
  */
 export function ChainGuard({ children }: { children: ReactNode }) {
   const { isConnected, chainId } = useAccount();
   const { switchChain, isPending } = useSwitchChain();
   const [error, setError] = useState<string | null>(null);
-  const [showGuard, setShowGuard] = useState(false);
   const autoSwitchAttempted = useRef(false);
-  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pathname = usePathname();
 
+  const isExempt = EXEMPT_PATHS.includes(pathname);
   const isWrongChain =
     isConnected && chainId !== undefined && chainId !== TARGET_CHAIN_ID;
 
-  // Debounce: only show the guard after the wrong chain persists for 600ms.
-  // This prevents the flash when wagmi is still settling or AppKit is auto-switching.
+  // Reset auto-switch flag when chain changes to correct one
   useEffect(() => {
-    if (debounceTimer.current) {
-      clearTimeout(debounceTimer.current);
-      debounceTimer.current = null;
-    }
-
-    if (isWrongChain) {
-      debounceTimer.current = setTimeout(() => {
-        setShowGuard(true);
-      }, 600);
-    } else {
-      setShowGuard(false);
+    if (!isWrongChain) {
       autoSwitchAttempted.current = false;
+      setError(null);
     }
-
-    return () => {
-      if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    };
   }, [isWrongChain]);
 
-  // Auto-switch once when wrong chain is detected
+  // Auto-switch once when wrong chain is detected on non-exempt pages
   useEffect(() => {
-    if (showGuard && !autoSwitchAttempted.current && switchChain) {
+    if (isWrongChain && !isExempt && !autoSwitchAttempted.current && switchChain) {
       autoSwitchAttempted.current = true;
       switchChain(
         { chainId: TARGET_CHAIN_ID },
         {
           onError() {
-            // Auto-switch failed silently — user will see the manual button
+            // Auto-switch failed — user will see the manual button
           },
         }
       );
     }
-  }, [showGuard, switchChain]);
+  }, [isWrongChain, isExempt, switchChain]);
 
-  // Don't block: not connected, chainId still resolving, or on correct chain
-  if (!showGuard) {
+  // Don't block: not connected, chain resolving, exempt page, or correct chain
+  if (!isWrongChain || isExempt) {
     return <>{children}</>;
   }
 
@@ -83,7 +73,14 @@ export function ChainGuard({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-canvas px-5">
-      <div className="w-full max-w-sm space-y-6 text-center">
+      <div className="w-full max-w-sm space-y-6 text-center animate-fade-in">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/logo-verde.png"
+          alt="Vaultix"
+          className="mx-auto h-14 w-14"
+        />
+
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-warning-light">
           <AlertTriangle className="h-8 w-8 text-amber-600" />
         </div>
@@ -92,10 +89,10 @@ export function ChainGuard({ children }: { children: ReactNode }) {
           <h2 className="text-xl font-extrabold text-ink">Wrong Network</h2>
           <p className="mt-2 text-sm leading-relaxed text-ink-muted">
             Vaultix runs on <strong>BSC Testnet</strong>. Your wallet is
-            connected to chain {chainId}.
+            connected to chain <strong>{chainId}</strong>.
           </p>
           <p className="mt-1 text-xs text-ink-faint">
-            Please switch to BSC Testnet (chain 97) to continue.
+            Click the button below to switch automatically.
           </p>
         </div>
 
