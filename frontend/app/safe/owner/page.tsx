@@ -2,7 +2,6 @@
 
 import { useMemo, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useAccount } from "wagmi";
 import type { Address } from "viem";
 import { getAddress, isAddress } from "viem";
@@ -56,7 +55,6 @@ function pickRecoveryAddress(
 }
 
 export default function SafeOwnerDashboardPage() {
-  const router = useRouter();
   const { address } = useAccount();
   const publicClient = usePublicClient();
   const { session, userId, loading: authLoading } = useAuth();
@@ -266,11 +264,7 @@ export default function SafeOwnerDashboardPage() {
     <VaultShell title="Safe Owner Dashboard" maxWidth="wide">
       {!caja && !cajaLoading && (
         <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
-          No hay caja fuerte registrada para tu usuario.{" "}
-          <Link href="/safe/configure" className="font-semibold underline">
-            Configurá guardianes y herederos
-          </Link>
-          .
+          No hay caja fuerte registrada para tu usuario.
         </div>
       )}
       {cajaErr && (
@@ -363,18 +357,6 @@ export default function SafeOwnerDashboardPage() {
               onChange={(e) => setGetHeirFilter(e.target.value)}
             />
           </VaultField>
-          <div>
-            <p className="mb-2 text-sm font-semibold text-slate-800">
-              Configuración
-            </p>
-            <VaultMintButton
-              type="button"
-              className="w-full sm:w-auto"
-              onClick={() => router.push("/safe/configure")}
-            >
-              Editar guardianes / herederos
-            </VaultMintButton>
-          </div>
         </VaultCard>
       </div>
 

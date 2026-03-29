@@ -1,55 +1,26 @@
 "use client";
 
 import {
-  useReadContract,
   useWriteContract,
   usePublicClient,
-  useAccount,
 } from "wagmi";
 import { FACTORY_ABI, STRONGBOX_ABI, CONTRACTS } from "@/lib/contracts/abis";
 import { parseEther, type Address } from "viem";
 
-export const FACTORY_ZERO =
+const ZERO_ADDRESS =
   "0x0000000000000000000000000000000000000000" as Address;
 
 export function useFactoryConfigured(): boolean {
   return (
     !!CONTRACTS.factory &&
-    CONTRACTS.factory.toLowerCase() !== FACTORY_ZERO.toLowerCase()
+    CONTRACTS.factory.toLowerCase() !== ZERO_ADDRESS.toLowerCase()
   );
-}
-
-/** Dirección StrongBox on-chain según Factory (0x0 si no hay). */
-export function useStrongBoxOnChainAddress(owner?: Address | null) {
-  const factoryOk = useFactoryConfigured();
-  const enabled = !!owner && factoryOk;
-
-  return useReadContract({
-    address: CONTRACTS.factory,
-    abi: FACTORY_ABI,
-    functionName: "getStrongBox",
-    args: owner ? [owner] : undefined,
-    query: { enabled },
-  });
-}
-
-/** Saldo nativo en el contrato StrongBox (solo lectura on-chain). */
-export function useStrongBoxContractBalance(strongBoxAddress?: Address | null) {
-  return useReadContract({
-    address: (strongBoxAddress ?? FACTORY_ZERO) as Address,
-    abi: STRONGBOX_ABI,
-    functionName: "getBalance",
-    query: {
-      enabled: !!strongBoxAddress && strongBoxAddress !== FACTORY_ZERO,
-      refetchInterval: 15_000,
-    },
-  });
 }
 
 function isFactoryReady(): boolean {
   return (
     !!CONTRACTS.factory &&
-    CONTRACTS.factory.toLowerCase() !== FACTORY_ZERO.toLowerCase()
+    CONTRACTS.factory.toLowerCase() !== ZERO_ADDRESS.toLowerCase()
   );
 }
 
@@ -112,10 +83,4 @@ export function useDepositStrongBox() {
   }
 
   return { deposit, isPending, error, publicClient };
-}
-
-/** Conveniencia: cuenta conectada como Address. */
-export function useConnectedAddress(): Address | undefined {
-  const { address } = useAccount();
-  return address;
 }
